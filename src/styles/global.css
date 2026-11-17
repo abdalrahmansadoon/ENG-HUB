@@ -645,3 +645,28 @@ html { scroll-behavior: smooth; }
   .top-avatar { width:33px;height:33px;min-width:33px;flex-basis:33px; }
   .modal-card { padding: 17px; border-radius: 16px; }
 }
+
+
+.task-complete-toggle {
+  min-height: 32px; display: inline-flex; align-items: center; justify-content: center;
+  gap: 6px; padding: 6px 10px; border-radius: 10px;
+  color: var(--muted); background: var(--surface2); border: 1px solid var(--border2);
+  font-size: 9px; font-weight: 700; white-space: nowrap;
+  transition: background .18s ease, color .18s ease, border-color .18s ease, transform .18s ease;
+}
+.task-complete-toggle:hover { color: var(--green); border-color: var(--green); transform: translateY(-1px); }
+.task-complete-toggle.completed { color: #fff; background: linear-gradient(135deg,#35c99d,#179b78); border-color: #2db98f; }
+.task-complete-toggle.completed:hover { color: #fff; }
+.theme-dark .academic-breadcrumbs,
+.theme-dark .academic-breadcrumbs button,
+.theme-dark .lecturer-card,
+.theme-dark .part-row,
+.theme-dark .academic-list-row,
+.theme-dark .task-complete-toggle { color: var(--text); }
+.theme-dark .lecturer-card-copy span,
+.theme-dark .part-row-main span,
+.theme-dark .academic-list-row small { color: var(--muted); }
+@media (max-width: 720px) {
+  .task-complete-toggle { min-width: 34px; width: 34px; padding: 6px; }
+  .task-complete-toggle span { display: none; }
+}
