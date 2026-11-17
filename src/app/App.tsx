@@ -1212,6 +1212,7 @@ function TaskModal({ subjects, userId, onClose, onSave }: {
           <div><h2 id="task-modal-title">إنشاء مهمة جديدة</h2><p>أدخل تفاصيل المهمة وموعد التسليم.</p></div>
           <button type="button" className="icon-button" onClick={onClose} aria-label="إغلاق"><X size={18}/></button>
         </div>
+        {subjects.length === 0 && <div className="inline-info"><AlertCircle size={16}/> أضف مادة دراسية أولاً من لوحة الإدارة قبل إنشاء مهمة مرتبطة بها.</div>}
         <form className="form-stack" onSubmit={submit}>
           <label>عنوان المهمة
             <input required maxLength={120} autoFocus value={title} onChange={(event) => setTitle(event.target.value)} placeholder="مثال: حل ورقة التمارين رقم 04"/>
@@ -1246,6 +1247,70 @@ function TaskModal({ subjects, userId, onClose, onSave }: {
       </section>
     </div>
   );
+}
+
+function LectureModal({ subjects, onClose, onSave }: {
+  subjects: Subject[];
+  onClose: () => void;
+  onSave: (data: { title: string; subjectId: string; subjectName: string; instructor: string; duration: string; videoUrl: string }) => void;
+}) {
+  const [title, setTitle] = useState('');
+  const [subjectId, setSubjectId] = useState(subjects[0]?.id ?? '');
+  const [instructor, setInstructor] = useState('');
+  const [duration, setDuration] = useState('');
+  const [videoUrl, setVideoUrl] = useState('');
+  const subject = subjects.find((item) => item.id === subjectId);
+
+  const submit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!subject) return;
+    onSave({ title: title.trim(), subjectId, subjectName: subject.name, instructor: instructor.trim(), duration: duration.trim(), videoUrl: videoUrl.trim() });
+  };
+
+  return <div className="modal-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
+    <section className="modal-card" role="dialog" aria-modal="true" aria-labelledby="lecture-modal-title">
+      <div className="modal-head"><div><h2 id="lecture-modal-title">إضافة محاضرة</h2><p>أدخل بيانات المحاضرة ورابط الفيديو المراد عرضه.</p></div><button type="button" className="icon-button" onClick={onClose} aria-label="إغلاق"><X size={18}/></button></div>
+      {subjects.length === 0 ? <EmptyState title="أضف مادة أولاً" body="يجب إنشاء مادة دراسية قبل إضافة محاضرات إليها."/> : <form className="form-stack" onSubmit={submit}>
+        <label>عنوان المحاضرة<input autoFocus required maxLength={120} value={title} onChange={(event) => setTitle(event.target.value)} placeholder="عنوان المحاضرة"/></label>
+        <label>المادة الدراسية<select required value={subjectId} onChange={(event) => setSubjectId(event.target.value)}>{subjects.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
+        <div className="form-row"><label>المحاضر<input required value={instructor} maxLength={100} onChange={(event) => setInstructor(event.target.value)} placeholder="اسم المحاضر"/></label><label>المدة<input required value={duration} maxLength={40} onChange={(event) => setDuration(event.target.value)} placeholder="مثال: 45 دقيقة"/></label></div>
+        <label>رابط الفيديو<input required type="url" dir="ltr" value={videoUrl} onChange={(event) => setVideoUrl(event.target.value)} placeholder="YouTube / Vimeo / MP4 URL"/></label>
+        <p className="settings-hint">يدعم المشغل روابط YouTube وVimeo وروابط MP4 أو WEBM أو MOV المباشرة.</p>
+        <div className="modal-actions"><button type="button" className="btn btn-outline" onClick={onClose}>إلغاء</button><button type="submit" className="btn btn-primary" disabled={!title.trim() || !subject || !instructor.trim() || !duration.trim() || !videoUrl.trim()}><Plus size={15}/> نشر المحاضرة</button></div>
+      </form>}
+    </section>
+  </div>;
+}
+
+function ExamModal({ subjects, onClose, onSave }: {
+  subjects: Subject[];
+  onClose: () => void;
+  onSave: (data: { title: string; subjectName: string; date: string; duration: string; questions: number }) => void;
+}) {
+  const [title, setTitle] = useState('');
+  const [subjectId, setSubjectId] = useState(subjects[0]?.id ?? '');
+  const [date, setDate] = useState('');
+  const [duration, setDuration] = useState('');
+  const [questions, setQuestions] = useState('10');
+  const subject = subjects.find((item) => item.id === subjectId);
+
+  const submit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    onSave({ title: title.trim(), subjectName: subject?.name || 'عام', date: new Date(date).toISOString(), duration: duration.trim(), questions: Math.max(1, Number(questions) || 1) });
+  };
+
+  return <div className="modal-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
+    <section className="modal-card" role="dialog" aria-modal="true" aria-labelledby="exam-modal-title">
+      <div className="modal-head"><div><h2 id="exam-modal-title">إضافة اختبار</h2><p>حدد المادة وموعد الاختبار والوقت المخصص له.</p></div><button type="button" className="icon-button" onClick={onClose} aria-label="إغلاق"><X size={18}/></button></div>
+      <form className="form-stack" onSubmit={submit}>
+        <label>عنوان الاختبار<input autoFocus required maxLength={120} value={title} onChange={(event) => setTitle(event.target.value)} placeholder="اسم الاختبار"/></label>
+        <label>المادة الدراسية<select value={subjectId} onChange={(event) => setSubjectId(event.target.value)}><option value="">اختبار عام</option>{subjects.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
+        <label>موعد الاختبار<input required type="datetime-local" value={date} onChange={(event) => setDate(event.target.value)} min={new Date().toISOString().slice(0, 16)}/></label>
+        <div className="form-row"><label>المدة<input required value={duration} onChange={(event) => setDuration(event.target.value)} placeholder="مثال: 60 دقيقة"/></label><label>عدد الأسئلة<input required type="number" min="1" max="500" value={questions} onChange={(event) => setQuestions(event.target.value)}/></label></div>
+        <div className="modal-actions"><button type="button" className="btn btn-outline" onClick={onClose}>إلغاء</button><button type="submit" className="btn btn-primary" disabled={!title.trim() || !date || !duration.trim()}><Plus size={15}/> نشر الاختبار</button></div>
+      </form>
+    </section>
+  </div>;
 }
 
 function SubjectModal({ onClose, onSave }: {
