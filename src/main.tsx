@@ -13,5 +13,19 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
 );
 
 if ('serviceWorker' in navigator && import.meta.env.PROD) {
-  window.addEventListener('load', () => { void navigator.serviceWorker.register(`${import.meta.env.BASE_URL}sw.js`).catch((error) => console.warn('ENG HUB service worker registration failed.', error)); });
+  window.addEventListener('load', () => {
+    let refreshing = false;
+    // When the updated worker takes control, reload once so the browser
+    // fetches the latest index.html and its current hashed JavaScript bundle.
+    if (navigator.serviceWorker.controller) {
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (refreshing) return;
+        refreshing = true;
+        window.location.reload();
+      });
+    }
+    void navigator.serviceWorker.register(`${import.meta.env.BASE_URL}sw.js?v=3`)
+      .then((registration) => registration.update())
+      .catch((error) => console.warn('ENG HUB service worker registration failed.', error));
+  });
 }
