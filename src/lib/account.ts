@@ -1,5 +1,5 @@
 import {
-  collection, deleteDoc, doc, getDocs, query, where, writeBatch,
+  collection, deleteDoc, doc, getDoc, getDocs, query, where, writeBatch,
   type Firestore, type QuerySnapshot, type DocumentData,
 } from 'firebase/firestore';
 
@@ -60,13 +60,16 @@ export async function deleteOwnAccountData(firestore: Firestore, uid: string): P
   }
 
   const conversationRef = doc(firestore, 'conversations', 'general');
-  const messages = await getDocs(query(
-    collection(firestore, 'conversations', 'general', 'messages'),
-    where('senderId', '==', uid),
-  ));
-  await deleteSnapshot(firestore, messages);
   const membershipRef = doc(conversationRef, 'members', uid);
-  await deleteDoc(membershipRef);
+  const membership = await getDoc(membershipRef);
+  if (membership.exists()) {
+    const messages = await getDocs(query(
+      collection(firestore, 'conversations', 'general', 'messages'),
+      where('senderId', '==', uid),
+    ));
+    await deleteSnapshot(firestore, messages);
+    await deleteDoc(membershipRef);
+  }
 
   // Remove the profile last: activeUser() rules are used to authorize cleanup.
   await deleteDoc(doc(firestore, 'users', uid));
