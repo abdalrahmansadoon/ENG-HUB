@@ -95,35 +95,51 @@ export function subscribeExams(onData: (items: Exam[]) => void, onError: (error:
 }
 
 
+type IndexedLibraryFile = LibraryFile & { __sortAt: number };
+
+function mapLibraryFile(entry: { id: string; data: () => Record<string, any> }): IndexedLibraryFile {
+  const data = entry.data();
+  const updated = data.updatedAt?.toDate?.() ?? data.createdAt?.toDate?.() ?? new Date(0);
+  return {
+    id: entry.id,
+    name: String(data.name ?? 'ملف بدون اسم'),
+    type: data.type ?? 'PDF',
+    subjectName: String(data.subjectName ?? ''),
+    size: String(data.size ?? ''),
+    updatedAt: updated.toLocaleDateString('ar-EG'),
+    url: typeof data.url === 'string' ? data.url : undefined,
+    __sortAt: updated.getTime(),
+  } as IndexedLibraryFile;
+}
+
 export function subscribeFiles(uid: string, isAdmin: boolean, onData: (items: LibraryFile[]) => void, onError: (error: Error) => void): Unsubscribe | undefined {
   if (!db) return;
   const base = collection(db, 'files');
-  const mapSnapshot = (snapshot: Awaited<ReturnType<typeof getDocs>>) =>
-    snapshot.docs.map((entry) => ({ id: entry.id, ...entry.data() } as LibraryFile));
 
   if (isAdmin) {
     return onSnapshot(query(base, orderBy('createdAt', 'desc')), (snapshot) => {
-      onData(snapshot.docs.map((entry) => ({ id: entry.id, ...entry.data() } as LibraryFile)));
+      onData(snapshot.docs.map((entry) => {
+        const { __sortAt, ...file } = mapLibraryFile(entry);
+        return file;
+      }));
     }, onError);
   }
 
-  let publicFiles: LibraryFile[] = [];
-  let ownFiles: LibraryFile[] = [];
+  let publicFiles: IndexedLibraryFile[] = [];
+  let ownFiles: IndexedLibraryFile[] = [];
   const publish = () => {
-    const merged = new Map<string, LibraryFile>();
+    const merged = new Map<string, IndexedLibraryFile>();
     for (const file of [...publicFiles, ...ownFiles]) merged.set(file.id, file);
-    onData([...merged.values()].sort((a, b) => {
-      const left = a.updatedAt || '';
-      const right = b.updatedAt || '';
-      return right.localeCompare(left);
-    }));
+    onData([...merged.values()]
+      .sort((a, b) => b.__sortAt - a.__sortAt)
+      .map(({ __sortAt, ...file }) => file));
   };
   const stopPublic = onSnapshot(query(base, where('visibility', '==', 'public')), (snapshot) => {
-    publicFiles = snapshot.docs.map((entry) => ({ id: entry.id, ...entry.data() } as LibraryFile));
+    publicFiles = snapshot.docs.map(mapLibraryFile);
     publish();
   }, onError);
   const stopOwn = onSnapshot(query(base, where('ownerId', '==', uid)), (snapshot) => {
-    ownFiles = snapshot.docs.map((entry) => ({ id: entry.id, ...entry.data() } as LibraryFile));
+    ownFiles = snapshot.docs.map(mapLibraryFile);
     publish();
   }, onError);
   return () => { stopPublic(); stopOwn(); };
