@@ -979,9 +979,10 @@ function NotificationsPage({ items, setItems }: { items: AppNotification[]; setI
   return <><PageHeader eyebrow="UPDATES" title="الإشعارات" description="آخر التحديثات والتنبيهات الخاصة بموادك ومهامك." action={<button className="btn btn-outline" onClick={() => setItems((all) => all.map((item) => ({ ...item, read: true })))}><Check size={15}/> تحديد الكل كمقروء</button>}/><div className="panel notifications-panel">{items.map((item) => { const Icon = iconForKind[item.kind]; return <div className={`notification-row ${item.read ? '' : 'unread'}`} key={item.id}><div className={`notification-kind kind-${item.kind}`}><Icon size={18}/></div><div><b>{item.title}</b><p>{item.body}</p><span>{item.time}</span></div><div className="notification-actions">{!item.read && <i/>}<button className="icon-button" onClick={() => setItems((all) => all.map((n) => n.id === item.id ? { ...n, read: !n.read } : n))}>{item.read ? <Check size={15}/> : <MoreHorizontal size={18}/>}</button></div></div>; })}{items.length === 0 && <EmptyState title="لا توجد إشعارات" body="ستظهر هنا التحديثات الجديدة."/>}</div></>;
 }
 
-function AdminPage({ tasks, subjects, lectures, exams, files, currentUser, cloudinarySettings, onNewTask, onAddSubject, onAddLecture, onAddExam, onSaved, onError }: {
+function AdminPage({ tasks, subjects, lecturers, lectures, exams, files, currentUser, cloudinarySettings, onNewTask, onAddSubject, onAddLecturer, onAddLecture, onAddExam, onSaved, onError }: {
   tasks: StudyTask[];
   subjects: Subject[];
+  lecturers: Lecturer[];
   lectures: Lecture[];
   exams: Exam[];
   files: LibraryFile[];
@@ -989,6 +990,7 @@ function AdminPage({ tasks, subjects, lectures, exams, files, currentUser, cloud
   cloudinarySettings: CloudinarySettings;
   onNewTask: () => void;
   onAddSubject: () => void;
+  onAddLecturer: () => void;
   onAddLecture: () => void;
   onAddExam: () => void;
   onSaved: () => void;
@@ -1050,7 +1052,8 @@ function AdminPage({ tasks, subjects, lectures, exams, files, currentUser, cloud
       <div className="admin-quick-grid">
         <button onClick={onAddSubject}><div><BookOpen size={19}/></div><b>إضافة مادة</b><span>إنشاء مقرر دراسي</span></button>
         <button onClick={onNewTask}><div><ListChecks size={19}/></div><b>إنشاء مهمة</b><span>نشر تكليف للطلاب</span></button>
-        <button onClick={onAddLecture}><div><Video size={19}/></div><b>إضافة محاضرة</b><span>رابط فيديو من YouTube أو Vimeo أو ملف فيديو</span></button>
+        <button onClick={onAddLecturer} disabled={subjects.length === 0}><div><GraduationCap size={19}/></div><b>إضافة مدرس</b><span>ربط مدرس بمادة دراسية</span></button>
+        <button onClick={onAddLecture} disabled={lecturers.length === 0}><div><Video size={19}/></div><b>إضافة محاضرة</b><span>إنشاء محاضرة تحت مدرس</span></button>
         <button onClick={onAddExam}><div><ClipboardList size={19}/></div><b>إضافة اختبار</b><span>حدد المادة والموعد والمدة</span></button>
       </div>
       <div className="panel admin-content-list admin-storage-summary"><div className="panel-head"><div><h3>حالة المكتبة</h3><span>أرقام فعلية من المحتوى المسجل</span></div></div><div className="admin-summary-numbers"><div><b>{files.length}</b><span>ملف</span></div><div><b>{subjects.reduce((sum, subject) => sum + subject.lectures, 0)}</b><span>عدد المحاضرات المرتبطة بالمواد</span></div></div></div>
@@ -1062,8 +1065,13 @@ function AdminPage({ tasks, subjects, lectures, exams, files, currentUser, cloud
         {subjects.length === 0 && <EmptyState title="لا توجد مواد بعد" body="ابدأ بإضافة أول مادة دراسية."/ >}
       </div>
       <div className="panel admin-content-list">
-        <div className="panel-head"><div><h3>المحاضرات</h3><span>أضف روابط الفيديو داخل المقررات</span></div><button className="btn btn-primary btn-small" onClick={onAddLecture} disabled={subjects.length === 0}><Plus size={14}/> إضافة محاضرة</button></div>
-        {lectures.map((lecture) => <div className="admin-list-row" key={lecture.id}><div className="admin-task-symbol"><Video size={17}/></div><div><b>{lecture.title}</b><span>{lecture.subjectName} · {lecture.instructor}</span></div><span>{lecture.duration}</span><a className="admin-external-link" href={lecture.videoUrl} target="_blank" rel="noreferrer">فتح الرابط</a></div>)}
+        <div className="panel-head"><div><h3>المدرسون</h3><span>كل مدرس مرتبط بمادة مستقلة</span></div><button className="btn btn-primary btn-small" onClick={onAddLecturer} disabled={subjects.length === 0}><Plus size={14}/> إضافة مدرس</button></div>
+        {lecturers.map((lecturer) => <div className="admin-list-row" key={lecturer.id}><div className="admin-task-symbol"><GraduationCap size={17}/></div><div><b>{lecturer.name}</b><span>{lecturer.subjectName}</span></div><span>{lectures.filter((item) => item.lecturerId === lecturer.id).length} محاضرة</span></div>)}
+        {lecturers.length === 0 && <EmptyState title="لا يوجد مدرسون بعد" body="أضف مدرساً داخل صفحة المادة الدراسية."/ >}
+      </div>
+      <div className="panel admin-content-list">
+        <div className="panel-head"><div><h3>المحاضرات</h3><span>أجزاء الفيديو تضاف داخل المحاضرة نفسها</span></div><button className="btn btn-primary btn-small" onClick={onAddLecture} disabled={lecturers.length === 0}><Plus size={14}/> إضافة محاضرة</button></div>
+        {lectures.map((lecture) => <div className="admin-list-row" key={lecture.id}><div className="admin-task-symbol"><Video size={17}/></div><div><b>{lecture.title}</b><span>{lecture.subjectName} · {lecture.lecturerName || lecture.instructor || 'بدون مدرس'}</span></div><span>{lecture.partsCount ?? lecture.parts ?? 0} أجزاء</span></div>)}
         {lectures.length === 0 && <EmptyState title="لا توجد محاضرات بعد" body="أضف محاضرة واربطها برابط فيديو."/ >}
       </div>
       <div className="panel admin-content-list">
