@@ -99,7 +99,7 @@ service cloud.firestore {
     match /tasks/{taskId} {
       allow read: if activeUser() && (isAdmin() || resource.data.assignedTo.hasAny([request.auth.uid]) || resource.data.createdBy == request.auth.uid);
       allow create: if isAdmin() || (activeUser() && request.resource.data.createdBy == request.auth.uid && request.resource.data.type == 'personal' && request.resource.data.assignedTo.hasAny([request.auth.uid]));
-      allow update: if isAdmin() || (activeUser() && resource.data.createdBy == request.auth.uid && resource.data.type == 'personal' && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['title', 'description', 'priority', 'dueAt', 'updatedAt']));
+      allow update: if isAdmin() || (activeUser() && resource.data.createdBy == request.auth.uid && resource.data.type == 'personal' && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['title', 'description', 'priority', 'startAt', 'dueAt', 'updatedAt']));
       allow delete: if isAdmin() || (activeUser() && resource.data.createdBy == request.auth.uid && resource.data.type == 'personal');
       match /assignments/{userId} {
         allow read: if activeUser() && (owns(userId) || isAdmin() || isModerator());
