@@ -1,0 +1,224 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() { return request.auth != null; }
+    function adminPath() {
+      return /databases/$(database)/documents/admins/$(request.auth.token.email);
+    }
+    function hasActiveAdminRecord() {
+      return signedIn()
+        && request.auth.token.email is string
+        && exists(adminPath())
+        && get(adminPath()).data.email == request.auth.token.email
+        && get(adminPath()).data.active == true;
+    }
+    function role() {
+      return hasActiveAdminRecord() ? get(adminPath()).data.role : (signedIn() ? request.auth.token.role : null);
+    }
+    function isAdmin() {
+      return hasActiveAdminRecord() && (role() == 'admin' || role() == 'super-admin');
+    }
+    function isSuperAdmin() { return hasActiveAdminRecord() && role() == 'super-admin'; }
+    function isModerator() { return signedIn() && (role() == 'moderator' || isAdmin()); }
+    function activeUser() {
+      return signedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.status == 'active';
+    }
+    function owns(userId) { return signedIn() && request.auth.uid == userId; }
+
+    // Admin documents are provisioned manually in Firebase Console, never from the client.
+    match /admins/{email} {
+      allow get: if signedIn() && request.auth.token.email == email;
+      allow list: if isSuperAdmin();
+      allow create, update, delete: if false;
+    }
+
+    match /users/{userId} {
+      allow create: if owns(userId)
+        && request.resource.data.role == 'student'
+        && request.resource.data.status == 'active';
+      allow read: if owns(userId) || isAdmin() || (activeUser() && resource.data.profileVisibility == 'public');
+      allow update: if owns(userId)
+        && request.resource.data.role == resource.data.role
+        && request.resource.data.status == resource.data.status
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'displayName', 'username', 'photoURL', 'bio', 'academicYear', 'term',
+          'locale', 'theme', 'notificationPreferences', 'privacy', 'updatedAt'
+        ])
+        || isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    match /roles/{roleId} {
+      allow read: if isAdmin();
+      allow write: if false;
+    }
+
+    match /academicYears/{yearId} {
+      allow read: if activeUser();
+      allow write: if isAdmin();
+      match /terms/{termId} {
+        allow read: if activeUser();
+        allow write: if isAdmin();
+      }
+    }
+
+    match /subjects/{subjectId} {
+      allow read: if activeUser() && (resource.data.isPublished == true || isAdmin());
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /lecturers/{lecturerId} {
+      allow read: if activeUser();
+      allow write: if isAdmin();
+    }
+
+    match /groups/{groupId} {
+      allow read: if activeUser() && (isAdmin() || exists(/databases/$(database)/documents/groups/$(groupId)/members/$(request.auth.uid)));
+      allow create, update, delete: if isAdmin();
+      match /members/{userId} {
+        allow read: if activeUser() && (owns(userId) || isModerator());
+        allow write: if activeUser() && isModerator();
+      }
+    }
+
+    match /lectures/{lectureId} {
+      allow read: if activeUser() && (resource.data.publicationStatus == 'published' || isAdmin());
+      allow create, update, delete: if isAdmin();
+      match /parts/{partId} {
+        allow read: if activeUser() && (get(/databases/$(database)/documents/lectures/$(lectureId)).data.publicationStatus == 'published' || isAdmin());
+        allow write: if isAdmin();
+      }
+      match /resources/{resourceId} {
+        allow read: if activeUser() && (get(/databases/$(database)/documents/lectures/$(lectureId)).data.publicationStatus == 'published' || isAdmin());
+        allow write: if isAdmin();
+      }
+    }
+
+    match /tasks/{taskId} {
+      allow read: if activeUser() && (isAdmin() || (resource.data.status == 'published' && resource.data.assignedTo.hasAny([request.auth.uid])) || resource.data.createdBy == request.auth.uid);
+      allow create: if isAdmin() || (activeUser() && request.resource.data.createdBy == request.auth.uid && request.resource.data.type == 'personal' && request.resource.data.assignedTo.hasAny([request.auth.uid]));
+      allow update: if isAdmin() || (activeUser() && resource.data.createdBy == request.auth.uid && resource.data.type == 'personal' && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['title', 'description', 'priority', 'dueAt', 'updatedAt']));
+      allow delete: if isAdmin();
+      match /assignments/{userId} {
+        allow read: if activeUser() && (owns(userId) || isAdmin() || isModerator());
+        allow create: if isAdmin() || (owns(userId) && request.resource.data.userId == userId && get(/databases/$(database)/documents/tasks/$(taskId)).data.assignedTo.hasAny([request.auth.uid]));
+        allow update: if isAdmin() || (activeUser() && owns(userId) && request.resource.data.userId == resource.data.userId && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'status', 'startedAt', 'submittedAt', 'submissionText', 'submissionFiles', 'updatedAt'
+        ]));
+        allow delete: if isAdmin();
+      }
+      match /submissions/{submissionId} {
+        allow read: if activeUser() && (resource.data.userId == request.auth.uid || isModerator());
+        allow create: if activeUser() && request.resource.data.userId == request.auth.uid
+          && get(/databases/$(database)/documents/tasks/$(taskId)).data.assignedTo.hasAny([request.auth.uid]);
+        allow update: if isModerator();
+        allow delete: if isAdmin();
+      }
+      match /comments/{commentId} {
+        allow read: if activeUser() && (isModerator() || get(/databases/$(database)/documents/tasks/$(taskId)).data.assignedTo.hasAny([request.auth.uid]) || get(/databases/$(database)/documents/tasks/$(taskId)).data.createdBy == request.auth.uid);
+        allow create: if activeUser() && request.resource.data.authorId == request.auth.uid
+          && (get(/databases/$(database)/documents/tasks/$(taskId)).data.assignedTo.hasAny([request.auth.uid]) || isModerator() || get(/databases/$(database)/documents/tasks/$(taskId)).data.createdBy == request.auth.uid);
+        allow update: if isModerator() || (activeUser() && resource.data.authorId == request.auth.uid
+        && request.resource.data.authorId == resource.data.authorId
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['text', 'editedAt', 'updatedAt']));
+      allow delete: if isModerator() || (activeUser() && resource.data.authorId == request.auth.uid);
+      }
+      match /activity/{activityId} {
+        allow read: if isAdmin() || isModerator() || (signedIn() && resource.data.userId == request.auth.uid);
+        allow write: if false;
+      }
+    }
+
+    match /exams/{examId} {
+      allow read: if activeUser() && (resource.data.publicationStatus == 'published' || isAdmin());
+      allow create, update, delete: if isAdmin();
+      match /questions/{questionId} {
+        allow read: if activeUser() && (resource.data.isVisible == true || isAdmin());
+        allow write: if isAdmin();
+      }
+      match /attempts/{attemptId} {
+        allow read: if isAdmin() || (activeUser() && resource.data.userId == request.auth.uid);
+        allow create: if activeUser() && request.resource.data.userId == request.auth.uid
+          && get(/databases/$(database)/documents/exams/$(examId)).data.publicationStatus == 'published';
+        allow update: if isAdmin() || (activeUser() && resource.data.userId == request.auth.uid && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['answers', 'savedAt', 'submittedAt']));
+        allow delete: if isAdmin();
+      }
+    }
+
+    match /files/{fileId} {
+      allow read: if activeUser() && (resource.data.visibility == 'public' || resource.data.ownerId == request.auth.uid || isModerator());
+      allow create: if activeUser() && request.resource.data.ownerId == request.auth.uid;
+      allow update: if isAdmin() || (activeUser() && resource.data.ownerId == request.auth.uid && request.resource.data.ownerId == resource.data.ownerId && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'updatedAt']));
+      allow delete: if isAdmin() || (activeUser() && resource.data.ownerId == request.auth.uid);
+    }
+
+    match /conversations/{conversationId} {
+      allow read: if activeUser() && exists(/databases/$(database)/documents/conversations/$(conversationId)/members/$(request.auth.uid));
+      allow create: if activeUser() && request.resource.data.createdBy == request.auth.uid;
+      allow update: if isModerator() || (activeUser() && resource.data.createdBy == request.auth.uid && request.resource.data.createdBy == resource.data.createdBy);
+      allow delete: if isAdmin();
+      match /members/{userId} {
+        allow read: if activeUser() && (owns(userId) || isModerator());
+        allow write: if isModerator() || (activeUser() && get(/databases/$(database)/documents/conversations/$(conversationId)).data.createdBy == request.auth.uid);
+      }
+      match /messages/{messageId} {
+        allow read: if activeUser() && exists(/databases/$(database)/documents/conversations/$(conversationId)/members/$(request.auth.uid));
+        allow create: if activeUser()
+          && exists(/databases/$(database)/documents/conversations/$(conversationId)/members/$(request.auth.uid))
+          && request.resource.data.senderId == request.auth.uid;
+        allow update: if isModerator() || (activeUser() && resource.data.senderId == request.auth.uid && request.resource.data.senderId == resource.data.senderId && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['text', 'editedAt', 'reactions', 'attachments']));
+        allow delete: if isModerator() || (activeUser() && resource.data.senderId == request.auth.uid);
+      }
+    }
+
+    match /notifications/{notificationId} {
+      allow read, delete: if activeUser() && resource.data.userId == request.auth.uid;
+      allow update: if activeUser() && resource.data.userId == request.auth.uid
+        && request.resource.data.userId == resource.data.userId
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read', 'readAt', 'updatedAt']);
+      allow create: if false;
+    }
+    match /devices/{deviceId} {
+      allow read, delete: if activeUser() && resource.data.userId == request.auth.uid;
+      allow update: if activeUser() && resource.data.userId == request.auth.uid
+        && request.resource.data.userId == resource.data.userId
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['token', 'platform', 'lastSeenAt', 'updatedAt', 'userAgent']);
+      allow create: if activeUser() && request.resource.data.userId == request.auth.uid;
+    }
+    match /studySessions/{sessionId} {
+      allow read, delete: if activeUser() && resource.data.userId == request.auth.uid;
+      allow update: if activeUser() && resource.data.userId == request.auth.uid && request.resource.data.userId == resource.data.userId;
+      allow create: if activeUser() && request.resource.data.userId == request.auth.uid;
+    }
+    match /notes/{noteId} {
+      allow read, delete: if activeUser() && resource.data.userId == request.auth.uid;
+      allow update: if activeUser() && resource.data.userId == request.auth.uid && request.resource.data.userId == resource.data.userId;
+      allow create: if activeUser() && request.resource.data.userId == request.auth.uid;
+    }
+    match /flashcardDecks/{deckId} {
+      allow read: if activeUser() && (resource.data.visibility == 'public' || resource.data.ownerId == request.auth.uid);
+      allow create: if activeUser() && request.resource.data.ownerId == request.auth.uid;
+      allow update: if activeUser() && resource.data.ownerId == request.auth.uid && request.resource.data.ownerId == resource.data.ownerId;
+      allow delete: if activeUser() && resource.data.ownerId == request.auth.uid;
+      match /cards/{cardId} {
+        allow read, write: if activeUser() && get(/databases/$(database)/documents/flashcardDecks/$(deckId)).data.ownerId == request.auth.uid;
+      }
+    }
+    match /announcements/{announcementId} {
+      allow read: if activeUser() && resource.data.status == 'published';
+      allow write: if isAdmin();
+    }
+    match /reports/{reportId} {
+      allow create: if signedIn() && request.resource.data.reporterId == request.auth.uid;
+      allow read, update, delete: if isModerator();
+    }
+    match /auditLogs/{logId} {
+      allow read: if isAdmin();
+      allow write: if false;
+    }
+    match /systemSettings/{settingId} {
+      allow read: if activeUser();
+      allow write: if settingId == 'cloudinary' && isAdmin();
+    }
+  }
+}

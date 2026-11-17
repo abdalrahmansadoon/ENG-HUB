@@ -1,0 +1,172 @@
+import {
+  addDoc, collection, doc, getDoc, getDocs, onSnapshot, orderBy, query,
+  serverTimestamp, setDoc, writeBatch, where, type Unsubscribe,
+} from 'firebase/firestore';
+import { db } from './firebase';
+import type { Exam, Lecture, LibraryFile, StudyTask, Subject, TaskStatus } from '../types';
+
+function requireDb() {
+  if (!db) throw new Error('Firebase غير متصل.');
+  return db;
+}
+
+export function subscribeTasks(uid: string, isAdmin: boolean, onData: (items: StudyTask[]) => void, onError: (error: Error) => void): Unsubscribe | undefined {
+  if (!db) return;
+  const base = collection(db, 'tasks');
+  const baseQuery = isAdmin
+    ? query(base, orderBy('createdAt', 'desc'))
+    : query(base, where('status', '==', 'published'), where('assignedTo', 'array-contains', uid), orderBy('dueAt', 'asc'));
+
+  let taskDocs: StudyTask[] = [];
+  const assignmentStatuses = new Map<string, TaskStatus>();
+  const assignmentStops = new Map<string, Unsubscribe>();
+  const publish = () => onData(taskDocs.map((task) => ({
+    ...task,
+    status: assignmentStatuses.get(task.id) ?? task.status ?? 'not-started',
+  })));
+
+  const stopTasks = onSnapshot(baseQuery, (snapshot) => {
+    taskDocs = snapshot.docs.map((entry) => {
+      const data = entry.data();
+      const due = data.dueAt?.toDate?.() ?? (data.dueAt ? new Date(data.dueAt) : new Date());
+      const created = data.createdAt?.toDate?.() ?? (data.createdAt ? new Date(data.createdAt) : new Date());
+      return {
+        id: entry.id,
+        title: String(data.title ?? 'مهمة بدون عنوان'),
+        description: String(data.description ?? ''),
+        subjectId: String(data.subjectId ?? ''),
+        subjectName: String(data.subjectName ?? ''),
+        priority: data.priority ?? 'normal',
+        status: data.statusByDefault ?? 'not-started',
+        dueAt: due.toISOString(),
+        assignedTo: Array.isArray(data.assignedTo) ? data.assignedTo : [],
+        createdBy: String(data.createdBy ?? ''),
+        createdAt: created.toISOString(),
+      } as StudyTask;
+    });
+
+    const currentIds = new Set(taskDocs.map((task) => task.id));
+    for (const [taskId, stop] of assignmentStops) {
+      if (!currentIds.has(taskId)) {
+        stop();
+        assignmentStops.delete(taskId);
+        assignmentStatuses.delete(taskId);
+      }
+    }
+    for (const task of taskDocs) {
+      if (assignmentStops.has(task.id)) continue;
+      const assignmentRef = doc(db!, 'tasks', task.id, 'assignments', uid);
+      const stop = onSnapshot(assignmentRef, (assignment) => {
+        const status = assignment.exists() ? assignment.data().status as TaskStatus | undefined : undefined;
+        if (status) assignmentStatuses.set(task.id, status);
+        else assignmentStatuses.delete(task.id);
+        publish();
+      }, onError);
+      assignmentStops.set(task.id, stop);
+    }
+    publish();
+  }, onError);
+
+  return () => {
+    stopTasks();
+    assignmentStops.forEach((stop) => stop());
+    assignmentStops.clear();
+    assignmentStatuses.clear();
+  };
+}
+
+export function subscribeSubjects(isAdmin: boolean, onData: (items: Subject[]) => void, onError: (error: Error) => void): Unsubscribe | undefined {
+  if (!db) return;
+  const ref = collection(db, 'subjects');
+  const q = isAdmin ? query(ref, orderBy('sortOrder', 'asc')) : query(ref, where('isPublished', '==', true), orderBy('sortOrder', 'asc'));
+  return onSnapshot(q, (snapshot) => onData(snapshot.docs.map((entry) => ({ id: entry.id, ...entry.data() } as Subject))), onError);
+}
+
+export function subscribeLectures(onData: (items: Lecture[]) => void, onError: (error: Error) => void): Unsubscribe | undefined {
+  if (!db) return;
+  const q = query(collection(db, 'lectures'), where('publicationStatus', '==', 'published'), orderBy('createdAt', 'desc'));
+  return onSnapshot(q, (snapshot) => onData(snapshot.docs.map((entry) => { const data = entry.data(); const date = data.createdAt?.toDate?.() ?? new Date(); return { id: entry.id, ...data, date: date.toLocaleDateString('ar-EG', { day: 'numeric', month: 'long', year: 'numeric' }) } as Lecture; })), onError);
+}
+
+export function subscribeExams(onData: (items: Exam[]) => void, onError: (error: Error) => void): Unsubscribe | undefined {
+  if (!db) return;
+  const q = query(collection(db, 'exams'), where('publicationStatus', '==', 'published'), orderBy('startAt', 'asc'));
+  return onSnapshot(q, (snapshot) => onData(snapshot.docs.map((entry) => { const data = entry.data(); const start = data.startAt?.toDate?.() ?? new Date(); return { id: entry.id, ...data, date: start.toISOString(), status: data.examStatus ?? 'upcoming' } as Exam; })), onError);
+}
+
+
+export function subscribeFiles(uid: string, onData: (items: LibraryFile[]) => void, onError: (error: Error) => void): Unsubscribe | undefined {
+  if (!db) return;
+  const q = query(collection(db, 'files'), where('ownerId', '==', uid), orderBy('createdAt', 'desc'));
+  return onSnapshot(q, (snapshot) => onData(snapshot.docs.map((entry) => ({ id: entry.id, ...entry.data() } as LibraryFile))), onError);
+}
+
+export async function createTaskCloud(task: Omit<StudyTask, 'id' | 'createdAt' | 'createdBy'>, uid: string, displayName: string, isAdmin: boolean) {
+  const firestore = requireDb();
+  let assigned = task.assignedTo.length ? [...new Set(task.assignedTo)] : [uid];
+
+  // General tasks must contain the actual student UIDs on the parent record;
+  // otherwise student queries and Firestore read rules would hide the task.
+  if (isAdmin) {
+    const students = await getDocs(query(
+      collection(firestore, 'users'),
+      where('role', '==', 'student'),
+      where('status', '==', 'active'),
+    ));
+    assigned = students.docs.map((student) => student.id);
+  }
+
+  const taskRef = doc(collection(firestore, 'tasks'));
+  await setDoc(taskRef, {
+    title: task.title,
+    description: task.description,
+    subjectId: task.subjectId,
+    subjectName: task.subjectName,
+    type: isAdmin ? 'general' : 'personal',
+    priority: task.priority,
+    createdBy: uid,
+    createdByName: displayName,
+    startAt: serverTimestamp(),
+    dueAt: new Date(task.dueAt),
+    status: 'published',
+    statusByDefault: 'not-started',
+    assignedTo: assigned,
+    reviewRequired: true,
+    allowComments: true,
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  });
+
+  // Firestore batches are limited to 500 writes; keep a safety margin.
+  for (let offset = 0; offset < assigned.length; offset += 450) {
+    const batch = writeBatch(firestore);
+    for (const userId of assigned.slice(offset, offset + 450)) {
+      batch.set(doc(firestore, 'tasks', taskRef.id, 'assignments', userId), {
+        userId,
+        status: 'not-started',
+        assignedAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      });
+    }
+    await batch.commit();
+  }
+  return taskRef.id;
+}
+
+export async function updateTaskStatusCloud(taskId: string, uid: string, status: TaskStatus) {
+  await setDoc(doc(requireDb(), 'tasks', taskId, 'assignments', uid), { userId: uid, status, updatedAt: serverTimestamp() }, { merge: true });
+}
+
+export async function createSubjectCloud(subject: Omit<Subject, 'id' | 'lectures' | 'progress'>) {
+  return addDoc(collection(requireDb(), 'subjects'), {
+    ...subject, academicYearId: 'prep', termId: 'term1', isPublished: true,
+    sortOrder: Date.now(), createdAt: serverTimestamp(), updatedAt: serverTimestamp(),
+  });
+}
+
+export async function saveFileMetadataCloud(file: LibraryFile, ownerId: string) {
+  await addDoc(collection(requireDb(), 'files'), {
+    name: file.name, type: file.type, subjectName: file.subjectName, size: file.size,
+    url: file.url ?? null, ownerId, visibility: 'private', createdAt: serverTimestamp(), updatedAt: serverTimestamp(),
+  });
+}
