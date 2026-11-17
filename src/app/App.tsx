@@ -388,18 +388,44 @@ function TaskRow({ task, onStatus }: { task: StudyTask; onStatus: (id: string, s
   return <div className="task-row"><div className={`task-subject-dot dot-${task.subjectId}`}/><div className="task-row-copy"><b>{task.title}</b><span>{task.subjectName} <i>•</i> {due.toLocaleDateString('ar-EG', { day: 'numeric', month: 'short' })}</span></div><span className={`priority-badge priority-${task.priority}`}>{priorityText[task.priority]}</span><div className="task-status-control"><button className={`status-chip status-${task.status}`} onClick={() => setOpen(!open)}>{statusText[task.status]} <ChevronDown size={12}/></button>{open && <div className="status-menu">{(['not-started', 'in-progress', 'submitted', 'completed'] as TaskStatus[]).map((status) => <button key={status} onClick={() => { onStatus(task.id, status); setOpen(false); }}>{statusText[status]}</button>)}</div>}</div></div>;
 }
 
-function TasksPage({ tasks, onNew, onStatus }: { tasks: StudyTask[]; onNew: () => void; onStatus: (id: string, status: TaskStatus) => void }) {
+function TasksPage({ tasks, onNew, onStatus, onDelete, canEdit }: {
+  tasks: StudyTask[];
+  onNew: () => void;
+  onStatus: (id: string, status: TaskStatus) => void;
+  onDelete: (id: string) => void;
+  canEdit: boolean;
+}) {
   const [filter, setFilter] = useState('all');
   const [query, setQuery] = useState('');
-  const filtered = tasks.filter((task) => (filter === 'all' || (filter === 'pending' ? task.status !== 'completed' : task.status === filter)) && `${task.title} ${task.subjectName}`.toLowerCase().includes(query.toLowerCase()));
+  const filtered = tasks.filter((task) => (filter === 'all' || (filter === 'pending' ? task.status !== 'completed' : task.status === filter)) && (task.title + ' ' + task.subjectName).toLowerCase().includes(query.toLowerCase()));
   return <>
-    <PageHeader eyebrow="TASK MANAGEMENT" title="إدارة المهام" description="كل واجباتك وتسليماتك في مساحة واحدة. رتب أولوياتك وتابع إنجازك." action={<button className="btn btn-primary" onClick={onNew}><Plus size={16}/> إنشاء مهمة</button>}/>
+    <PageHeader eyebrow="TASK MANAGEMENT" title="إدارة المهام" description="المهام التي نشرها مدير المنصة أو أضفتها إلى خطتك." action={canEdit ? <button className="btn btn-primary" onClick={onNew}><Plus size={16}/> إنشاء مهمة</button> : undefined}/>
     <div className="task-overview-strip"><div><b>{tasks.length}</b><span>إجمالي المهام</span></div><div><b>{tasks.filter((t) => t.status === 'completed').length}</b><span>مكتملة</span></div><div><b>{tasks.filter((t) => t.status === 'in-progress').length}</b><span>قيد التنفيذ</span></div><div><b>{tasks.filter((t) => t.status === 'under-review').length}</b><span>قيد المراجعة</span></div><div><b>{tasks.filter((t) => new Date(t.dueAt) < new Date() && t.status !== 'completed').length}</b><span>متأخرة</span></div></div>
-    <div className="panel table-panel"><div className="table-toolbar"><div className="filter-tabs">{[{ id: 'all', label: 'الكل' }, { id: 'pending', label: 'غير مكتملة' }, { id: 'completed', label: 'مكتملة' }, { id: 'under-review', label: 'قيد المراجعة' }].map((tab) => <button key={tab.id} className={filter === tab.id ? 'filter-tab active' : 'filter-tab'} onClick={() => setFilter(tab.id)}>{tab.label}</button>)}</div><div className="table-tools"><div className="inline-search"><Search size={15}/><input placeholder="ابحث في المهام" value={query} onChange={(e) => setQuery(e.target.value)}/></div><button className="filter-button"><SlidersHorizontal size={15}/> تصفية</button></div></div>
-      <div className="tasks-table"><div className="table-head"><span>المهمة</span><span>المادة</span><span>الأولوية</span><span>موعد التسليم</span><span>الحالة</span><span/></div>{filtered.map((task) => <div className="table-row" key={task.id}><div className="table-task"><div className="task-check" onClick={() => onStatus(task.id, task.status === 'completed' ? 'in-progress' : 'completed')}><Check size={13}/></div><div><b>{task.title}</b><span>أُضيفت {new Date(task.createdAt).toLocaleDateString('ar-EG')}</span></div></div><span className="table-secondary">{task.subjectName}</span><span><i className={`priority-dot priority-dot-${task.priority}`}/>{priorityText[task.priority]}</span><span className="table-secondary">{new Date(task.dueAt).toLocaleDateString('ar-EG', { day: 'numeric', month: 'short' })}</span><span><span className={`status-chip status-${task.status}`}>{statusText[task.status]}</span></span><button className="icon-button"><MoreHorizontal size={17}/></button></div>)}{filtered.length === 0 && <EmptyState title="لا توجد نتائج" body="جرب تغيير عبارة البحث أو الفلتر."/>}</div>
+    <div className="panel table-panel"><div className="table-toolbar"><div className="filter-tabs">{[{ id: 'all', label: 'الكل' }, { id: 'pending', label: 'غير مكتملة' }, { id: 'completed', label: 'مكتملة' }, { id: 'under-review', label: 'قيد المراجعة' }].map((tab) => <button key={tab.id} className={filter === tab.id ? 'filter-tab active' : 'filter-tab'} onClick={() => setFilter(tab.id)}>{tab.label}</button>)}</div><div className="table-tools"><div className="inline-search"><Search size={15}/><input placeholder="ابحث في المهام" value={query} onChange={(e) => setQuery(e.target.value)}/></div></div></div>
+      <div className="tasks-table"><div className="table-head"><span>المهمة</span><span>المادة</span><span>الأولوية</span><span>موعد التسليم</span><span>الحالة</span><span/></div>{filtered.map((task) => <div className="table-row" key={task.id}><div className="table-task"><button type="button" className="task-check" onClick={() => onStatus(task.id, task.status === 'completed' ? 'in-progress' : 'completed')} aria-label="تغيير حالة المهمة"><Check size={13}/></button><div><b>{task.title}</b><span>أُضيفت {new Date(task.createdAt).toLocaleDateString('ar-EG')}</span></div></div><span className="table-secondary">{task.subjectName}</span><span><i className={'priority-dot priority-dot-' + task.priority}/>{priorityText[task.priority]}</span><span className="table-secondary">{new Date(task.dueAt).toLocaleDateString('ar-EG', { day: 'numeric', month: 'short' })}</span><span><span className={'status-chip status-' + task.status}>{statusText[task.status]}</span></span><TaskActionsMenu task={task} onStatus={onStatus} onDelete={onDelete} canEdit={canEdit}/></div>)}{filtered.length === 0 && <EmptyState title={tasks.length === 0 ? 'لا توجد مهام بعد' : 'لا توجد نتائج'} body={tasks.length === 0 ? 'ستظهر هنا المهام التي ينشرها مدير المنصة.' : 'جرّب تغيير عبارة البحث أو الفلتر.'}/>}</div>
       <div className="table-footer"><span>عرض {filtered.length} من {tasks.length} مهمة</span><div><button className="pagination-button" disabled><ChevronRight size={14}/></button><button className="pagination-button active">1</button><button className="pagination-button" disabled><ChevronLeft size={14}/></button></div></div>
     </div>
   </>;
+}
+
+function TaskActionsMenu({ task, onStatus, onDelete, canEdit }: {
+  task: StudyTask;
+  onStatus: (id: string, status: TaskStatus) => void;
+  onDelete: (id: string) => void;
+  canEdit: boolean;
+}) {
+  const choose = (action: () => void, event: React.MouseEvent<HTMLButtonElement>) => {
+    event.currentTarget.closest('details')?.removeAttribute('open');
+    action();
+  };
+  return <details className="task-actions-wrap">
+    <summary className="icon-button" aria-label="إجراءات المهمة"><MoreHorizontal size={18}/></summary>
+    <div className="task-actions-menu">
+      <b>تغيير الحالة</b>
+      {(['not-started', 'in-progress', 'submitted', 'completed'] as TaskStatus[]).map((status) => <button type="button" key={status} onClick={(event) => choose(() => onStatus(task.id, status), event)}>{statusText[status]}{task.status === status ? <Check size={13}/> : null}</button>)}
+      {canEdit && <><span className="task-menu-divider"/><button type="button" className="danger-action" onClick={(event) => choose(() => onDelete(task.id), event)}><Trash2 size={14}/> حذف المهمة</button></>}
+    </div>
+  </details>;
 }
 
 function CoursesPage({ subjects, onAdd, canEdit, onOpen }: { subjects: Subject[]; onAdd: () => void; canEdit: boolean; onOpen: () => void }) {
