@@ -600,4 +600,134 @@ function ProfilePage({ user, isDemo, onToggleRole, onLogout, onToggleTheme, dark
   </>;
 }
 
+
+function TaskModal({ subjects, userId, onClose, onSave }: {
+  subjects: Subject[];
+  userId: string;
+  onClose: () => void;
+  onSave: (data: Omit<StudyTask, 'id' | 'createdAt' | 'createdBy'>) => void;
+}) {
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
+  const [subjectId, setSubjectId] = useState(subjects[0]?.id ?? '');
+  const [priority, setPriority] = useState<Priority>('normal');
+  const [dueAt, setDueAt] = useState(() => {
+    const date = new Date();
+    date.setDate(date.getDate() + 2);
+    date.setHours(23, 59, 0, 0);
+    const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+    return local.toISOString().slice(0, 16);
+  });
+
+  const submit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const subject = subjects.find((item) => item.id === subjectId);
+    onSave({
+      title: title.trim(),
+      description: description.trim(),
+      subjectId,
+      subjectName: subject?.name ?? 'بدون مادة',
+      priority,
+      status: 'not-started',
+      dueAt: new Date(dueAt).toISOString(),
+      assignedTo: userId ? [userId] : [],
+    });
+  };
+
+  return (
+    <div className="modal-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
+      <section className="modal-card" role="dialog" aria-modal="true" aria-labelledby="task-modal-title">
+        <div className="modal-head">
+          <div><h2 id="task-modal-title">إنشاء مهمة جديدة</h2><p>أدخل تفاصيل المهمة وموعد التسليم.</p></div>
+          <button type="button" className="icon-button" onClick={onClose} aria-label="إغلاق"><X size={18}/></button>
+        </div>
+        <form className="form-stack" onSubmit={submit}>
+          <label>عنوان المهمة
+            <input required maxLength={120} autoFocus value={title} onChange={(event) => setTitle(event.target.value)} placeholder="مثال: حل ورقة التمارين رقم 04"/>
+          </label>
+          <label>الوصف والتعليمات
+            <textarea rows={3} maxLength={1200} value={description} onChange={(event) => setDescription(event.target.value)} placeholder="اكتب تفاصيل المهمة أو ملاحظات التسليم..."/>
+          </label>
+          <div className="form-row">
+            <label>المادة الدراسية
+              <select required value={subjectId} onChange={(event) => setSubjectId(event.target.value)}>
+                {subjects.length === 0 && <option value="">لا توجد مواد بعد</option>}
+                {subjects.map((subject) => <option key={subject.id} value={subject.id}>{subject.name}</option>)}
+              </select>
+            </label>
+            <label>الأولوية
+              <select value={priority} onChange={(event) => setPriority(event.target.value as Priority)}>
+                <option value="low">منخفضة</option>
+                <option value="normal">عادية</option>
+                <option value="high">عالية</option>
+                <option value="urgent">عاجلة</option>
+              </select>
+            </label>
+          </div>
+          <label>موعد التسليم
+            <input required type="datetime-local" value={dueAt} onChange={(event) => setDueAt(event.target.value)} min={new Date().toISOString().slice(0, 16)}/>
+          </label>
+          <div className="modal-actions">
+            <button type="button" className="btn btn-outline" onClick={onClose}>إلغاء</button>
+            <button type="submit" className="btn btn-primary" disabled={!title.trim() || !subjectId}><Plus size={15}/> إنشاء المهمة</button>
+          </div>
+        </form>
+      </section>
+    </div>
+  );
+}
+
+function SubjectModal({ onClose, onSave }: {
+  onClose: () => void;
+  onSave: (data: Omit<Subject, 'id' | 'lectures' | 'progress'>) => void;
+}) {
+  const [name, setName] = useState('');
+  const [code, setCode] = useState('');
+  const [instructor, setInstructor] = useState('');
+  const [icon, setIcon] = useState('∫');
+  const [color, setColor] = useState('#8b7cff');
+  const colors = ['#8b7cff', '#41c8ad', '#f0ad62', '#5d9eff', '#ec82ad', '#9aabbd', '#d1a25b'];
+
+  const submit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    onSave({ name: name.trim(), code: code.trim().toUpperCase(), instructor: instructor.trim(), icon: icon.trim() || '✳', color });
+  };
+
+  return (
+    <div className="modal-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
+      <section className="modal-card" role="dialog" aria-modal="true" aria-labelledby="subject-modal-title">
+        <div className="modal-head">
+          <div><h2 id="subject-modal-title">إضافة مادة دراسية</h2><p>أضف بيانات المقرر ليظهر في مساحة الدراسة.</p></div>
+          <button type="button" className="icon-button" onClick={onClose} aria-label="إغلاق"><X size={18}/></button>
+        </div>
+        <form className="form-stack" onSubmit={submit}>
+          <label>اسم المادة
+            <input required maxLength={100} autoFocus value={name} onChange={(event) => setName(event.target.value)} placeholder="مثال: Calculus 1"/>
+          </label>
+          <div className="form-row">
+            <label>كود المادة
+              <input required maxLength={20} value={code} onChange={(event) => setCode(event.target.value)} placeholder="MTH 101" dir="ltr"/>
+            </label>
+            <label>المحاضر أو المعيد
+              <input required maxLength={100} value={instructor} onChange={(event) => setInstructor(event.target.value)} placeholder="اسم المحاضر"/>
+            </label>
+          </div>
+          <div className="form-row">
+            <label>رمز المادة
+              <input value={icon} onChange={(event) => setIcon(event.target.value)} maxLength={4} placeholder="∫"/>
+            </label>
+            <label>لون المادة
+              <span className="color-picker"><div>{colors.map((item) => <button key={item} type="button" className={color === item ? 'selected' : ''} style={{ background: item }} onClick={() => setColor(item)} aria-label={`اختيار اللون ${item}`} aria-pressed={color === item}/>)}</div></span>
+            </label>
+          </div>
+          <div className="modal-actions">
+            <button type="button" className="btn btn-outline" onClick={onClose}>إلغاء</button>
+            <button type="submit" className="btn btn-primary" disabled={!name.trim() || !code.trim() || !instructor.trim()}><Plus size={15}/> إضافة المادة</button>
+          </div>
+        </form>
+      </section>
+    </div>
+  );
+}
+
 export default App;
