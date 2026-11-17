@@ -157,6 +157,58 @@ export async function updateTaskStatusCloud(taskId: string, uid: string, status:
   await setDoc(doc(requireDb(), 'tasks', taskId, 'assignments', uid), { userId: uid, status, updatedAt: serverTimestamp() }, { merge: true });
 }
 
+export async function deleteTaskCloud(taskId: string) {
+  const firestore = requireDb();
+  const taskRef = doc(firestore, 'tasks', taskId);
+  for (const childName of ['assignments', 'submissions', 'comments']) {
+    const snapshot = await getDocs(collection(taskRef, childName));
+    for (let offset = 0; offset < snapshot.docs.length; offset += 400) {
+      const batch = writeBatch(firestore);
+      snapshot.docs.slice(offset, offset + 400).forEach((entry) => batch.delete(entry.ref));
+      await batch.commit();
+    }
+  }
+  const activity = await getDocs(collection(taskRef, 'activity'));
+  if (!activity.empty) {
+    for (let offset = 0; offset < activity.docs.length; offset += 400) {
+      const batch = writeBatch(firestore);
+      activity.docs.slice(offset, offset + 400).forEach((entry) => batch.delete(entry.ref));
+      await batch.commit();
+    }
+  }
+  const { deleteDoc } = await import('firebase/firestore');
+  await deleteDoc(taskRef);
+}
+
+export async function createLectureCloud(input: {
+  title: string; subjectId: string; subjectName: string; instructor: string; duration: string; videoUrl: string;
+}) {
+  return addDoc(collection(requireDb(), 'lectures'), {
+    ...input,
+    parts: 1,
+    progress: 0,
+    publicationStatus: 'published',
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  });
+}
+
+export async function createExamCloud(input: {
+  title: string; subjectName: string; date: string; duration: string; questions: number;
+}) {
+  return addDoc(collection(requireDb(), 'exams'), {
+    title: input.title.trim(),
+    subjectName: input.subjectName,
+    startAt: new Date(input.date),
+    duration: input.duration,
+    questions: input.questions,
+    examStatus: 'upcoming',
+    publicationStatus: 'published',
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  });
+}
+
 export async function createSubjectCloud(subject: Omit<Subject, 'id' | 'lectures' | 'progress'>) {
   return addDoc(collection(requireDb(), 'subjects'), {
     ...subject, academicYearId: 'prep', termId: 'term1', isPublished: true,
