@@ -85,11 +85,11 @@ export function subscribeTasks(uid: string, isAdmin: boolean, onData: (items: St
 export function subscribeSubjects(isAdmin: boolean, onData: (items: Subject[]) => void, onError: (error: Error) => void): Unsubscribe | undefined {
   if (!db) return;
   const ref = collection(db, 'subjects');
-  // Sort in memory rather than requiring a composite Firestore index.
-  return onSnapshot(query(ref), (snapshot) => {
+  // A single equality filter is enough for students; sort locally to avoid a composite index.
+  const subjectsQuery = isAdmin ? query(ref) : query(ref, where('isPublished', '==', true));
+  return onSnapshot(subjectsQuery, (snapshot) => {
     const items = snapshot.docs
       .map((entry) => ({ id: entry.id, ...entry.data() } as Subject & { isPublished?: boolean }))
-      .filter((subject) => isAdmin || subject.isPublished === true)
       .sort((a, b) => Number(a.sortOrder ?? 0) - Number(b.sortOrder ?? 0));
     onData(items);
   }, onError);
