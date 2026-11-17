@@ -19,12 +19,28 @@ export interface Subject {
   id: string;
   name: string;
   code: string;
-  instructor: string;
+  /** Kept optional only for legacy subject documents; new subjects do not store a lecturer. */
+  instructor?: string;
+  description?: string;
+  coverImage?: string | null;
   color: string;
   icon: string;
   lectures: number;
   progress: number;
   nextClass?: string;
+  sortOrder?: number;
+}
+
+export interface Lecturer {
+  id: string;
+  name: string;
+  subjectId: string;
+  subjectName: string;
+  photoURL?: string | null;
+  bio?: string;
+  description?: string;
+  displayOrder: number;
+  status: 'active' | 'inactive';
 }
 
 export interface StudyTask {
@@ -35,6 +51,8 @@ export interface StudyTask {
   subjectName: string;
   priority: Priority;
   status: TaskStatus;
+  /** Optional for legacy tasks created before start dates were introduced. */
+  startAt?: string;
   dueAt: string;
   assignedTo: string[];
   createdBy: string;
@@ -44,14 +62,32 @@ export interface StudyTask {
 export interface Lecture {
   id: string;
   title: string;
+  description?: string;
   subjectId: string;
   subjectName: string;
-  instructor: string;
+  lecturerId?: string;
+  lecturerName?: string;
+  /** Legacy field retained so previously created lecture cards remain readable. */
+  instructor?: string;
   duration: string;
-  parts: number;
+  parts?: number;
+  partsCount?: number;
   progress: number;
   date: string;
+  /** Legacy single-video field; new lectures use the parts subcollection. */
   videoUrl?: string;
+  lectureNumber?: number;
+}
+
+export interface LecturePart {
+  id: string;
+  lectureId: string;
+  title: string;
+  videoUrl: string;
+  duration: string;
+  order: number;
+  sourceType: 'youtube' | 'vimeo' | 'direct' | 'external';
+  createdAt: string;
 }
 
 export interface Exam {
