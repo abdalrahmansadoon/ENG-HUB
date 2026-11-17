@@ -39,12 +39,10 @@ export async function deleteOwnAccountData(firestore: Firestore, uid: string): P
     await deleteDoc(deck.ref);
   }
 
-  const personalTasks = await getDocs(query(
-    collection(firestore, 'tasks'),
-    where('createdBy', '==', uid),
-    where('type', '==', 'personal'),
-  ));
-  for (const task of personalTasks.docs) {
+  // One equality filter avoids another composite index during account deletion.
+  const createdTasks = await getDocs(query(collection(firestore, 'tasks'), where('createdBy', '==', uid)));
+  const personalTasks = createdTasks.docs.filter((task) => task.data().type === 'personal');
+  for (const task of personalTasks) {
     for (const childName of ['assignments', 'submissions', 'comments']) {
       const childSnapshot = await getDocs(collection(firestore, 'tasks', task.id, childName));
       await deleteSnapshot(firestore, childSnapshot);
@@ -55,8 +53,8 @@ export async function deleteOwnAccountData(firestore: Firestore, uid: string): P
   const assignedTasks = await getDocs(query(collection(firestore, 'tasks'), where('assignedTo', 'array-contains', uid)));
   for (const task of assignedTasks.docs) {
     const assignmentRef = doc(firestore, 'tasks', task.id, 'assignments', uid);
-    const assignment = await getDocs(query(collection(firestore, 'tasks', task.id, 'assignments'), where('userId', '==', uid)));
-    if (!assignment.empty) await deleteDoc(assignmentRef);
+    const assignment = await getDoc(assignmentRef);
+    if (assignment.exists()) await deleteDoc(assignmentRef);
   }
 
   const conversationRef = doc(firestore, 'conversations', 'general');

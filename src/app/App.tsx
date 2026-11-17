@@ -15,9 +15,9 @@ import { uploadFile } from '../lib/uploads';
 import { enablePushNotifications, listenForForegroundMessages } from '../lib/messaging';
 import { isFirebaseConfigured } from '../lib/firebase';
 import { readLocal, writeLocal } from '../lib/storage';
-import { createExamCloud, createLectureCloud, createSubjectCloud, createTaskCloud, deleteTaskCloud, saveFileMetadataCloud, subscribeExams, subscribeFiles, subscribeLectures, subscribeSubjects, subscribeTasks, updateTaskStatusCloud } from '../lib/cloudData';
+import { createExamCloud, createLectureCloud, createLecturePartCloud, createLecturerCloud, createSubjectCloud, createTaskCloud, deleteTaskCloud, saveFileMetadataCloud, subscribeExams, subscribeFiles, subscribeLectureParts, subscribeLecturers, subscribeLectures, subscribeSubjects, subscribeTasks, updateTaskStatusCloud } from '../lib/cloudData';
 import { deleteGeneralChatMessage, joinGeneralChat, sendGeneralChatMessage, subscribeGeneralChat, type ChatAttachment, type ChatMessage } from '../lib/chat';
-import type { AppNotification, AppUser, Exam, Lecture, LibraryFile, Priority, StudyTask, Subject, TaskStatus } from '../types';
+import type { AppNotification, AppUser, Exam, Lecture, LecturePart, Lecturer, LibraryFile, Priority, StudyTask, Subject, TaskStatus } from '../types';
 
 const navGroups = [
   { title: 'مساحة الدراسة', items: [
@@ -54,6 +54,11 @@ function App() {
   const [tasks, setTasks] = useState<StudyTask[]>([]);
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [lectures, setCloudLectures] = useState<Lecture[]>([]);
+  const [lecturers, setLecturers] = useState<Lecturer[]>([]);
+  const [selectedSubjectId, setSelectedSubjectId] = useState('');
+  const [selectedLecturerId, setSelectedLecturerId] = useState('');
+  const [selectedLectureId, setSelectedLectureId] = useState('');
+  const [lectureParts, setLectureParts] = useState<LecturePart[]>([]);
   const [exams, setExams] = useState<Exam[]>([]);
   const [files, setFiles] = useState<LibraryFile[]>([]);
   const [cloudinarySettings, setCloudinarySettings] = useState<CloudinarySettings>(defaultCloudinarySettings);
@@ -61,6 +66,8 @@ function App() {
   const [taskModal, setTaskModal] = useState(false);
   const [subjectModal, setSubjectModal] = useState(false);
   const [lectureModal, setLectureModal] = useState(false);
+  const [lecturerModal, setLecturerModal] = useState(false);
+  const [lecturePartModal, setLecturePartModal] = useState(false);
   const [examModal, setExamModal] = useState(false);
   const [toast, setToast] = useState('');
 
@@ -129,11 +136,22 @@ function App() {
       subscribeTasks(activeUser.uid, isAdmin, setTasks, onError),
       subscribeSubjects(isAdmin, setSubjects, onError),
       subscribeLectures(setCloudLectures, onError),
+      subscribeLecturers(setLecturers, onError),
       subscribeExams(setExams, onError),
       subscribeFiles(activeUser.uid, isAdmin, setFiles, onError),
     ].filter(Boolean) as Array<() => void>;
     return () => stops.forEach((stop) => stop());
   }, [user?.uid, isDemo, activeUser.uid, isAdmin]);
+
+  useEffect(() => {
+    if (!user || isDemo || !selectedLectureId) {
+      setLectureParts([]);
+      return;
+    }
+    return subscribeLectureParts(selectedLectureId, setLectureParts, (error) => {
+      setToast(`تعذر تحميل أجزاء المحاضرة: ${error.message}`);
+    });
+  }, [user?.uid, isDemo, selectedLectureId]);
 
   const addTask = (data: Omit<StudyTask, 'id' | 'createdAt' | 'createdBy'>) => {
     const next: StudyTask = { ...data, id: crypto.randomUUID(), createdAt: new Date().toISOString(), createdBy: activeUser.displayName };
@@ -157,13 +175,46 @@ function App() {
     else setToast('تمت إضافة المادة');
   };
 
-  const addLecture = async (data: { title: string; subjectId: string; subjectName: string; instructor: string; duration: string; videoUrl: string }) => {
-    setLectureModal(false);
+  const addLecturer = async (data: { name: string; subjectId: string; subjectName: string; bio?: string; description?: string; photoURL?: string | null }) => {
     try {
-      await createLectureCloud(data);
-      setToast('تم نشر المحاضرة بنجاح');
+      await createLecturerCloud(data);
+      setLecturerModal(false);
+      setToast('تمت إضافة المدرس إلى المادة');
+    } catch (error) {
+      setToast(error instanceof Error ? error.message : 'تعذرت إضافة المدرس');
+    }
+  };
+
+  const addLecture = async (data: { title: string; description?: string; lecturerId: string; duration?: string }) => {
+    const lecturer = lecturers.find((item) => item.id === data.lecturerId);
+    if (!lecturer) {
+      setToast('اختر مدرساً صحيحاً تابعاً للمادة أولاً.');
+      return;
+    }
+    try {
+      await createLectureCloud({
+        ...data,
+        subjectId: lecturer.subjectId,
+        subjectName: lecturer.subjectName,
+        lecturerName: lecturer.name,
+      });
+      setLectureModal(false);
+      setSelectedSubjectId(lecturer.subjectId);
+      setSelectedLecturerId(lecturer.id);
+      setToast('تم إنشاء المحاضرة. أضف الآن أجزاء الفيديو الخاصة بها.');
     } catch (error) {
       setToast(error instanceof Error ? error.message : 'تعذر إنشاء المحاضرة');
+    }
+  };
+
+  const addLecturePart = async (data: { title: string; videoUrl: string; duration: string; order: number }) => {
+    if (!selectedLectureId) return;
+    try {
+      await createLecturePartCloud({ ...data, lectureId: selectedLectureId });
+      setLecturePartModal(false);
+      setToast('تمت إضافة جزء الفيديو إلى المحاضرة');
+    } catch (error) {
+      setToast(error instanceof Error ? error.message : 'تعذرت إضافة جزء المحاضرة');
     }
   };
 
@@ -263,22 +314,35 @@ function App() {
         <div className="page-wrap">
           {page === 'home' && <Dashboard userName={activeUser.displayName} tasks={tasks} subjects={subjects} exams={exams} lectures={lectures} onGo={setPage} onNewTask={() => setTaskModal(true)} onStatus={changeTaskStatus} canCreateTask={isAdmin}/>}
           {page === 'tasks' && <TasksPage tasks={tasks} onNew={() => setTaskModal(true)} onStatus={changeTaskStatus} onDelete={(id) => void removeTask(id)} canEdit={isAdmin}/>}
-          {page === 'courses' && <CoursesPage subjects={subjects} onAdd={() => setSubjectModal(true)} canEdit={isAdmin} onOpen={() => setPage('lectures')} />}
-          {page === 'lectures' && <LecturesPage lectures={lectures} subjects={subjects} canEdit={isAdmin} onAdd={() => setLectureModal(true)}/>}
+          {(page === 'courses' || page === 'lectures') && <AcademicHubPage
+            subjects={subjects} lecturers={lecturers} lectures={lectures} parts={lectureParts}
+            selectedSubjectId={selectedSubjectId} selectedLecturerId={selectedLecturerId} selectedLectureId={selectedLectureId}
+            canEdit={isAdmin}
+            onSelectSubject={(id) => { setSelectedSubjectId(id); setSelectedLecturerId(''); setSelectedLectureId(''); }}
+            onSelectLecturer={(id) => { setSelectedLecturerId(id); setSelectedLectureId(''); }}
+            onSelectLecture={setSelectedLectureId}
+            onBack={() => { if (selectedLectureId) setSelectedLectureId(''); else if (selectedLecturerId) setSelectedLecturerId(''); else setSelectedSubjectId(''); }}
+            onAddSubject={() => setSubjectModal(true)}
+            onAddLecturer={() => setLecturerModal(true)}
+            onAddLecture={() => setLectureModal(true)}
+            onAddPart={() => setLecturePartModal(true)}
+          />}
           {page === 'exams' && <ExamsPage exams={exams} setExams={setExams} canEdit={isAdmin} onAdd={() => setExamModal(true)}/>}
           {page === 'files' && <FilesPage files={files} onUpload={addFile} cloudinaryReady={isCloudinaryConfigured(cloudinarySettings)} isDemo={isDemo} />}
           {page === 'chat' && <ChatPage user={activeUser} cloudinarySettings={cloudinarySettings} isDemo={isDemo} isAdmin={isAdmin}/>}
           {page === 'planner' && <PlannerPage tasks={tasks} />}
           {page === 'analytics' && <AnalyticsPage tasks={tasks} subjects={subjects} lectures={lectures} />}
           {page === 'notifications' && <NotificationsPage items={notifications} setItems={setNotifications} />}
-          {page === 'admin' && <AdminPage tasks={tasks} subjects={subjects} lectures={lectures} exams={exams} files={files} currentUser={activeUser} cloudinarySettings={cloudinarySettings} onNewTask={() => setTaskModal(true)} onAddSubject={() => setSubjectModal(true)} onAddLecture={() => setLectureModal(true)} onAddExam={() => setExamModal(true)} onSaved={() => setToast('تم حفظ إعدادات Cloudinary في Firestore')} onError={(message) => setToast(message)} />}
+          {page === 'admin' && <AdminPage tasks={tasks} subjects={subjects} lecturers={lecturers} lectures={lectures} exams={exams} files={files} currentUser={activeUser} cloudinarySettings={cloudinarySettings} onNewTask={() => setTaskModal(true)} onAddSubject={() => setSubjectModal(true)} onAddLecturer={() => { setPage('courses'); setSelectedSubjectId(''); setSelectedLecturerId(''); setSelectedLectureId(''); }} onAddLecture={() => setLectureModal(true)} onAddExam={() => setExamModal(true)} onSaved={() => setToast('تم حفظ إعدادات Cloudinary في Firestore')} onError={(message) => setToast(message)} />}
           {page === 'profile' && <ProfilePage user={activeUser} isDemo={isDemo} onToggleRole={toggleDemoRole} onLogout={logout} onDeleteAccount={deleteAccount} onSaveProfile={saveProfile} themePreference={themePreference} onThemeChange={setThemePreference} cloudinarySettings={cloudinarySettings} onToggleTheme={() => setThemePreference(dark ? 'light' : 'dark')} dark={dark} />}
         </div>
       </main>
 
       {taskModal && <TaskModal subjects={subjects} userId={activeUser.uid} onClose={() => setTaskModal(false)} onSave={addTask}/>}
       {subjectModal && <SubjectModal onClose={() => setSubjectModal(false)} onSave={addSubject}/>}
-      {lectureModal && <LectureModal subjects={subjects} onClose={() => setLectureModal(false)} onSave={addLecture}/>}
+      {lecturerModal && <LecturerModal subject={subjects.find((item) => item.id === selectedSubjectId) ?? null} onClose={() => setLecturerModal(false)} onSave={addLecturer}/>}
+      {lectureModal && <LectureModal lecturers={lecturers} selectedLecturerId={selectedLecturerId} onClose={() => setLectureModal(false)} onSave={addLecture}/>}
+      {lecturePartModal && <LecturePartModal nextOrder={lectureParts.length + 1} onClose={() => setLecturePartModal(false)} onSave={addLecturePart}/>}
       {examModal && <ExamModal subjects={subjects} onClose={() => setExamModal(false)} onSave={addExam}/>}
       {toast && <div className="toast"><CheckCircle2 size={17}/>{toast}</div>}
     </div>
@@ -448,9 +512,9 @@ function EmptyState({ title, body }: { title: string; body: string }) {
 }
 
 function TaskRow({ task, onStatus }: { task: StudyTask; onStatus: (id: string, status: TaskStatus) => void }) {
-  const [open, setOpen] = useState(false);
   const due = new Date(task.dueAt);
-  return <div className="task-row"><div className={`task-subject-dot dot-${task.subjectId}`}/><div className="task-row-copy"><b>{task.title}</b><span>{task.subjectName} <i>•</i> {due.toLocaleDateString('ar-EG', { day: 'numeric', month: 'short' })}</span></div><span className={`priority-badge priority-${task.priority}`}>{priorityText[task.priority]}</span><div className="task-status-control"><button className={`status-chip status-${task.status}`} onClick={() => setOpen(!open)}>{statusText[task.status]} <ChevronDown size={12}/></button>{open && <div className="status-menu">{(['not-started', 'in-progress', 'submitted', 'completed'] as TaskStatus[]).map((status) => <button key={status} onClick={() => { onStatus(task.id, status); setOpen(false); }}>{statusText[status]}</button>)}</div>}</div></div>;
+  const completed = task.status === 'completed';
+  return <div className="task-row"><div className={`task-subject-dot dot-${task.subjectId}`}/><div className="task-row-copy"><b>{task.title}</b><span>{task.subjectName} <i>•</i> ينتهي {due.toLocaleDateString('ar-EG', { day: 'numeric', month: 'short' })}</span></div><span className={`priority-badge priority-${task.priority}`}>{priorityText[task.priority]}</span><button type="button" className={`task-complete-toggle ${completed ? 'completed' : ''}`} onClick={() => onStatus(task.id, completed ? 'in-progress' : 'completed')} aria-pressed={completed}><CheckCircle2 size={15}/><span>{completed ? 'مكتملة' : 'إكمال المهمة'}</span></button></div>;
 }
 
 function TasksPage({ tasks, onNew, onStatus, onDelete, canEdit }: {
@@ -467,7 +531,7 @@ function TasksPage({ tasks, onNew, onStatus, onDelete, canEdit }: {
     <PageHeader eyebrow="TASK MANAGEMENT" title="إدارة المهام" description="المهام التي نشرها مدير المنصة أو أضفتها إلى خطتك." action={canEdit ? <button className="btn btn-primary" onClick={onNew}><Plus size={16}/> إنشاء مهمة</button> : undefined}/>
     <div className="task-overview-strip"><div><b>{tasks.length}</b><span>إجمالي المهام</span></div><div><b>{tasks.filter((t) => t.status === 'completed').length}</b><span>مكتملة</span></div><div><b>{tasks.filter((t) => t.status === 'in-progress').length}</b><span>قيد التنفيذ</span></div><div><b>{tasks.filter((t) => t.status === 'under-review').length}</b><span>قيد المراجعة</span></div><div><b>{tasks.filter((t) => new Date(t.dueAt) < new Date() && t.status !== 'completed').length}</b><span>متأخرة</span></div></div>
     <div className="panel table-panel"><div className="table-toolbar"><div className="filter-tabs">{[{ id: 'all', label: 'الكل' }, { id: 'pending', label: 'غير مكتملة' }, { id: 'completed', label: 'مكتملة' }, { id: 'under-review', label: 'قيد المراجعة' }].map((tab) => <button key={tab.id} className={filter === tab.id ? 'filter-tab active' : 'filter-tab'} onClick={() => setFilter(tab.id)}>{tab.label}</button>)}</div><div className="table-tools"><div className="inline-search"><Search size={15}/><input placeholder="ابحث في المهام" value={query} onChange={(e) => setQuery(e.target.value)}/></div></div></div>
-      <div className="tasks-table"><div className="table-head"><span>المهمة</span><span>المادة</span><span>الأولوية</span><span>موعد التسليم</span><span>الحالة</span><span/></div>{filtered.map((task) => <div className="table-row" key={task.id}><div className="table-task"><button type="button" className="task-check" onClick={() => onStatus(task.id, task.status === 'completed' ? 'in-progress' : 'completed')} aria-label="تغيير حالة المهمة"><Check size={13}/></button><div><b>{task.title}</b><span>أُضيفت {new Date(task.createdAt).toLocaleDateString('ar-EG')}</span></div></div><span className="table-secondary">{task.subjectName}</span><span><i className={'priority-dot priority-dot-' + task.priority}/>{priorityText[task.priority]}</span><span className="table-secondary">{new Date(task.dueAt).toLocaleDateString('ar-EG', { day: 'numeric', month: 'short' })}</span><span><span className={'status-chip status-' + task.status}>{statusText[task.status]}</span></span><TaskActionsMenu task={task} onStatus={onStatus} onDelete={onDelete} canEdit={canEdit}/></div>)}{filtered.length === 0 && <EmptyState title={tasks.length === 0 ? 'لا توجد مهام بعد' : 'لا توجد نتائج'} body={tasks.length === 0 ? 'ستظهر هنا المهام التي ينشرها مدير المنصة.' : 'جرّب تغيير عبارة البحث أو الفلتر.'}/>}</div>
+      <div className="tasks-table"><div className="table-head"><span>المهمة</span><span>المادة</span><span>الأولوية</span><span>البداية / الانتهاء</span><span>الحالة</span><span/></div>{filtered.map((task) => <div className="table-row" key={task.id}><div className="table-task"><button type="button" className={'task-check ' + (task.status === 'completed' ? 'is-complete' : '')} onClick={() => onStatus(task.id, task.status === 'completed' ? 'in-progress' : 'completed')} aria-label={task.status === 'completed' ? 'إلغاء إكمال المهمة' : 'تحديد المهمة كمكتملة'} aria-pressed={task.status === 'completed'}><Check size={14}/></button><div><b>{task.title}</b><span>أُضيفت {new Date(task.createdAt).toLocaleDateString('ar-EG')}</span></div></div><span className="table-secondary">{task.subjectName}</span><span><i className={'priority-dot priority-dot-' + task.priority}/>{priorityText[task.priority]}</span><span className="table-secondary task-dates-cell"><small>تبدأ: {task.startAt ? new Date(task.startAt).toLocaleDateString('ar-EG', { day: 'numeric', month: 'short' }) : '—'}</small><small>تنتهي: {new Date(task.dueAt).toLocaleDateString('ar-EG', { day: 'numeric', month: 'short' })}</small></span><span><span className={'status-chip status-' + task.status}>{statusText[task.status]}</span></span><TaskActionsMenu task={task} onStatus={onStatus} onDelete={onDelete} canEdit={canEdit}/></div>)}{filtered.length === 0 && <EmptyState title={tasks.length === 0 ? 'لا توجد مهام بعد' : 'لا توجد نتائج'} body={tasks.length === 0 ? 'ستظهر هنا المهام التي ينشرها مدير المنصة.' : 'جرّب تغيير عبارة البحث أو الفلتر.'}/>}</div>
       <div className="table-footer"><span>عرض {filtered.length} من {tasks.length} مهمة</span><div><button className="pagination-button" disabled><ChevronRight size={14}/></button><button className="pagination-button active">1</button><button className="pagination-button" disabled><ChevronLeft size={14}/></button></div></div>
     </div>
   </>;
@@ -493,35 +557,69 @@ function TaskActionsMenu({ task, onStatus, onDelete, canEdit }: {
   </details>;
 }
 
-function CoursesPage({ subjects, onAdd, canEdit, onOpen }: { subjects: Subject[]; onAdd: () => void; canEdit: boolean; onOpen: () => void }) {
-  return <>
-    <PageHeader eyebrow="ACADEMIC SPACE" title="المواد الدراسية" description="تظهر هنا المقررات التي ينشرها مدير المنصة." action={canEdit ? <button className="btn btn-primary" onClick={onAdd}><Plus size={16}/> إضافة مادة</button> : undefined}/>
-    <div className="course-hero panel"><div><div className="eyebrow">CURRENT SEMESTER</div><h2>السنة الإعدادية <span>·</span> الترم الأول</h2><p>ستظهر تفاصيل المقررات والمحاضرات هنا بعد نشرها.</p></div><div className="course-hero-stats"><div><b>{subjects.length}</b><span>مادة منشورة</span></div><div><b>{subjects.reduce((sum, subject) => sum + subject.lectures, 0)}</b><span>محاضرة</span></div></div></div>
-    <div className="course-grid">{subjects.map((subject) => <button className="course-card" key={subject.id} onClick={onOpen}><div className="course-card-top"><div className="course-icon" style={{ background: subject.color + '18', color: subject.color }}>{subject.icon}</div><span className="course-code">{subject.code}</span></div><h3>{subject.name}</h3><p>{subject.instructor}</p><div className="course-card-bottom"><div><span>التقدم في المادة</span><b>{subject.progress}%</b></div><div className="progress-track"><div style={{ width: subject.progress + '%', background: subject.color }}/></div><div className="course-meta"><span><Video size={14}/>{subject.lectures} محاضرة</span><span><BookOpen size={14}/>الترم الأول</span></div></div></button>)}</div>
-    {subjects.length === 0 && <div className="panel courses-empty-panel"><EmptyState title="لا توجد مواد دراسية بعد" body={canEdit ? 'أضف المواد الدراسية من لوحة الإدارة لتظهر هنا للطلاب.' : 'سيضيف مدير المنصة المقررات الدراسية عند تجهيز محتوى الفصل.'}/>{canEdit && <button className="btn btn-primary" onClick={onAdd}><Plus size={15}/> إضافة أول مادة</button>}</div>}
-  </>;
-}
-
-function LecturesPage({ lectures, subjects, canEdit, onAdd }: {
-  lectures: Lecture[];
-  subjects: Subject[];
-  canEdit: boolean;
-  onAdd: () => void;
+function AcademicHubPage({ subjects, lecturers, lectures, parts, selectedSubjectId, selectedLecturerId, selectedLectureId, canEdit, onSelectSubject, onSelectLecturer, onSelectLecture, onBack, onAddSubject, onAddLecturer, onAddLecture, onAddPart }: {
+  subjects: Subject[]; lecturers: Lecturer[]; lectures: Lecture[]; parts: LecturePart[];
+  selectedSubjectId: string; selectedLecturerId: string; selectedLectureId: string; canEdit: boolean;
+  onSelectSubject: (id: string) => void; onSelectLecturer: (id: string) => void; onSelectLecture: (id: string) => void; onBack: () => void;
+  onAddSubject: () => void; onAddLecturer: () => void; onAddLecture: () => void; onAddPart: () => void;
 }) {
-  const [subjectFilter, setSubjectFilter] = useState('all');
-  const [selectedLecture, setSelectedLecture] = useState<Lecture | null>(null);
-  const filtered = lectures.filter((lecture) => subjectFilter === 'all' || lecture.subjectId === subjectFilter);
+  const [playingPart, setPlayingPart] = useState<LecturePart | null>(null);
+  const subject = subjects.find((item) => item.id === selectedSubjectId);
+  const lecturer = lecturers.find((item) => item.id === selectedLecturerId);
+  const lecture = lectures.find((item) => item.id === selectedLectureId);
+  const subjectLecturers = lecturers.filter((item) => item.subjectId === selectedSubjectId && item.status === 'active');
+  const lecturerLectures = lectures.filter((item) => item.lecturerId === selectedLecturerId);
+  const legacyLectures = lectures.filter((item) => item.subjectId === selectedSubjectId && !item.lecturerId);
+  const legacyPart: LecturePart[] = lecture?.videoUrl ? [{
+    id: 'legacy-video', lectureId: lecture.id, title: 'الفيديو الرئيسي', videoUrl: lecture.videoUrl,
+    duration: lecture.duration || '', order: 1, sourceType: 'external', createdAt: '',
+  }] : [];
+  const currentParts = parts.length ? parts : legacyPart;
+  const stageTitle = lecture ? lecture.title : lecturer ? lecturer.name : subject ? subject.name : 'المواد الدراسية';
+  const stageDescription = lecture ? 'أجزاء المحاضرة ومصادر الفيديو والمواد المرفقة.' : lecturer ? 'المحاضرات المرتبطة بهذا المدرس داخل المادة.' : subject ? 'اختر المدرس لعرض محاضراته ومحتواه.' : 'ابدأ باختيار مادة للانتقال إلى المدرسين والمحاضرات.';
+  const action = canEdit
+    ? lecture ? <button className="btn btn-primary" onClick={onAddPart}><Plus size={16}/> إضافة جزء فيديو</button>
+      : lecturer ? <button className="btn btn-primary" onClick={onAddLecture}><Plus size={16}/> إضافة محاضرة</button>
+      : subject ? <button className="btn btn-primary" onClick={onAddLecturer}><Plus size={16}/> إضافة مدرس</button>
+      : <button className="btn btn-primary" onClick={onAddSubject}><Plus size={16}/> إضافة مادة</button>
+    : undefined;
   return <>
-    <PageHeader eyebrow="LECTURE LIBRARY" title="المحاضرات" description="المحتوى المسجل الذي ينشره مدير المنصة." action={canEdit ? <button className="btn btn-primary" onClick={onAdd}><Plus size={16}/> إضافة محاضرة</button> : undefined}/>
-    <div className="filter-tabs lecture-filters"><button className={subjectFilter === 'all' ? 'filter-tab active' : 'filter-tab'} onClick={() => setSubjectFilter('all')}>كل المواد</button>{subjects.map((subject) => <button className={subjectFilter === subject.id ? 'filter-tab active' : 'filter-tab'} key={subject.id} onClick={() => setSubjectFilter(subject.id)}>{subject.name}</button>)}</div>
-    <div className="lecture-grid">{filtered.map((lecture, index) => <article className="lecture-card" key={lecture.id}><div className={'lecture-cover cover-' + (index % 4)}><div className="cover-grid"/><span className="lecture-subject-tag">{lecture.subjectName}</span><button className="play-button" onClick={() => setSelectedLecture(lecture)} aria-label={'تشغيل ' + lecture.title}><Play size={23} fill="currentColor"/></button><span className="cover-duration"><Clock3 size={12}/>{lecture.duration}</span></div><div className="lecture-card-body"><div className="lecture-meta"><span>{lecture.instructor}</span><span>{lecture.date}</span></div><h3>{lecture.title}</h3><div className="lecture-progress-head"><span>{lecture.parts} أجزاء · {lecture.progress === 100 ? 'مكتملة' : 'لم تسجل مشاهدة'}</span><b>{lecture.progress}%</b></div><div className="progress-track"><div style={{ width: lecture.progress + '%' }}/></div></div></article>)}</div>
-    {filtered.length === 0 && <EmptyState title={lectures.length === 0 ? 'لا توجد محاضرات بعد' : 'لا توجد محاضرات لهذه المادة'} body={lectures.length === 0 ? (canEdit ? 'أضف أول محاضرة من لوحة الإدارة أو من هذا القسم.' : 'سيضيف مدير المنصة المحاضرات هنا عند تجهيز المحتوى.') : 'اختر مادة أخرى لعرض محاضراتها.'}/>}
-    {selectedLecture && <div className="video-modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setSelectedLecture(null); }}>
-      <section className="video-modal-card" role="dialog" aria-modal="true" aria-label={selectedLecture.title}>
-        <header className="video-modal-header"><div><b>{selectedLecture.title}</b><span>{selectedLecture.subjectName} · {selectedLecture.instructor}</span></div><button type="button" className="icon-button" onClick={() => setSelectedLecture(null)} aria-label="إغلاق المشغل"><X size={20}/></button></header>
-        {selectedLecture.videoUrl ? <VideoPlayer source={selectedLecture.videoUrl} title={selectedLecture.title}/> : <div className="video-unavailable"><EmptyState title="لم تتم إضافة رابط الفيديو بعد" body={canEdit ? 'حرر المحاضرة أو أضف رابط الفيديو من لوحة الإدارة.' : 'سيظهر الفيديو هنا بمجرد أن يضيف المدير رابط المحاضرة.'}/></div>}
-      </section>
-    </div>}
+    <PageHeader eyebrow="ACADEMIC LIBRARY" title={stageTitle} description={stageDescription} action={action}/>
+    <div className="academic-breadcrumbs">
+      <button className={!subject ? 'current' : ''} onClick={() => { onSelectSubject(''); onSelectLecturer(''); onSelectLecture(''); }}>المواد</button>
+      {subject && <><ChevronLeft size={14}/><button className={!lecturer ? 'current' : ''} onClick={() => { onSelectLecturer(''); onSelectLecture(''); }}>{subject.name}</button></>}
+      {lecturer && <><ChevronLeft size={14}/><button className={!lecture ? 'current' : ''} onClick={() => { onSelectLecture(''); }}>{lecturer.name}</button></>}
+      {lecture && <><ChevronLeft size={14}/><span className="current">{lecture.title}</span></>}
+      {subject && <button className="academic-back" onClick={onBack}><ArrowLeft size={14}/> رجوع</button>}
+    </div>
+
+    {!subject && <>
+      <div className="course-hero panel academic-hero"><div><div className="eyebrow">CAIRO UNIVERSITY · ENGINEERING</div><h2>مساحتك الأكاديمية</h2><p>تصفح المقررات ثم المدرسين ثم المحاضرات وأجزاء كل محاضرة.</p></div><div className="course-hero-stats"><div><b>{subjects.length}</b><span>مادة</span></div><div><b>{lecturers.length}</b><span>مدرس</span></div><div><b>{lectures.length}</b><span>محاضرة</span></div></div></div>
+      <div className="course-grid academic-card-grid">{subjects.map((item) => <button className="course-card academic-subject-card" key={item.id} onClick={() => onSelectSubject(item.id)}><div className="course-card-top"><div className="course-icon" style={{ background: item.color + '18', color: item.color }}>{item.icon || '∑'}</div><span className="course-code">{item.code}</span></div><h3>{item.name}</h3><p>{item.description || 'المحتوى الدراسي للمقرر'}</p><div className="course-meta"><span><Users size={14}/>{lecturers.filter((x) => x.subjectId === item.id).length} مدرسين</span><span><Video size={14}/>{lectures.filter((x) => x.subjectId === item.id).length} محاضرة</span><ChevronLeft size={15}/></div></button>)}</div>
+      {subjects.length === 0 && <div className="panel courses-empty-panel"><EmptyState title="لا توجد مواد دراسية بعد" body={canEdit ? 'أضف أول مادة دراسية، ثم أضف المدرسين والمحاضرات داخلها.' : 'ستظهر المقررات هنا بعد أن ينشرها مدير المنصة.'}/>{canEdit && <button className="btn btn-primary" onClick={onAddSubject}><Plus size={15}/> إضافة أول مادة</button>}</div>}
+    </>}
+
+    {subject && !lecturer && <>
+      <div className="academic-level-banner panel"><div className="academic-level-icon" style={{color:subject.color,background:subject.color+'18'}}>{subject.icon || '∑'}</div><div><span className="eyebrow">SUBJECT</span><h2>{subject.name}</h2><p>{subject.description || 'قائمة المدرسين والمحاضرات المرتبطة بالمقرر.'}</p></div><div className="academic-level-meta"><b>{subjectLecturers.length}</b><span>مدرسين</span></div></div>
+      <div className="section-title-row"><div><div className="eyebrow">LECTURERS</div><h2>المدرسون</h2></div></div>
+      <div className="lecturer-grid">{subjectLecturers.map((item) => <button className="lecturer-card" key={item.id} onClick={() => onSelectLecturer(item.id)}><div className="lecturer-avatar">{item.photoURL ? <img src={item.photoURL} alt=""/> : <GraduationCap size={23}/>}</div><div className="lecturer-card-copy"><b>{item.name}</b><span>{item.bio || item.description || 'مدرس في هذا المقرر'}</span></div><ChevronLeft size={17}/></button>)}</div>
+      {subjectLecturers.length === 0 && <div className="panel"><EmptyState title="لم تتم إضافة مدرسين لهذه المادة" body={canEdit ? 'أضف مدرساً أو معيداً أولاً، ثم اربط به المحاضرات.' : 'سيظهر المدرسون هنا عند إضافتهم إلى المقرر.'}/></div>}
+      {legacyLectures.length > 0 && <div className="panel legacy-lectures-panel"><div className="panel-head"><div><h3>محاضرات محفوظة من الإصدار السابق</h3><span>يمكن فتحها دون فقد روابط الفيديو القديمة</span></div></div>{legacyLectures.map((item) => <button className="academic-list-row" key={item.id} onClick={() => onSelectLecture(item.id)}><span className="admin-task-symbol"><Video size={16}/></span><span><b>{item.title}</b><small>{item.lecturerName || item.instructor || 'بدون مدرس'}</small></span><ChevronLeft size={16}/></button>)}</div>}
+    </>}
+
+    {lecturer && !lecture && <>
+      <div className="academic-level-banner panel"><div className="academic-level-icon"><GraduationCap size={23}/></div><div><span className="eyebrow">{subject?.name || lecturer.subjectName}</span><h2>{lecturer.name}</h2><p>{lecturer.bio || lecturer.description || 'محاضرات هذا المدرس ومواده التعليمية.'}</p></div><div className="academic-level-meta"><b>{lecturerLectures.length}</b><span>محاضرة</span></div></div>
+      <div className="lecture-grid">{lecturerLectures.map((item,index) => <button type="button" className="lecture-card lecture-card-button" key={item.id} onClick={() => onSelectLecture(item.id)}><div className={'lecture-cover cover-' + (index % 4)}><div className="cover-grid"/><span className="lecture-subject-tag">LECTURE {item.lectureNumber || index + 1}</span><span className="play-button"><BookOpen size={22}/></span><span className="cover-duration"><Layers3 size={12}/>{item.partsCount ?? item.parts ?? 0} أجزاء</span></div><div className="lecture-card-body"><div className="lecture-meta"><span>{item.date}</span><span>{item.duration}</span></div><h3>{item.title}</h3><div className="lecture-progress-head"><span>افتح محتويات المحاضرة</span><ChevronLeft size={15}/></div></div></button>)}</div>
+      {lecturerLectures.length === 0 && <div className="panel"><EmptyState title="لا توجد محاضرات لهذا المدرس" body={canEdit ? 'أضف المحاضرة الأولى، ثم أضف أجزاء الفيديو داخلها.' : 'ستظهر المحاضرات هنا بعد نشرها.'}/></div>}
+    </>}
+
+    {lecture && <>
+      <div className="academic-level-banner panel"><div className="academic-level-icon"><Video size={23}/></div><div><span className="eyebrow">{lecture.subjectName} · {lecture.lecturerName || lecture.instructor || lecturer?.name || 'محاضرة'}</span><h2>{lecture.title}</h2><p>{lecture.description || 'اختر جزءاً لتشغيل الفيديو ومتابعة المحاضرة.'}</p></div><div className="academic-level-meta"><b>{currentParts.length}</b><span>أجزاء</span></div></div>
+      <div className="parts-list">{currentParts.map((part,index) => <article className="part-row" key={part.id}><div className="part-number">{String(index+1).padStart(2,'0')}</div><div className="part-row-main"><b>{part.title}</b><span>{part.duration || 'مدة غير محددة'} · {part.sourceType === 'youtube' ? 'YouTube' : part.sourceType === 'vimeo' ? 'Vimeo' : part.sourceType === 'direct' ? 'فيديو مباشر' : 'رابط خارجي'}</span></div><button type="button" className="btn btn-primary btn-small" onClick={() => setPlayingPart(part)}><Play size={14} fill="currentColor"/> تشغيل الجزء</button></article>)}</div>
+      {currentParts.length === 0 && <div className="panel"><EmptyState title="لم تتم إضافة أجزاء لهذه المحاضرة" body={canEdit ? 'أضف جزءاً واحداً أو أكثر، ويمكنك وضع رابط فيديو مختلف لكل جزء.' : 'سيظهر محتوى المحاضرة هنا بعد إضافة أجزائها.'}/></div>}
+    </>}
+
+    {playingPart && <div className="video-modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setPlayingPart(null); }}><section className="video-modal-card" role="dialog" aria-modal="true" aria-label={playingPart.title}><header className="video-modal-header"><div><b>{playingPart.title}</b><span>{lecture?.title || ''}</span></div><button type="button" className="icon-button" onClick={() => setPlayingPart(null)} aria-label="إغلاق المشغل"><X size={20}/></button></header><VideoPlayer source={playingPart.videoUrl} title={playingPart.title}/></section></div>}
   </>;
 }
 
@@ -881,9 +979,10 @@ function NotificationsPage({ items, setItems }: { items: AppNotification[]; setI
   return <><PageHeader eyebrow="UPDATES" title="الإشعارات" description="آخر التحديثات والتنبيهات الخاصة بموادك ومهامك." action={<button className="btn btn-outline" onClick={() => setItems((all) => all.map((item) => ({ ...item, read: true })))}><Check size={15}/> تحديد الكل كمقروء</button>}/><div className="panel notifications-panel">{items.map((item) => { const Icon = iconForKind[item.kind]; return <div className={`notification-row ${item.read ? '' : 'unread'}`} key={item.id}><div className={`notification-kind kind-${item.kind}`}><Icon size={18}/></div><div><b>{item.title}</b><p>{item.body}</p><span>{item.time}</span></div><div className="notification-actions">{!item.read && <i/>}<button className="icon-button" onClick={() => setItems((all) => all.map((n) => n.id === item.id ? { ...n, read: !n.read } : n))}>{item.read ? <Check size={15}/> : <MoreHorizontal size={18}/>}</button></div></div>; })}{items.length === 0 && <EmptyState title="لا توجد إشعارات" body="ستظهر هنا التحديثات الجديدة."/>}</div></>;
 }
 
-function AdminPage({ tasks, subjects, lectures, exams, files, currentUser, cloudinarySettings, onNewTask, onAddSubject, onAddLecture, onAddExam, onSaved, onError }: {
+function AdminPage({ tasks, subjects, lecturers, lectures, exams, files, currentUser, cloudinarySettings, onNewTask, onAddSubject, onAddLecturer, onAddLecture, onAddExam, onSaved, onError }: {
   tasks: StudyTask[];
   subjects: Subject[];
+  lecturers: Lecturer[];
   lectures: Lecture[];
   exams: Exam[];
   files: LibraryFile[];
@@ -891,6 +990,7 @@ function AdminPage({ tasks, subjects, lectures, exams, files, currentUser, cloud
   cloudinarySettings: CloudinarySettings;
   onNewTask: () => void;
   onAddSubject: () => void;
+  onAddLecturer: () => void;
   onAddLecture: () => void;
   onAddExam: () => void;
   onSaved: () => void;
@@ -952,7 +1052,8 @@ function AdminPage({ tasks, subjects, lectures, exams, files, currentUser, cloud
       <div className="admin-quick-grid">
         <button onClick={onAddSubject}><div><BookOpen size={19}/></div><b>إضافة مادة</b><span>إنشاء مقرر دراسي</span></button>
         <button onClick={onNewTask}><div><ListChecks size={19}/></div><b>إنشاء مهمة</b><span>نشر تكليف للطلاب</span></button>
-        <button onClick={onAddLecture}><div><Video size={19}/></div><b>إضافة محاضرة</b><span>رابط فيديو من YouTube أو Vimeo أو ملف فيديو</span></button>
+        <button onClick={onAddLecturer} disabled={subjects.length === 0}><div><GraduationCap size={19}/></div><b>إضافة مدرس</b><span>ربط مدرس بمادة دراسية</span></button>
+        <button onClick={onAddLecture} disabled={lecturers.length === 0}><div><Video size={19}/></div><b>إضافة محاضرة</b><span>إنشاء محاضرة تحت مدرس</span></button>
         <button onClick={onAddExam}><div><ClipboardList size={19}/></div><b>إضافة اختبار</b><span>حدد المادة والموعد والمدة</span></button>
       </div>
       <div className="panel admin-content-list admin-storage-summary"><div className="panel-head"><div><h3>حالة المكتبة</h3><span>أرقام فعلية من المحتوى المسجل</span></div></div><div className="admin-summary-numbers"><div><b>{files.length}</b><span>ملف</span></div><div><b>{subjects.reduce((sum, subject) => sum + subject.lectures, 0)}</b><span>عدد المحاضرات المرتبطة بالمواد</span></div></div></div>
@@ -960,12 +1061,17 @@ function AdminPage({ tasks, subjects, lectures, exams, files, currentUser, cloud
     {tab === 'academic' && <>
       <div className="panel admin-content-list">
         <div className="panel-head"><div><h3>المواد الدراسية</h3><span>الترم الأول — أضف المواد الفعلية للطلاب</span></div><button className="btn btn-primary btn-small" onClick={onAddSubject}><Plus size={14}/> إضافة مادة</button></div>
-        {subjects.map((subject) => <div className="admin-list-row" key={subject.id}><div className="subject-mini-icon" style={{ background: subject.color + '18', color: subject.color }}>{subject.icon}</div><div><b>{subject.name}</b><span>{subject.code} · {subject.instructor}</span></div><span>{subject.lectures} محاضرة</span><span className="status-chip status-completed">منشورة</span></div>)}
+        {subjects.map((subject) => <div className="admin-list-row" key={subject.id}><div className="subject-mini-icon" style={{ background: subject.color + '18', color: subject.color }}>{subject.icon}</div><div><b>{subject.name}</b><span>{subject.code} · {subject.description || 'مقرر دراسي'}</span></div><span>{subject.lectures} محاضرة</span><span className="status-chip status-completed">منشورة</span></div>)}
         {subjects.length === 0 && <EmptyState title="لا توجد مواد بعد" body="ابدأ بإضافة أول مادة دراسية."/ >}
       </div>
       <div className="panel admin-content-list">
-        <div className="panel-head"><div><h3>المحاضرات</h3><span>أضف روابط الفيديو داخل المقررات</span></div><button className="btn btn-primary btn-small" onClick={onAddLecture} disabled={subjects.length === 0}><Plus size={14}/> إضافة محاضرة</button></div>
-        {lectures.map((lecture) => <div className="admin-list-row" key={lecture.id}><div className="admin-task-symbol"><Video size={17}/></div><div><b>{lecture.title}</b><span>{lecture.subjectName} · {lecture.instructor}</span></div><span>{lecture.duration}</span><a className="admin-external-link" href={lecture.videoUrl} target="_blank" rel="noreferrer">فتح الرابط</a></div>)}
+        <div className="panel-head"><div><h3>المدرسون</h3><span>كل مدرس مرتبط بمادة مستقلة</span></div><button className="btn btn-primary btn-small" onClick={onAddLecturer} disabled={subjects.length === 0}><Plus size={14}/> إضافة مدرس</button></div>
+        {lecturers.map((lecturer) => <div className="admin-list-row" key={lecturer.id}><div className="admin-task-symbol"><GraduationCap size={17}/></div><div><b>{lecturer.name}</b><span>{lecturer.subjectName}</span></div><span>{lectures.filter((item) => item.lecturerId === lecturer.id).length} محاضرة</span></div>)}
+        {lecturers.length === 0 && <EmptyState title="لا يوجد مدرسون بعد" body="أضف مدرساً داخل صفحة المادة الدراسية."/ >}
+      </div>
+      <div className="panel admin-content-list">
+        <div className="panel-head"><div><h3>المحاضرات</h3><span>أجزاء الفيديو تضاف داخل المحاضرة نفسها</span></div><button className="btn btn-primary btn-small" onClick={onAddLecture} disabled={lecturers.length === 0}><Plus size={14}/> إضافة محاضرة</button></div>
+        {lectures.map((lecture) => <div className="admin-list-row" key={lecture.id}><div className="admin-task-symbol"><Video size={17}/></div><div><b>{lecture.title}</b><span>{lecture.subjectName} · {lecture.lecturerName || lecture.instructor || 'بدون مدرس'}</span></div><span>{lecture.partsCount ?? lecture.parts ?? 0} أجزاء</span></div>)}
         {lectures.length === 0 && <EmptyState title="لا توجد محاضرات بعد" body="أضف محاضرة واربطها برابط فيديو."/ >}
       </div>
       <div className="panel admin-content-list">
@@ -1183,6 +1289,10 @@ function TaskModal({ subjects, userId, onClose, onSave }: {
   const [description, setDescription] = useState('');
   const [subjectId, setSubjectId] = useState(subjects[0]?.id ?? '');
   const [priority, setPriority] = useState<Priority>('normal');
+  const [startAt, setStartAt] = useState(() => {
+    const now = new Date();
+    return new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+  });
   const [dueAt, setDueAt] = useState(() => {
     const date = new Date();
     date.setDate(date.getDate() + 2);
@@ -1201,6 +1311,7 @@ function TaskModal({ subjects, userId, onClose, onSave }: {
       subjectName: subject?.name ?? 'بدون مادة',
       priority,
       status: 'not-started',
+      startAt: new Date(startAt).toISOString(),
       dueAt: new Date(dueAt).toISOString(),
       assignedTo: userId ? [userId] : [],
     });
@@ -1237,12 +1348,18 @@ function TaskModal({ subjects, userId, onClose, onSave }: {
               </select>
             </label>
           </div>
-          <label>موعد التسليم
-            <input required type="datetime-local" value={dueAt} onChange={(event) => setDueAt(event.target.value)} min={new Date().toISOString().slice(0, 16)}/>
-          </label>
+          <div className="form-row">
+            <label>موعد بدء المهمة
+              <input required type="datetime-local" value={startAt} onChange={(event) => setStartAt(event.target.value)} max={dueAt}/>
+            </label>
+            <label>موعد الانتهاء والتسليم
+              <input required type="datetime-local" value={dueAt} onChange={(event) => setDueAt(event.target.value)} min={startAt}/>
+            </label>
+          </div>
+          {new Date(dueAt) < new Date(startAt) && <p className="auth-error">يجب أن يكون موعد الانتهاء بعد موعد البداية.</p>}
           <div className="modal-actions">
             <button type="button" className="btn btn-outline" onClick={onClose}>إلغاء</button>
-            <button type="submit" className="btn btn-primary" disabled={!title.trim() || !subjectId}><Plus size={15}/> إنشاء المهمة</button>
+            <button type="submit" className="btn btn-primary" disabled={!title.trim() || !subjectId || new Date(dueAt) < new Date(startAt)}><Plus size={15}/> إنشاء المهمة</button>
           </div>
         </form>
       </section>
@@ -1250,35 +1367,67 @@ function TaskModal({ subjects, userId, onClose, onSave }: {
   );
 }
 
-function LectureModal({ subjects, onClose, onSave }: {
-  subjects: Subject[];
-  onClose: () => void;
-  onSave: (data: { title: string; subjectId: string; subjectName: string; instructor: string; duration: string; videoUrl: string }) => void;
+function LecturerModal({ subject, onClose, onSave }: {
+  subject: Subject | null; onClose: () => void;
+  onSave: (data: { name: string; subjectId: string; subjectName: string; bio?: string; description?: string }) => void;
+}) {
+  const [name, setName] = useState('');
+  const [bio, setBio] = useState('');
+  const [description, setDescription] = useState('');
+  return <div className="modal-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
+    <section className="modal-card" role="dialog" aria-modal="true" aria-labelledby="lecturer-modal-title">
+      <div className="modal-head"><div><h2 id="lecturer-modal-title">إضافة مدرس للمادة</h2><p>{subject?.name || 'اختر مادة أولاً من صفحة المواد.'}</p></div><button type="button" className="icon-button" onClick={onClose} aria-label="إغلاق"><X size={18}/></button></div>
+      {!subject ? <EmptyState title="لم يتم اختيار مادة" body="افتح المادة المطلوبة ثم أضف المدرس من داخلها."/> : <form className="form-stack" onSubmit={(event) => { event.preventDefault(); onSave({ name: name.trim(), subjectId: subject.id, subjectName: subject.name, bio: bio.trim(), description: description.trim() }); }}>
+        <label>اسم المدرس أو المعيد<input autoFocus required maxLength={100} value={name} onChange={(event) => setName(event.target.value)} placeholder="اسم المدرس"/></label>
+        <label>نبذة قصيرة<input maxLength={180} value={bio} onChange={(event) => setBio(event.target.value)} placeholder="مثال: مدرس مادة التفاضل"/></label>
+        <label>تفاصيل إضافية<textarea rows={3} maxLength={600} value={description} onChange={(event) => setDescription(event.target.value)} placeholder="معلومات إضافية عن المدرس أو القسم..."/></label>
+        <div className="modal-actions"><button type="button" className="btn btn-outline" onClick={onClose}>إلغاء</button><button type="submit" className="btn btn-primary" disabled={!name.trim()}><Plus size={15}/> إضافة المدرس</button></div>
+      </form>}
+    </section>
+  </div>;
+}
+
+function LectureModal({ lecturers, selectedLecturerId, onClose, onSave }: {
+  lecturers: Lecturer[]; selectedLecturerId: string; onClose: () => void;
+  onSave: (data: { title: string; description?: string; lecturerId: string; duration?: string }) => void;
 }) {
   const [title, setTitle] = useState('');
-  const [subjectId, setSubjectId] = useState(subjects[0]?.id ?? '');
-  const [instructor, setInstructor] = useState('');
+  const [lecturerId, setLecturerId] = useState(selectedLecturerId || lecturers[0]?.id || '');
+  const [description, setDescription] = useState('');
   const [duration, setDuration] = useState('');
-  const [videoUrl, setVideoUrl] = useState('');
-  const subject = subjects.find((item) => item.id === subjectId);
-
-  const submit = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    if (!subject) return;
-    onSave({ title: title.trim(), subjectId, subjectName: subject.name, instructor: instructor.trim(), duration: duration.trim(), videoUrl: videoUrl.trim() });
-  };
-
+  const availableLecturers = lecturers.filter((item) => item.status === 'active');
   return <div className="modal-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
     <section className="modal-card" role="dialog" aria-modal="true" aria-labelledby="lecture-modal-title">
-      <div className="modal-head"><div><h2 id="lecture-modal-title">إضافة محاضرة</h2><p>أدخل بيانات المحاضرة ورابط الفيديو المراد عرضه.</p></div><button type="button" className="icon-button" onClick={onClose} aria-label="إغلاق"><X size={18}/></button></div>
-      {subjects.length === 0 ? <EmptyState title="أضف مادة أولاً" body="يجب إنشاء مادة دراسية قبل إضافة محاضرات إليها."/> : <form className="form-stack" onSubmit={submit}>
-        <label>عنوان المحاضرة<input autoFocus required maxLength={120} value={title} onChange={(event) => setTitle(event.target.value)} placeholder="عنوان المحاضرة"/></label>
-        <label>المادة الدراسية<select required value={subjectId} onChange={(event) => setSubjectId(event.target.value)}>{subjects.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
-        <div className="form-row"><label>المحاضر<input required value={instructor} maxLength={100} onChange={(event) => setInstructor(event.target.value)} placeholder="اسم المحاضر"/></label><label>المدة<input required value={duration} maxLength={40} onChange={(event) => setDuration(event.target.value)} placeholder="مثال: 45 دقيقة"/></label></div>
-        <label>رابط الفيديو<input required type="url" dir="ltr" value={videoUrl} onChange={(event) => setVideoUrl(event.target.value)} placeholder="YouTube / Vimeo / MP4 URL"/></label>
-        <p className="settings-hint">يدعم المشغل روابط YouTube وVimeo وروابط MP4 أو WEBM أو MOV المباشرة.</p>
-        <div className="modal-actions"><button type="button" className="btn btn-outline" onClick={onClose}>إلغاء</button><button type="submit" className="btn btn-primary" disabled={!title.trim() || !subject || !instructor.trim() || !duration.trim() || !videoUrl.trim()}><Plus size={15}/> نشر المحاضرة</button></div>
+      <div className="modal-head"><div><h2 id="lecture-modal-title">إنشاء محاضرة</h2><p>المحاضرة تتبع مدرساً داخل المادة، وتُضاف أجزاؤها بعد إنشائها.</p></div><button type="button" className="icon-button" onClick={onClose} aria-label="إغلاق"><X size={18}/></button></div>
+      {availableLecturers.length === 0 ? <EmptyState title="أضف مدرساً أولاً" body="الترتيب الأكاديمي هو: مادة، ثم مدرس، ثم محاضرة، ثم أجزاء الفيديو."/> : <form className="form-stack" onSubmit={(event) => { event.preventDefault(); onSave({ title: title.trim(), lecturerId, description: description.trim(), duration: duration.trim() }); }}>
+        <label>اختيار المدرس<select required value={lecturerId} onChange={(event) => setLecturerId(event.target.value)}>{availableLecturers.map((item) => <option key={item.id} value={item.id}>{item.subjectName} — {item.name}</option>)}</select></label>
+        <label>عنوان المحاضرة<input autoFocus required maxLength={120} value={title} onChange={(event) => setTitle(event.target.value)} placeholder="مثال: مقدمة في المتجهات"/></label>
+        <div className="form-row"><label>المدة الإجمالية (اختياري)<input maxLength={40} value={duration} onChange={(event) => setDuration(event.target.value)} placeholder="مثال: 90 دقيقة"/></label><label>وصف المحاضرة<input maxLength={180} value={description} onChange={(event) => setDescription(event.target.value)} placeholder="موضوعات المحاضرة"/></label></div>
+        <p className="settings-hint">بعد الحفظ ستتمكن من الدخول إلى المحاضرة وإضافة عدد غير محدود من الأجزاء وروابط الفيديو.</p>
+        <div className="modal-actions"><button type="button" className="btn btn-outline" onClick={onClose}>إلغاء</button><button type="submit" className="btn btn-primary" disabled={!title.trim() || !lecturerId}><Plus size={15}/> إنشاء المحاضرة</button></div>
       </form>}
+    </section>
+  </div>;
+}
+
+function LecturePartModal({ nextOrder, onClose, onSave }: {
+  nextOrder: number; onClose: () => void;
+  onSave: (data: { title: string; videoUrl: string; duration: string; order: number }) => void;
+}) {
+  const [title, setTitle] = useState('');
+  const [videoUrl, setVideoUrl] = useState('');
+  const [duration, setDuration] = useState('');
+  const [order, setOrder] = useState(String(nextOrder));
+  return <div className="modal-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
+    <section className="modal-card" role="dialog" aria-modal="true" aria-labelledby="part-modal-title">
+      <div className="modal-head"><div><h2 id="part-modal-title">إضافة جزء للمحاضرة</h2><p>أضف رابط فيديو واحداً لهذا الجزء.</p></div><button type="button" className="icon-button" onClick={onClose} aria-label="إغلاق"><X size={18}/></button></div>
+      <form className="form-stack" onSubmit={(event) => { event.preventDefault(); onSave({ title: title.trim(), videoUrl: videoUrl.trim(), duration: duration.trim(), order: Math.max(1, Number(order) || nextOrder) }); }}>
+        <label>عنوان الجزء<input autoFocus required maxLength={120} value={title} onChange={(event) => setTitle(event.target.value)} placeholder="مثال: الجزء الأول — شرح المفاهيم"/></label>
+        <label>رابط الفيديو<input required type="url" dir="ltr" value={videoUrl} onChange={(event) => setVideoUrl(event.target.value)} placeholder="YouTube / Vimeo / MP4 / WEBM"/></label>
+        <div className="form-row"><label>المدة<input value={duration} maxLength={40} onChange={(event) => setDuration(event.target.value)} placeholder="مثال: 25 دقيقة"/></label><label>ترتيب الجزء<input type="number" min="1" value={order} onChange={(event) => setOrder(event.target.value)}/></label></div>
+        <p className="settings-hint">يدعم المشغل YouTube وVimeo وروابط الفيديو المباشرة. الروابط الخارجية الأخرى ستفتح حسب دعم المصدر.</p>
+        <div className="modal-actions"><button type="button" className="btn btn-outline" onClick={onClose}>إلغاء</button><button type="submit" className="btn btn-primary" disabled={!title.trim() || !videoUrl.trim()}><Plus size={15}/> حفظ الجزء</button></div>
+      </form>
     </section>
   </div>;
 }
@@ -1320,14 +1469,14 @@ function SubjectModal({ onClose, onSave }: {
 }) {
   const [name, setName] = useState('');
   const [code, setCode] = useState('');
-  const [instructor, setInstructor] = useState('');
+  const [description, setDescription] = useState('');
   const [icon, setIcon] = useState('∫');
   const [color, setColor] = useState('#8b7cff');
   const colors = ['#8b7cff', '#41c8ad', '#f0ad62', '#5d9eff', '#ec82ad', '#9aabbd', '#d1a25b'];
 
   const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    onSave({ name: name.trim(), code: code.trim().toUpperCase(), instructor: instructor.trim(), icon: icon.trim() || '✳', color });
+    onSave({ name: name.trim(), code: code.trim().toUpperCase(), description: description.trim(), icon: icon.trim() || '✳', color });
   };
 
   return (
@@ -1345,8 +1494,8 @@ function SubjectModal({ onClose, onSave }: {
             <label>كود المادة
               <input required maxLength={20} value={code} onChange={(event) => setCode(event.target.value)} placeholder="MTH 101" dir="ltr"/>
             </label>
-            <label>المحاضر أو المعيد
-              <input required maxLength={100} value={instructor} onChange={(event) => setInstructor(event.target.value)} placeholder="اسم المحاضر"/>
+            <label>وصف المادة (اختياري)
+              <input maxLength={180} value={description} onChange={(event) => setDescription(event.target.value)} placeholder="نبذة قصيرة عن المقرر"/>
             </label>
           </div>
           <div className="form-row">
@@ -1359,7 +1508,7 @@ function SubjectModal({ onClose, onSave }: {
           </div>
           <div className="modal-actions">
             <button type="button" className="btn btn-outline" onClick={onClose}>إلغاء</button>
-            <button type="submit" className="btn btn-primary" disabled={!name.trim() || !code.trim() || !instructor.trim()}><Plus size={15}/> إضافة المادة</button>
+            <button type="submit" className="btn btn-primary" disabled={!name.trim() || !code.trim()}><Plus size={15}/> إضافة المادة</button>
           </div>
         </form>
       </section>

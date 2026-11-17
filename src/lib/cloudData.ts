@@ -3,7 +3,7 @@ import {
   serverTimestamp, setDoc, updateDoc, writeBatch, where, type Unsubscribe,
 } from 'firebase/firestore';
 import { db } from './firebase';
-import type { Exam, Lecture, LibraryFile, StudyTask, Subject, TaskStatus } from '../types';
+import type { Exam, Lecture, LecturePart, Lecturer, LibraryFile, StudyTask, Subject, TaskStatus } from '../types';
 
 function requireDb() {
   if (!db) throw new Error('Firebase غير متصل.');
@@ -13,9 +13,11 @@ function requireDb() {
 export function subscribeTasks(uid: string, isAdmin: boolean, onData: (items: StudyTask[]) => void, onError: (error: Error) => void): Unsubscribe | undefined {
   if (!db) return;
   const base = collection(db, 'tasks');
+  // Keep this query to a single array-contains filter: no composite index is
+  // required, and Firestore rules scope each student to assigned tasks only.
   const baseQuery = isAdmin
-    ? query(base, orderBy('createdAt', 'desc'))
-    : query(base, where('status', '==', 'published'), where('assignedTo', 'array-contains', uid), orderBy('dueAt', 'asc'));
+    ? query(base)
+    : query(base, where('assignedTo', 'array-contains', uid));
 
   let taskDocs: StudyTask[] = [];
   const assignmentStatuses = new Map<string, TaskStatus>();
@@ -26,11 +28,15 @@ export function subscribeTasks(uid: string, isAdmin: boolean, onData: (items: St
   })));
 
   const stopTasks = onSnapshot(baseQuery, (snapshot) => {
-    taskDocs = snapshot.docs.map((entry) => {
+    taskDocs = snapshot.docs.flatMap((entry) => {
       const data = entry.data();
+      // A student query already limits documents to their UID. Filter unpublished
+      // drafts locally so the query remains index-light without exposing them.
+      if (!isAdmin && data.status !== 'published') return [];
       const due = data.dueAt?.toDate?.() ?? (data.dueAt ? new Date(data.dueAt) : new Date());
+      const start = data.startAt?.toDate?.() ?? (data.startAt ? new Date(data.startAt) : undefined);
       const created = data.createdAt?.toDate?.() ?? (data.createdAt ? new Date(data.createdAt) : new Date());
-      return {
+      return [{
         id: entry.id,
         title: String(data.title ?? 'مهمة بدون عنوان'),
         description: String(data.description ?? ''),
@@ -38,12 +44,13 @@ export function subscribeTasks(uid: string, isAdmin: boolean, onData: (items: St
         subjectName: String(data.subjectName ?? ''),
         priority: data.priority ?? 'normal',
         status: data.statusByDefault ?? 'not-started',
+        ...(start ? { startAt: start.toISOString() } : {}),
         dueAt: due.toISOString(),
         assignedTo: Array.isArray(data.assignedTo) ? data.assignedTo : [],
         createdBy: String(data.createdBy ?? ''),
         createdAt: created.toISOString(),
-      } as StudyTask;
-    });
+      } as StudyTask];
+    }).sort((a, b) => new Date(a.dueAt).getTime() - new Date(b.dueAt).getTime());
 
     const currentIds = new Set(taskDocs.map((task) => task.id));
     for (const [taskId, stop] of assignmentStops) {
@@ -78,20 +85,45 @@ export function subscribeTasks(uid: string, isAdmin: boolean, onData: (items: St
 export function subscribeSubjects(isAdmin: boolean, onData: (items: Subject[]) => void, onError: (error: Error) => void): Unsubscribe | undefined {
   if (!db) return;
   const ref = collection(db, 'subjects');
-  const q = isAdmin ? query(ref, orderBy('sortOrder', 'asc')) : query(ref, where('isPublished', '==', true), orderBy('sortOrder', 'asc'));
-  return onSnapshot(q, (snapshot) => onData(snapshot.docs.map((entry) => ({ id: entry.id, ...entry.data() } as Subject))), onError);
+  // A single equality filter is enough for students; sort locally to avoid a composite index.
+  const subjectsQuery = isAdmin ? query(ref) : query(ref, where('isPublished', '==', true));
+  return onSnapshot(subjectsQuery, (snapshot) => {
+    const items = snapshot.docs
+      .map((entry) => ({ id: entry.id, ...entry.data() } as Subject & { isPublished?: boolean }))
+      .sort((a, b) => Number(a.sortOrder ?? 0) - Number(b.sortOrder ?? 0));
+    onData(items);
+  }, onError);
 }
 
 export function subscribeLectures(onData: (items: Lecture[]) => void, onError: (error: Error) => void): Unsubscribe | undefined {
   if (!db) return;
-  const q = query(collection(db, 'lectures'), where('publicationStatus', '==', 'published'), orderBy('createdAt', 'desc'));
-  return onSnapshot(q, (snapshot) => onData(snapshot.docs.map((entry) => { const data = entry.data(); const date = data.createdAt?.toDate?.() ?? new Date(); return { id: entry.id, ...data, date: date.toLocaleDateString('ar-EG', { day: 'numeric', month: 'long', year: 'numeric' }) } as Lecture; })), onError);
+  const q = query(collection(db, 'lectures'), where('publicationStatus', '==', 'published'));
+  return onSnapshot(q, (snapshot) => {
+    const items = snapshot.docs.map((entry) => {
+      const data = entry.data();
+      const created = data.createdAt?.toDate?.() ?? new Date();
+      return {
+        id: entry.id,
+        ...data,
+        parts: Number(data.partsCount ?? data.parts ?? 0),
+        partsCount: Number(data.partsCount ?? data.parts ?? 0),
+        lecturerName: String(data.lecturerName ?? data.instructor ?? ''),
+        date: created.toLocaleDateString('ar-EG', { day: 'numeric', month: 'long', year: 'numeric' }),
+        __sortAt: created.getTime(),
+      } as Lecture & { __sortAt: number };
+    }).sort((a, b) => b.__sortAt - a.__sortAt);
+    onData(items.map(({ __sortAt, ...item }) => item));
+  }, onError);
 }
 
 export function subscribeExams(onData: (items: Exam[]) => void, onError: (error: Error) => void): Unsubscribe | undefined {
   if (!db) return;
-  const q = query(collection(db, 'exams'), where('publicationStatus', '==', 'published'), orderBy('startAt', 'asc'));
-  return onSnapshot(q, (snapshot) => onData(snapshot.docs.map((entry) => { const data = entry.data(); const start = data.startAt?.toDate?.() ?? new Date(); return { id: entry.id, ...data, date: start.toISOString(), status: data.examStatus ?? 'upcoming' } as Exam; })), onError);
+  const q = query(collection(db, 'exams'), where('publicationStatus', '==', 'published'));
+  return onSnapshot(q, (snapshot) => onData(snapshot.docs.map((entry) => {
+    const data = entry.data();
+    const start = data.startAt?.toDate?.() ?? (data.startAt ? new Date(data.startAt) : new Date());
+    return { id: entry.id, ...data, date: start.toISOString(), status: data.examStatus ?? 'upcoming' } as Exam;
+  }).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())), onError);
 }
 
 
@@ -153,12 +185,10 @@ export async function createTaskCloud(task: Omit<StudyTask, 'id' | 'createdAt' |
   // General tasks must contain the actual student UIDs on the parent record;
   // otherwise student queries and Firestore read rules would hide the task.
   if (isAdmin) {
-    const students = await getDocs(query(
-      collection(firestore, 'users'),
-      where('role', '==', 'student'),
-      where('status', '==', 'active'),
-    ));
-    assigned = students.docs.map((student) => student.id);
+    const students = await getDocs(query(collection(firestore, 'users'), where('status', '==', 'active')));
+    assigned = students.docs
+      .filter((student) => student.data().role === 'student')
+      .map((student) => student.id);
   }
 
   const taskRef = doc(collection(firestore, 'tasks'));
@@ -171,7 +201,7 @@ export async function createTaskCloud(task: Omit<StudyTask, 'id' | 'createdAt' |
     priority: task.priority,
     createdBy: uid,
     createdByName: displayName,
-    startAt: serverTimestamp(),
+    startAt: task.startAt ? new Date(task.startAt) : serverTimestamp(),
     dueAt: new Date(task.dueAt),
     status: 'published',
     statusByDefault: 'not-started',
@@ -225,13 +255,78 @@ export async function deleteTaskCloud(taskId: string) {
   await deleteDoc(taskRef);
 }
 
+export function subscribeLecturers(onData: (items: Lecturer[]) => void, onError: (error: Error) => void): Unsubscribe | undefined {
+  if (!db) return;
+  return onSnapshot(query(collection(db, 'lecturers')), (snapshot) => {
+    const items = snapshot.docs.map((entry) => {
+      const data = entry.data();
+      return {
+        id: entry.id,
+        name: String(data.name ?? 'مدرس'),
+        subjectId: String(data.subjectId ?? ''),
+        subjectName: String(data.subjectName ?? ''),
+        photoURL: typeof data.photoURL === 'string' ? data.photoURL : null,
+        bio: String(data.bio ?? ''),
+        description: String(data.description ?? ''),
+        displayOrder: Number(data.displayOrder ?? 0),
+        status: data.status === 'inactive' ? 'inactive' : 'active',
+      } as Lecturer;
+    }).sort((a, b) => a.displayOrder - b.displayOrder || a.name.localeCompare(b.name, 'ar'));
+    onData(items);
+  }, onError);
+}
+
+export function subscribeLectureParts(lectureId: string, onData: (items: LecturePart[]) => void, onError: (error: Error) => void): Unsubscribe | undefined {
+  if (!db || !lectureId) { onData([]); return; }
+  return onSnapshot(query(collection(db, 'lectures', lectureId, 'parts')), (snapshot) => {
+    const items = snapshot.docs.map((entry) => {
+      const data = entry.data();
+      const created = data.createdAt?.toDate?.() ?? new Date();
+      return {
+        id: entry.id,
+        lectureId,
+        title: String(data.title ?? 'جزء بدون عنوان'),
+        videoUrl: String(data.videoUrl ?? data.sourceUrl ?? ''),
+        duration: String(data.duration ?? ''),
+        order: Number(data.order ?? 0),
+        sourceType: data.sourceType ?? 'external',
+        createdAt: created.toISOString(),
+      } as LecturePart;
+    }).sort((a, b) => a.order - b.order);
+    onData(items);
+  }, onError);
+}
+
+export async function createLecturerCloud(input: {
+  name: string; subjectId: string; subjectName: string; photoURL?: string | null; bio?: string; description?: string;
+}) {
+  const firestore = requireDb();
+  const existing = await getDocs(query(collection(firestore, 'lecturers'), where('subjectId', '==', input.subjectId)));
+  const displayOrder = existing.size;
+  return addDoc(collection(firestore, 'lecturers'), {
+    ...input,
+    name: input.name.trim(),
+    bio: input.bio?.trim() ?? '',
+    description: input.description?.trim() ?? '',
+    displayOrder,
+    status: 'active',
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  });
+}
+
 export async function createLectureCloud(input: {
-  title: string; subjectId: string; subjectName: string; instructor: string; duration: string; videoUrl: string;
+  title: string; description?: string; subjectId: string; subjectName: string;
+  lecturerId: string; lecturerName: string; duration?: string; lectureNumber?: number;
 }) {
   const firestore = requireDb();
   const lectureRef = await addDoc(collection(firestore, 'lectures'), {
     ...input,
-    parts: 1,
+    title: input.title.trim(),
+    description: input.description?.trim() ?? '',
+    duration: input.duration?.trim() ?? '',
+    partsCount: 0,
+    parts: 0,
     progress: 0,
     publicationStatus: 'published',
     createdAt: serverTimestamp(),
@@ -242,6 +337,34 @@ export async function createLectureCloud(input: {
     updatedAt: serverTimestamp(),
   });
   return lectureRef;
+}
+
+function classifyVideoSource(url: string): LecturePart['sourceType'] {
+  if (/youtu\.be|youtube\.com/i.test(url)) return 'youtube';
+  if (/vimeo\.com/i.test(url)) return 'vimeo';
+  if (/\.(mp4|webm|mov)(?:[?#]|$)/i.test(url)) return 'direct';
+  return 'external';
+}
+
+export async function createLecturePartCloud(input: {
+  lectureId: string; title: string; videoUrl: string; duration: string; order: number;
+}) {
+  const firestore = requireDb();
+  const partRef = await addDoc(collection(firestore, 'lectures', input.lectureId, 'parts'), {
+    title: input.title.trim(),
+    videoUrl: input.videoUrl.trim(),
+    duration: input.duration.trim(),
+    order: input.order,
+    sourceType: classifyVideoSource(input.videoUrl),
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  });
+  await updateDoc(doc(firestore, 'lectures', input.lectureId), {
+    partsCount: increment(1),
+    parts: increment(1),
+    updatedAt: serverTimestamp(),
+  });
+  return partRef;
 }
 
 export async function createExamCloud(input: {

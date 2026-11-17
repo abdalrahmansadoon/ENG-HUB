@@ -240,8 +240,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       throw new Error('يتطلب حذف هذا الحساب إعادة تسجيل الدخول بالطريقة نفسها التي أنشأته بها.');
     }
 
-    await deleteOwnAccountData(firestore, firebaseUser.uid);
-    await deleteUser(firebaseUser);
+    try {
+      await deleteOwnAccountData(firestore, firebaseUser.uid);
+    } catch (error) {
+      const code = (error as { code?: string })?.code ?? '';
+      if (code === 'permission-denied') {
+        throw new Error('رفضت قواعد Firestore حذف بعض بيانات الحساب. افتح Firebase Console ثم Firestore Database → Rules، وانشر آخر نسخة من firestore.rules الموجودة في المستودع، ثم أعد المحاولة.');
+      }
+      if (code === 'failed-precondition') {
+        throw new Error('تعذر تنظيف بعض البيانات بسبب فهرس Firestore أو شرط قاعدة بيانات. راجع رسالة الخطأ في وحدة تحكم Firebase ثم أعد المحاولة.');
+      }
+      throw error;
+    }
+
+    try {
+      await deleteUser(firebaseUser);
+    } catch (error) {
+      const code = (error as { code?: string })?.code ?? '';
+      if (code === 'auth/requires-recent-login') {
+        throw new Error('انتهت صلاحية التحقق الأمني. سجّل الخروج ثم الدخول مجدداً، وبعدها أعد حذف الحساب.');
+      }
+      if (code === 'auth/network-request-failed') {
+        throw new Error('انقطع الاتصال أثناء حذف الحساب. تحقق من الإنترنت ثم أعد المحاولة.');
+      }
+      throw error;
+    }
     setUser(null);
     setProfileComplete(false);
   };
