@@ -443,12 +443,6 @@ function StatCard({ label, value, meta, icon, tone, trend }: { label: string; va
   return <div className="stat-card"><div className="stat-top"><span>{label}</span><div className={`stat-icon ${tone}`}>{icon}</div></div><div className="stat-value">{value}</div><div className="stat-meta">{meta}</div>{trend ? <div className="stat-trend">{trend}</div> : null}</div>;
 }
 
-function WeeklyChart() {
-  const values = [36, 64, 48, 82, 56, 92, 44];
-  const days = ['س', 'ح', 'ن', 'ث', 'ر', 'خ', 'ج'];
-  return <div className="weekly-chart"><div className="chart-y-labels"><span>100%</span><span>75%</span><span>50%</span><span>25%</span><span>0%</span></div><div className="chart-bars">{values.map((value, i) => <div className="chart-column" key={days[i]}><div className="chart-bar-track"><div className={`chart-bar ${i === 5 ? 'highlight' : ''}`} style={{ height: `${value}%` }}/></div><span>{days[i]}</span></div>)}</div></div>;
-}
-
 function EmptyState({ title, body }: { title: string; body: string }) {
   return <div className="empty-state"><div className="empty-icon"><Layers3 size={22}/></div><b>{title}</b><span>{body}</span></div>;
 }
@@ -500,9 +494,11 @@ function TaskActionsMenu({ task, onStatus, onDelete, canEdit }: {
 }
 
 function CoursesPage({ subjects, onAdd, canEdit, onOpen }: { subjects: Subject[]; onAdd: () => void; canEdit: boolean; onOpen: () => void }) {
-  return <><PageHeader eyebrow="ACADEMIC SPACE" title="المواد الدراسية" description="تابع مقررات الترم الأول، محاضراتك، ونسبة تقدمك في كل مادة." action={canEdit ? <button className="btn btn-primary" onClick={onAdd}><Plus size={16}/> إضافة مادة</button> : <span className="semester-chip compact-chip">7 مواد مسجلة <BookOpen size={14}/></span>}/>
-    <div className="course-hero panel"><div><div className="eyebrow">CURRENT SEMESTER</div><h2>السنة الإعدادية <span>·</span> الترم الأول</h2><p>مجموعة موادك الأساسية لهذا الفصل الدراسي. تعلم بوتيرتك واحتفظ بتقدمك في مكان واحد.</p></div><div className="course-hero-stats"><div><b>{subjects.length}</b><span>مادة دراسية</span></div><div><b>{subjects.reduce((sum, s) => sum + s.lectures, 0)}</b><span>محاضرة متاحة</span></div></div></div>
-    <div className="course-grid">{subjects.map((subject) => <button className="course-card" key={subject.id} onClick={onOpen}><div className="course-card-top"><div className="course-icon" style={{ background: `${subject.color}18`, color: subject.color }}>{subject.icon}</div><span className="course-code">{subject.code}</span><button className="icon-button" onClick={(e) => e.stopPropagation()} aria-label="خيارات المادة"><MoreHorizontal size={18}/></button></div><h3>{subject.name}</h3><p>{subject.instructor}</p><div className="course-card-bottom"><div><span>التقدم في المادة</span><b>{subject.progress}%</b></div><div className="progress-track"><div style={{ width: `${subject.progress}%`, background: subject.color }}/></div><div className="course-meta"><span><Video size={14}/>{subject.lectures} محاضرة</span><span><BookOpen size={14}/>الترم الأول</span></div></div></button>)}</div>
+  return <>
+    <PageHeader eyebrow="ACADEMIC SPACE" title="المواد الدراسية" description="تظهر هنا المقررات التي ينشرها مدير المنصة." action={canEdit ? <button className="btn btn-primary" onClick={onAdd}><Plus size={16}/> إضافة مادة</button> : undefined}/>
+    <div className="course-hero panel"><div><div className="eyebrow">CURRENT SEMESTER</div><h2>السنة الإعدادية <span>·</span> الترم الأول</h2><p>ستظهر تفاصيل المقررات والمحاضرات هنا بعد نشرها.</p></div><div className="course-hero-stats"><div><b>{subjects.length}</b><span>مادة منشورة</span></div><div><b>{subjects.reduce((sum, subject) => sum + subject.lectures, 0)}</b><span>محاضرة</span></div></div></div>
+    <div className="course-grid">{subjects.map((subject) => <button className="course-card" key={subject.id} onClick={onOpen}><div className="course-card-top"><div className="course-icon" style={{ background: subject.color + '18', color: subject.color }}>{subject.icon}</div><span className="course-code">{subject.code}</span></div><h3>{subject.name}</h3><p>{subject.instructor}</p><div className="course-card-bottom"><div><span>التقدم في المادة</span><b>{subject.progress}%</b></div><div className="progress-track"><div style={{ width: subject.progress + '%', background: subject.color }}/></div><div className="course-meta"><span><Video size={14}/>{subject.lectures} محاضرة</span><span><BookOpen size={14}/>الترم الأول</span></div></div></button>)}</div>
+    {subjects.length === 0 && <div className="panel courses-empty-panel"><EmptyState title="لا توجد مواد دراسية بعد" body={canEdit ? 'أضف المواد الدراسية من لوحة الإدارة لتظهر هنا للطلاب.' : 'سيضيف مدير المنصة المقررات الدراسية عند تجهيز محتوى الفصل.'}/>{canEdit && <button className="btn btn-primary" onClick={onAdd}><Plus size={15}/> إضافة أول مادة</button>}</div>}
   </>;
 }
 
@@ -639,12 +635,17 @@ function FilesPage({ files, onUpload, cloudinaryReady, isDemo }: { files: Librar
   const [query, setQuery] = useState('');
   const [uploading, setUploading] = useState(false);
   const filtered = files.filter((file) => file.name.toLowerCase().includes(query.toLowerCase()) || file.subjectName.toLowerCase().includes(query.toLowerCase()));
-  const handleFile = async (file?: File) => { if (!file) return; setUploading(true); await onUpload(file); setUploading(false); };
-  return <><PageHeader eyebrow="RESOURCE CENTER" title="مكتبة الملفات" description="كل مذكراتك وملفات المحاضرات والمواد المساعدة في مكتبة منظمة." action={<><input ref={inputRef} type="file" accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.csv,.txt,.zip,.png,.jpg,.jpeg,.webp,.gif,.mp4,.mov,.webm" className="visually-hidden" onChange={(e) => void handleFile(e.target.files?.[0])}/><button className="btn btn-primary" onClick={() => inputRef.current?.click()} disabled={uploading}>{uploading ? <span className="spinner"/> : <Upload size={16}/>} رفع ملف</button></>}/>
-    <div className="file-storage-banner"><div className="storage-icon"><CloudUpload size={23}/></div><div><b>مكتبة ملفاتك</b><span>{isDemo ? 'وضع العرض التجريبي — تُحفظ بيانات الملفات محلياً في هذا المتصفح فقط.' : cloudinaryReady ? 'Cloudinary متصل — تُرفع إليه كل الملفات والصور والفيديوهات، بينما تُحفظ بياناتها وروابطها فقط في Firestore. روابط الرفع غير الموقّع عامة لمن يملك الرابط.' : 'Cloudinary غير مهيأ بعد. أضف Cloud Name وUnsigned Upload Preset من لوحة الإدارة قبل رفع الملفات.'}</span></div><div className="storage-meter"><div><span>مساحة العرض</span><b>{files.length} ملفات</b></div><div className="progress-track"><div style={{ width: '36%' }}/></div></div></div>
-    <div className="panel file-panel"><div className="file-toolbar"><div className="filter-tabs"><button className="filter-tab active">كل الملفات</button><button className="filter-tab">PDF</button><button className="filter-tab">العروض</button><button className="filter-tab">الصور</button></div><div className="inline-search"><Search size={15}/><input placeholder="ابحث عن ملف..." value={query} onChange={(e) => setQuery(e.target.value)}/></div></div>
-      <div className="file-grid">{filtered.map((file) => <div className="file-card" key={file.id}><div className={`file-type-icon type-${file.type.toLowerCase()}`}>{file.type === 'IMAGE' ? <FileImage size={22}/> : file.type === 'VIDEO' ? <Video size={22}/> : <FileText size={22}/>}<span>{file.type}</span></div><div className="file-card-copy"><b>{file.name}</b><span>{file.subjectName}</span><small>{file.size} <i>•</i> {file.updatedAt}</small></div><button className="icon-button" onClick={() => file.url ? window.open(file.url, '_blank', 'noopener,noreferrer') : undefined} aria-label="فتح الملف"><Download size={16}/></button></div>)}</div>
-      {filtered.length === 0 && <EmptyState title="لم يتم العثور على ملفات" body="ارفع ملفاً جديداً أو جرّب البحث بكلمات مختلفة."/>}
+  const handleFile = async (file?: File) => {
+    if (!file) return;
+    setUploading(true);
+    try { await onUpload(file); } finally { setUploading(false); if (inputRef.current) inputRef.current.value = ''; }
+  };
+  return <>
+    <PageHeader eyebrow="RESOURCE CENTER" title="مكتبة الملفات" description="الملفات التي ترفعها أو ينشرها مدير المنصة." action={<><input ref={inputRef} type="file" accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.csv,.txt,.zip,.png,.jpg,.jpeg,.webp,.gif,.mp4,.mov,.webm" className="visually-hidden" onChange={(event) => void handleFile(event.target.files?.[0])}/><button className="btn btn-primary" onClick={() => inputRef.current?.click()} disabled={uploading || (!isDemo && !cloudinaryReady)}>{uploading ? <span className="spinner"/> : <Upload size={16}/>} رفع ملف</button></>}/>
+    <div className="file-storage-banner"><div className="storage-icon"><CloudUpload size={23}/></div><div><b>{files.length} ملف</b><span>{isDemo ? 'وضع تجريبي — لن يتم حفظ الملفات على الخادم.' : cloudinaryReady ? 'تُرفع الملفات إلى Cloudinary وتُحفظ روابطها وبياناتها في Firestore.' : 'Cloudinary غير مهيأ. افتح إعدادات Cloudinary في لوحة الإدارة قبل رفع الملفات.'}</span></div></div>
+    <div className="panel file-panel"><div className="file-toolbar"><div className="file-count-label">{files.length} ملف</div><div className="inline-search"><Search size={15}/><input placeholder="ابحث عن ملف..." value={query} onChange={(event) => setQuery(event.target.value)}/></div></div>
+      <div className="file-grid">{filtered.map((file) => <div className="file-card" key={file.id}><div className={'file-type-icon type-' + file.type.toLowerCase()}>{file.type === 'IMAGE' ? <FileImage size={22}/> : file.type === 'VIDEO' ? <Video size={22}/> : <FileText size={22}/>}<span>{file.type}</span></div><div className="file-card-copy"><b>{file.name}</b><span>{file.subjectName}</span><small>{file.size} <i>•</i> {file.updatedAt}</small></div><button className="icon-button" onClick={() => file.url ? window.open(file.url, '_blank', 'noopener,noreferrer') : undefined} aria-label="فتح الملف"><Download size={16}/></button></div>)}</div>
+      {filtered.length === 0 && <EmptyState title={files.length === 0 ? 'لا توجد ملفات بعد' : 'لا توجد نتائج مطابقة'} body={files.length === 0 ? 'ستظهر الملفات هنا بعد رفعها إلى مكتبة المنصة.' : 'جرّب تغيير كلمة البحث.'}/>}
     </div>
   </>;
 }
