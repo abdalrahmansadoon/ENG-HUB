@@ -4,18 +4,19 @@ import {
   BookOpenCheck, CalendarDays, Check, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight,
   CircleHelp, Clock3, CloudUpload, Code2, Command, Download, File, FileImage, FileText,
   Filter, FolderOpen, GraduationCap, Grid2X2, Headphones, Home, Layers3, LogOut, Menu,
-  MessageCircle, MoreHorizontal, Paperclip, Play, Plus, Search, Send, Settings, ShieldCheck,
+  MessageCircle, MoreHorizontal, Paperclip, Pause, Play, Plus, Search, Send, Settings, ShieldCheck,
   SlidersHorizontal, Sparkles, Sun, Moon, Target, Timer, TrendingUp, Upload, Users,
   Video, X, Zap, ClipboardList, CalendarClock, BookMarked, ListChecks, ChartNoAxesCombined,
+  ImagePlus, Volume2, VolumeX, Maximize, Trash2, Pencil, Monitor, Smartphone,
 } from 'lucide-react';
 import { useAuth, registerAccount } from './AuthContext';
-import { demoExams, demoFiles, demoLectures, demoNotifications, demoSubjects, demoTasks } from '../data/demo';
 import { defaultCloudinarySettings, isCloudinaryConfigured, saveCloudinarySettings, subscribeCloudinarySettings, type CloudinarySettings } from '../lib/cloudinary';
 import { uploadFile } from '../lib/uploads';
 import { enablePushNotifications, listenForForegroundMessages } from '../lib/messaging';
 import { isFirebaseConfigured } from '../lib/firebase';
 import { readLocal, writeLocal } from '../lib/storage';
-import { createSubjectCloud, createTaskCloud, saveFileMetadataCloud, subscribeExams, subscribeFiles, subscribeLectures, subscribeSubjects, subscribeTasks, updateTaskStatusCloud } from '../lib/cloudData';
+import { createExamCloud, createLectureCloud, createSubjectCloud, createTaskCloud, deleteTaskCloud, saveFileMetadataCloud, subscribeExams, subscribeFiles, subscribeLectures, subscribeSubjects, subscribeTasks, updateTaskStatusCloud } from '../lib/cloudData';
+import { deleteGeneralChatMessage, joinGeneralChat, sendGeneralChatMessage, subscribeGeneralChat, type ChatAttachment, type ChatMessage } from '../lib/chat';
 import type { AppNotification, AppUser, Exam, Lecture, LibraryFile, Priority, StudyTask, Subject, TaskStatus } from '../types';
 
 const navGroups = [
@@ -42,27 +43,26 @@ const statusText: Record<TaskStatus, string> = {
 const iconForKind = { task: ClipboardList, lecture: Video, exam: BookOpenCheck, system: Bell };
 
 function App() {
-  const { user, isDemo, loading, logout, toggleDemoRole, login, loginWithGoogle } = useAuth();
+  const { user, isDemo, loading, profileComplete, completeProfile, saveProfile, deleteAccount, logout, toggleDemoRole, login, loginWithGoogle } = useAuth();
   const activeUser = user ?? { uid: '', displayName: 'طالب هندسة', email: '', photoURL: null, role: 'student' as const, academicYear: 'السنة الإعدادية', term: 'الترم الأول' };
   const [page, setPage] = useState('home');
   const [mobileNav, setMobileNav] = useState(false);
   const [search, setSearch] = useState('');
-  const [dark, setDark] = useState(() => readLocal('theme', true));
-  const [tasks, setTasks] = useState<StudyTask[]>(() => readLocal('tasks', demoTasks));
-  const [subjects, setSubjects] = useState<Subject[]>(() => readLocal('subjects', demoSubjects));
-  const [lectures, setCloudLectures] = useState<Lecture[]>(() => readLocal('lectures', demoLectures));
-  const [exams, setExams] = useState<Exam[]>(() => readLocal('exams', demoExams));
-  const [files, setFiles] = useState<LibraryFile[]>(() => readLocal('files', demoFiles));
+  const [themePreference, setThemePreference] = useState<'system' | 'light' | 'dark'>(() => readLocal('themePreference', 'system'));
+  const [systemDark, setSystemDark] = useState(() => window.matchMedia?.('(prefers-color-scheme: dark)').matches ?? true);
+  const dark = themePreference === 'system' ? systemDark : themePreference === 'dark';
+  const [tasks, setTasks] = useState<StudyTask[]>([]);
+  const [subjects, setSubjects] = useState<Subject[]>([]);
+  const [lectures, setCloudLectures] = useState<Lecture[]>([]);
+  const [exams, setExams] = useState<Exam[]>([]);
+  const [files, setFiles] = useState<LibraryFile[]>([]);
   const [cloudinarySettings, setCloudinarySettings] = useState<CloudinarySettings>(defaultCloudinarySettings);
-  const [notifications, setNotifications] = useState<AppNotification[]>(() => readLocal('notifications', demoNotifications));
+  const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [taskModal, setTaskModal] = useState(false);
   const [subjectModal, setSubjectModal] = useState(false);
+  const [lectureModal, setLectureModal] = useState(false);
+  const [examModal, setExamModal] = useState(false);
   const [toast, setToast] = useState('');
-  const [chatMessages, setChatMessages] = useState(() => readLocal('chatMessages', [
-    { id: 'm1', name: 'كريم خالد', text: 'يا شباب، حد رفع حل Sheet 2؟', time: '10:42 ص', mine: false },
-    { id: 'm2', name: 'أنت', text: 'لسه براجع آخر مسألتين وهرفعه.', time: '10:45 ص', mine: true },
-    { id: 'm3', name: 'سارة علي', text: 'رفعت ملف المراجعة في مكتبة الملفات 🙌', time: '11:02 ص', mine: false },
-  ]));
 
   useEffect(() => writeLocal('tasks', tasks), [tasks]);
   useEffect(() => writeLocal('subjects', subjects), [subjects]);
@@ -73,8 +73,15 @@ function App() {
     return subscribeCloudinarySettings(setCloudinarySettings, (error) => setToast(`تعذر قراءة إعدادات Cloudinary: ${error.message}`));
   }, [user?.uid, isDemo]);
   useEffect(() => writeLocal('notifications', notifications), [notifications]);
-  useEffect(() => writeLocal('chatMessages', chatMessages), [chatMessages]);
-  useEffect(() => writeLocal('theme', dark), [dark]);
+  useEffect(() => writeLocal('themePreference', themePreference), [themePreference]);
+  useEffect(() => {
+    const media = window.matchMedia?.('(prefers-color-scheme: dark)');
+    if (!media) return;
+    const update = () => setSystemDark(media.matches);
+    update();
+    media.addEventListener?.('change', update);
+    return () => media.removeEventListener?.('change', update);
+  }, []);
   useEffect(() => {
     if (!toast) return;
     const timer = window.setTimeout(() => setToast(''), 3200);
@@ -150,6 +157,38 @@ function App() {
     else setToast('تمت إضافة المادة');
   };
 
+  const addLecture = async (data: { title: string; subjectId: string; subjectName: string; instructor: string; duration: string; videoUrl: string }) => {
+    setLectureModal(false);
+    try {
+      await createLectureCloud(data);
+      setToast('تم نشر المحاضرة بنجاح');
+    } catch (error) {
+      setToast(error instanceof Error ? error.message : 'تعذر إنشاء المحاضرة');
+    }
+  };
+
+  const addExam = async (data: { title: string; subjectName: string; date: string; duration: string; questions: number }) => {
+    setExamModal(false);
+    try {
+      await createExamCloud(data);
+      setToast('تم نشر الاختبار بنجاح');
+    } catch (error) {
+      setToast(error instanceof Error ? error.message : 'تعذر إنشاء الاختبار');
+    }
+  };
+
+  const removeTask = async (taskId: string) => {
+    if (!isAdmin) return;
+    try {
+      if (!isDemo) await deleteTaskCloud(taskId);
+      setTasks((items) => items.filter((task) => task.id !== taskId));
+      setToast('تم حذف المهمة');
+    } catch (error) {
+      setToast(error instanceof Error ? error.message : 'تعذر حذف المهمة');
+    }
+  };
+
+
   const addFile = async (file: File) => {
     let remoteUrl: string | undefined;
     if (!isDemo) {
@@ -174,6 +213,7 @@ function App() {
 
   if (loading) return <div className="boot-screen"><div className="brand-mark">EH</div><span>جاري تجهيز ENG HUB...</span></div>;
   if (!user) return <AuthScreen onLogin={login} onGoogle={loginWithGoogle} />;
+  if (!profileComplete) return <ProfileCompletionScreen user={user} cloudinarySettings={defaultCloudinarySettings} onComplete={completeProfile} />;
 
   return (
     <div className={dark ? 'app-shell theme-dark' : 'app-shell theme-light'} dir="rtl">
@@ -199,7 +239,7 @@ function App() {
         <div className="sidebar-spacer"/>
         <div className="sidebar-help"><div className="help-icon"><CircleHelp size={18}/></div><div><b>تحتاج إلى مساعدة؟</b><span>مركز المساعدة والدعم</span></div><ChevronLeft size={15}/></div>
         <div className="sidebar-profile">
-          <div className="avatar avatar-purple">{activeUser.displayName.slice(0, 1)}</div>
+          <div className="avatar avatar-purple">{activeUser.photoURL ? <img src={activeUser.photoURL} alt="" /> : activeUser.displayName.slice(0, 1)}</div>
           <div className="profile-copy"><b>{activeUser.displayName}</b><span>{isAdmin ? 'مدير المنصة' : 'طالب هندسة'}</span></div>
           <button className="icon-button" onClick={() => setPage('profile')} aria-label="إعدادات الملف الشخصي"><MoreHorizontal size={19}/></button>
         </div>
@@ -214,30 +254,32 @@ function App() {
           </div>
           <div className="topbar-actions">
             <div className="global-search-wrap"><div className="global-search"><Search size={17}/><input placeholder="ابحث عن مادة، محاضرة، مهمة..." value={search} onChange={(event) => setSearch(event.target.value)} /><kbd>⌘ K</kbd></div>{search.trim() && <div className="global-search-results">{quickResults.length ? quickResults.map((result) => <button key={`${result.page}-${result.id}`} onClick={() => { setPage(result.page); setSearch(''); }}><Search size={13}/><span><b>{result.title}</b><small>{result.sub}</small></span><ArrowLeft size={13}/></button>) : <div className="search-empty">لا توجد نتائج مطابقة</div>}</div>}</div>
-            <button className="icon-button theme-toggle" onClick={() => setDark(!dark)} aria-label="تغيير المظهر">{dark ? <Sun size={18}/> : <Moon size={18}/>}</button>
+            <button className="icon-button theme-toggle" onClick={() => setThemePreference(dark ? 'light' : 'dark')} aria-label="تغيير المظهر">{dark ? <Sun size={18}/> : <Moon size={18}/>}</button>
             <button className="icon-button notification-button" onClick={() => setPage('notifications')} aria-label="الإشعارات"><Bell size={18}/>{unreadCount > 0 && <i/>}</button>
-            <button className="top-avatar" onClick={() => setPage('profile')}>{activeUser.displayName.slice(0, 1)}</button>
+            <button className="top-avatar" onClick={() => setPage('profile')}>{activeUser.photoURL ? <img src={activeUser.photoURL} alt="" /> : activeUser.displayName.slice(0, 1)}</button>
           </div>
         </header>
 
         <div className="page-wrap">
-          {page === 'home' && <Dashboard userName={activeUser.displayName} tasks={tasks} subjects={subjects} exams={exams} lectures={lectures} onGo={setPage} onNewTask={() => setTaskModal(true)} onStatus={changeTaskStatus}/>}
-          {page === 'tasks' && <TasksPage tasks={tasks} onNew={() => setTaskModal(true)} onStatus={changeTaskStatus} />}
+          {page === 'home' && <Dashboard userName={activeUser.displayName} tasks={tasks} subjects={subjects} exams={exams} lectures={lectures} onGo={setPage} onNewTask={() => setTaskModal(true)} onStatus={changeTaskStatus} canCreateTask={isAdmin}/>}
+          {page === 'tasks' && <TasksPage tasks={tasks} onNew={() => setTaskModal(true)} onStatus={changeTaskStatus} onDelete={(id) => void removeTask(id)} canEdit={isAdmin}/>}
           {page === 'courses' && <CoursesPage subjects={subjects} onAdd={() => setSubjectModal(true)} canEdit={isAdmin} onOpen={() => setPage('lectures')} />}
-          {page === 'lectures' && <LecturesPage lectures={lectures} subjects={subjects} />}
-          {page === 'exams' && <ExamsPage exams={exams} setExams={setExams} />}
+          {page === 'lectures' && <LecturesPage lectures={lectures} subjects={subjects} canEdit={isAdmin} onAdd={() => setLectureModal(true)}/>}
+          {page === 'exams' && <ExamsPage exams={exams} setExams={setExams} canEdit={isAdmin} onAdd={() => setExamModal(true)}/>}
           {page === 'files' && <FilesPage files={files} onUpload={addFile} cloudinaryReady={isCloudinaryConfigured(cloudinarySettings)} isDemo={isDemo} />}
-          {page === 'chat' && <ChatPage messages={chatMessages} setMessages={setChatMessages} />}
+          {page === 'chat' && <ChatPage user={activeUser} cloudinarySettings={cloudinarySettings} isDemo={isDemo} isAdmin={isAdmin}/>}
           {page === 'planner' && <PlannerPage tasks={tasks} />}
           {page === 'analytics' && <AnalyticsPage tasks={tasks} subjects={subjects} lectures={lectures} />}
           {page === 'notifications' && <NotificationsPage items={notifications} setItems={setNotifications} />}
-          {page === 'admin' && <AdminPage tasks={tasks} subjects={subjects} files={files} currentUser={activeUser} cloudinarySettings={cloudinarySettings} onNewTask={() => setTaskModal(true)} onAddSubject={() => setSubjectModal(true)} onSaved={() => setToast('تم حفظ إعدادات Cloudinary في Firestore')} onError={(message) => setToast(message)} />}
-          {page === 'profile' && <ProfilePage user={activeUser} isDemo={isDemo} onToggleRole={toggleDemoRole} onLogout={logout} onToggleTheme={() => setDark(!dark)} dark={dark} />}
+          {page === 'admin' && <AdminPage tasks={tasks} subjects={subjects} lectures={lectures} exams={exams} files={files} currentUser={activeUser} cloudinarySettings={cloudinarySettings} onNewTask={() => setTaskModal(true)} onAddSubject={() => setSubjectModal(true)} onAddLecture={() => setLectureModal(true)} onAddExam={() => setExamModal(true)} onSaved={() => setToast('تم حفظ إعدادات Cloudinary في Firestore')} onError={(message) => setToast(message)} />}
+          {page === 'profile' && <ProfilePage user={activeUser} isDemo={isDemo} onToggleRole={toggleDemoRole} onLogout={logout} onDeleteAccount={deleteAccount} onSaveProfile={saveProfile} themePreference={themePreference} onThemeChange={setThemePreference} cloudinarySettings={cloudinarySettings} onToggleTheme={() => setThemePreference(dark ? 'light' : 'dark')} dark={dark} />}
         </div>
       </main>
 
       {taskModal && <TaskModal subjects={subjects} userId={activeUser.uid} onClose={() => setTaskModal(false)} onSave={addTask}/>}
       {subjectModal && <SubjectModal onClose={() => setSubjectModal(false)} onSave={addSubject}/>}
+      {lectureModal && <LectureModal subjects={subjects} onClose={() => setLectureModal(false)} onSave={addLecture}/>}
+      {examModal && <ExamModal subjects={subjects} onClose={() => setExamModal(false)} onSave={addExam}/>}
       {toast && <div className="toast"><CheckCircle2 size={17}/>{toast}</div>}
     </div>
   );
