@@ -114,7 +114,7 @@ Cloud Name وUnsigned Preset قيمتان عامتان يستخدمهما الم
 1. افتح GitHub Repository > Settings > Pages.
 2. اجعل Build and deployment source هو **GitHub Actions**.
 3. من Firebase Console > Authentication > Settings > Authorized domains أضف `abdalrahmansadoon.github.io` حتى يعمل تسجيل الدخول وGoogle Popup عبر GitHub Pages.
-4. افتح GitHub Repository > Settings > Secrets and variables > Actions > Variables، وأنشئ متغيرات المستودع التالية:
+4. إعدادات Firebase العامة ومفتاح VAPID موجودة كقيم افتراضية في ملف النشر. يمكنك، عند الحاجة، إضافة متغيرات المستودع التالية في Settings > Secrets and variables > Actions > Variables لتجاوز القيم الافتراضية:
 
 | Variable | Value |
 |---|---|
