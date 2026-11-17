@@ -106,54 +106,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const login = async (email: string, password: string, name?: string) => {
-    const firebaseAuth = auth; const firestore = db;
-    if (!firebaseAuth || !firestore) {
+    const firebaseAuth = auth;
+    if (!firebaseAuth) {
       const next = { ...demoUser, displayName: name || email.split('@')[0] || 'طالب هندسة', email };
       setUser(next);
       writeLocal('demoUser', next);
       return;
     }
-    const credential = await signInWithEmailAndPassword(firebaseAuth, email, password);
-    const ref = doc(firestore, 'users', credential.user.uid);
-    const snap = await getDoc(ref);
-    if (!snap.exists()) {
-      await setDoc(ref, {
-        displayName: credential.user.displayName || email.split('@')[0],
-        email,
-        role: 'student',
-        academicYear: 'السنة الإعدادية',
-        term: 'الترم الأول',
-        status: 'active',
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-      });
-    }
+    // onAuthStateChanged is the single owner of Firestore profile provisioning.
+    // Do not write the profile here as that races the auth listener on first sign-in.
+    await signInWithEmailAndPassword(firebaseAuth, email, password);
   };
 
   const loginWithGoogle = async () => {
-    const firebaseAuth = auth; const firestore = db;
-    if (!firebaseAuth || !firestore) {
+    const firebaseAuth = auth;
+    if (!firebaseAuth) {
       const next = { ...demoUser, displayName: 'طالب تجريبي' };
       setUser(next);
       writeLocal('demoUser', next);
       return;
     }
-    const credential = await signInWithPopup(firebaseAuth, new GoogleAuthProvider());
-    const ref = doc(firestore, 'users', credential.user.uid);
-    const snap = await getDoc(ref);
-    if (!snap.exists()) {
-      await setDoc(ref, {
-        displayName: credential.user.displayName || 'طالب هندسة',
-        email: credential.user.email,
-        photoURL: credential.user.photoURL,
-        role: 'student',
-        academicYear: 'السنة الإعدادية',
-        term: 'الترم الأول',
-        status: 'active',
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-      });
-    }
+    // The auth-state listener provisions the Firestore profile exactly once.
+    await signInWithPopup(firebaseAuth, new GoogleAuthProvider());
   };
 
   const logout = async () => {
@@ -189,18 +163,10 @@ export function useAuth() {
 }
 
 export async function registerAccount(email: string, password: string, displayName: string) {
-  const firebaseAuth = auth; const firestore = db;
-  if (!firebaseAuth || !firestore) throw new Error('Firebase غير مهيأ بعد. التسجيل التجريبي متاح دون إنشاء حساب سحابي.');
+  const firebaseAuth = auth;
+  if (!firebaseAuth) throw new Error('Firebase غير مهيأ بعد. التسجيل التجريبي متاح دون إنشاء حساب سحابي.');
   const credential = await createUserWithEmailAndPassword(firebaseAuth, email, password);
   await updateProfile(credential.user, { displayName });
-  await setDoc(doc(firestore, 'users', credential.user.uid), {
-    displayName,
-    email,
-    role: 'student',
-    academicYear: 'السنة الإعدادية',
-    term: 'الترم الأول',
-    status: 'active',
-    createdAt: serverTimestamp(),
-    updatedAt: serverTimestamp(),
-  });
+  // onAuthStateChanged creates the corresponding Firestore profile. Keeping
+  // profile creation in one place avoids concurrent first-login writes.
 }
