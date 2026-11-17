@@ -17,15 +17,21 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
+
       - name: Install dependencies
         run: npm install
+
       - name: Build
         run: npm run build
         env:
@@ -36,12 +42,20 @@ jobs:
           VITE_FIREBASE_APP_ID: ${{ vars.VITE_FIREBASE_APP_ID || '1:366947709379:web:747b0aba2d08056b734d76' }}
           VITE_FIREBASE_MEASUREMENT_ID: ${{ vars.VITE_FIREBASE_MEASUREMENT_ID || 'G-M2MPGMLD14' }}
           VITE_FIREBASE_VAPID_KEY: ${{ vars.VITE_FIREBASE_VAPID_KEY || 'BOQHNvhjRYDfvLmPZ_bQrJ94F4z0gYiYlAuguOzvO13t32hsX2Gt_zRGJg7_fNqDDg' }}
+
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
+
+      # Use a project-specific artifact name so old/retried Pages artifacts
+      # cannot make deploy-pages select multiple "github-pages" artifacts.
       - name: Upload site artifact
         uses: actions/upload-pages-artifact@v3
         with:
+          name: eng-hub-pages-dist
           path: ./dist
+
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+        with:
+          artifact_name: eng-hub-pages-dist
