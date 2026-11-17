@@ -130,7 +130,7 @@ function App() {
       subscribeSubjects(isAdmin, setSubjects, onError),
       subscribeLectures(setCloudLectures, onError),
       subscribeExams(setExams, onError),
-      subscribeFiles(activeUser.uid, setFiles, onError),
+      subscribeFiles(activeUser.uid, isAdmin, setFiles, onError),
     ].filter(Boolean) as Array<() => void>;
     return () => stops.forEach((stop) => stop());
   }, [user?.uid, isDemo, activeUser.uid, isAdmin]);
@@ -207,7 +207,7 @@ function App() {
     const type: LibraryFile['type'] = ['png', 'jpg', 'jpeg', 'webp', 'gif'].includes(ext) ? 'IMAGE' : ['mp4', 'mov', 'webm'].includes(ext) ? 'VIDEO' : ['ppt', 'pptx'].includes(ext) ? 'PPT' : ['doc', 'docx', 'xls', 'xlsx', 'csv', 'txt', 'zip'].includes(ext) ? 'DOC' : 'PDF';
     const next: LibraryFile = { id: crypto.randomUUID(), name: file.name, type, subjectName: 'ملفات شخصية', size: `${(file.size / 1024 / 1024).toFixed(1)} MB`, updatedAt: 'الآن', url: remoteUrl };
     setFiles((items) => [next, ...items]);
-    if (!isDemo && remoteUrl) void saveFileMetadataCloud(next, activeUser.uid).then(() => setToast('تم رفع الملف وحفظ بياناته')).catch((error: unknown) => setToast(error instanceof Error ? error.message : 'تم رفع الملف لكن تعذر حفظ بياناته'));
+    if (!isDemo && remoteUrl) void saveFileMetadataCloud(next, activeUser.uid, isAdmin ? 'public' : 'private').then(() => setToast('تم رفع الملف وحفظ بياناته')).catch((error: unknown) => setToast(error instanceof Error ? error.message : 'تم رفع الملف لكن تعذر حفظ بياناته'));
     else setToast(remoteUrl ? 'تم رفع الملف إلى Cloudinary' : 'أضيف الملف للقائمة التجريبية محلياً فقط');
   };
 
