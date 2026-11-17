@@ -322,54 +322,69 @@ function PageHeader({ eyebrow, title, description, action }: { eyebrow?: string;
   return <div className="page-heading"><div>{eyebrow && <div className="eyebrow">{eyebrow}</div>}<h1>{title}</h1>{description && <p>{description}</p>}</div>{action}</div>;
 }
 
-function Dashboard({ userName, tasks, subjects, exams, lectures, onGo, onNewTask, onStatus }: {
+function Dashboard({ userName, tasks, subjects, exams, lectures, onGo, onNewTask, onStatus, canCreateTask }: {
   userName: string; tasks: StudyTask[]; subjects: Subject[]; exams: Exam[]; lectures: Lecture[];
-  onGo: (page: string) => void; onNewTask: () => void; onStatus: (id: string, status: TaskStatus) => void;
+  onGo: (page: string) => void; onNewTask: () => void; onStatus: (id: string, status: TaskStatus) => void; canCreateTask: boolean;
 }) {
   const completed = tasks.filter((task) => task.status === 'completed').length;
   const todo = tasks.filter((task) => task.status !== 'completed' && task.status !== 'under-review').length;
   const currentExams = exams.filter((exam) => exam.status !== 'completed').length;
-  const upcoming = tasks.filter((task) => task.status !== 'completed').slice(0, 4);
+  const upcomingTasks = tasks.filter((task) => task.status !== 'completed').slice(0, 4);
+  const deadlines = [
+    ...tasks.filter((task) => task.status !== 'completed').map((task) => ({ id: 'task-' + task.id, title: task.title, sub: task.subjectName, date: new Date(task.dueAt), kind: 'مهمة' })),
+    ...exams.filter((exam) => exam.status !== 'completed').map((exam) => ({ id: 'exam-' + exam.id, title: exam.title, sub: exam.subjectName, date: new Date(exam.date), kind: 'اختبار' })),
+  ].filter((item) => !Number.isNaN(item.date.getTime())).sort((a, b) => a.date.getTime() - b.date.getTime()).slice(0, 4);
+
   return <>
     <section className="welcome-banner">
-      <div className="welcome-content"><div className="welcome-kicker"><Sparkles size={14}/> مساحة دراستك في مكان واحد</div><h1>أهلاً بعودتك، {userName} <span>👋</span></h1><p>خطوة صغيرة كل يوم تصنع فرقاً كبيراً. استعد لإنجاز مهامك اليوم.</p><div className="welcome-actions"><button className="btn btn-primary" onClick={onNewTask}><Plus size={16}/> أضف مهمة جديدة</button><button className="btn btn-glass" onClick={() => onGo('planner')}><CalendarDays size={16}/> خطط ليومك</button></div></div>
-      <div className="welcome-art"><div className="orbit orbit-one"/><div className="orbit orbit-two"/><div className="art-core"><GraduationCap size={43}/></div><div className="float-card float-card-top"><Zap size={14}/><span>Keep going!</span></div><div className="float-card float-card-bottom"><Target size={15}/><b>72%</b><span>هذا الأسبوع</span></div></div>
+      <div className="welcome-content">
+        <div className="welcome-kicker"><Sparkles size={14}/> مساحة دراستك في مكان واحد</div>
+        <h1>أهلاً بعودتك، {userName} <span>👋</span></h1>
+        <p>كل ما تضيفه إلى مساحتك الدراسية سيظهر هنا تلقائياً.</p>
+        <div className="welcome-actions">
+          {canCreateTask && <button className="btn btn-primary" onClick={onNewTask}><Plus size={16}/> أضف مهمة جديدة</button>}
+          <button className="btn btn-glass" onClick={() => onGo('planner')}><CalendarDays size={16}/> مخطط المذاكرة</button>
+        </div>
+      </div>
+      <div className="welcome-art"><div className="orbit orbit-one"/><div className="orbit orbit-two"/><div className="art-core"><GraduationCap size={43}/></div></div>
       <div className="banner-noise"/>
     </section>
 
-    <div className="section-title-row"><div><div className="eyebrow">نظرة سريعة</div><h2>ملخص تقدمك</h2></div><span className="muted-label">الترم الأول · 2026 / 2027</span></div>
+    <div className="section-title-row"><div><div className="eyebrow">نظرة سريعة</div><h2>ملخص مساحتك الدراسية</h2></div><span className="muted-label">الأرقام من بيانات حسابك الفعلية</span></div>
     <div className="stats-grid">
-      <StatCard label="المهام المتبقية" value={todo.toString().padStart(2, '0')} meta="تحتاج إلى إنجاز" icon={<ListChecks size={19}/>} tone="violet" trend="3 هذا الأسبوع" />
-      <StatCard label="المهام المكتملة" value={completed.toString().padStart(2, '0')} meta="إنجاز رائع، استمر" icon={<CheckCircle2 size={19}/>} tone="green" trend="+2 عن الأسبوع الماضي" />
-      <StatCard label="المحاضرات" value={`${lectures.filter((item) => item.progress === 100).length}/${lectures.length}`} meta="محاضرات تمت مشاهدتها" icon={<Video size={19}/>} tone="blue" trend="4 محاضرات جديدة" />
-      <StatCard label="الاختبارات القادمة" value={currentExams.toString().padStart(2, '0')} meta="اختبارات لم تنتهِ بعد" icon={<AlarmClock size={19}/>} tone="amber" trend="أقربها خلال 3 أيام" />
+      <StatCard label="المهام المتبقية" value={todo.toString()} meta="مهام غير مكتملة" icon={<ListChecks size={19}/>} tone="violet"/>
+      <StatCard label="المهام المكتملة" value={completed.toString()} meta="مهام أنجزتها" icon={<CheckCircle2 size={19}/>} tone="green"/>
+      <StatCard label="المحاضرات" value={lectures.length.toString()} meta="محاضرات منشورة" icon={<Video size={19}/>} tone="blue"/>
+      <StatCard label="الاختبارات القادمة" value={currentExams.toString()} meta="اختبارات لم تنتهِ بعد" icon={<AlarmClock size={19}/>} tone="amber"/>
     </div>
 
     <div className="dashboard-grid">
-      <section className="panel tasks-panel"><div className="panel-head"><div><h3>مهام تحتاج انتباهك</h3><span>تابع أولوياتك ومواعيد التسليم</span></div><button className="text-link" onClick={() => onGo('tasks')}>كل المهام <ArrowLeft size={15}/></button></div>
-        <div className="task-list">{upcoming.map((task) => <TaskRow key={task.id} task={task} onStatus={onStatus}/>)}</div>
-        {upcoming.length === 0 && <EmptyState title="لا توجد مهام معلقة" body="أحسنت! أنجزت كل ما عليك."/>}
+      <section className="panel tasks-panel">
+        <div className="panel-head"><div><h3>مهامك</h3><span>المهام المنشورة أو المسندة إليك</span></div><button className="text-link" onClick={() => onGo('tasks')}>كل المهام <ArrowLeft size={15}/></button></div>
+        <div className="task-list">{upcomingTasks.map((task) => <TaskRow key={task.id} task={task} onStatus={onStatus}/>)}</div>
+        {upcomingTasks.length === 0 && <EmptyState title="لا توجد مهام بعد" body="ستظهر هنا المهام التي يضيفها مدير المنصة."/>}
       </section>
-      <section className="panel progress-panel"><div className="panel-head"><div><h3>تقدم المواد</h3><span>نسبة إنجاز المحاضرات والموضوعات</span></div><button className="icon-button" onClick={() => onGo('courses')}><MoreHorizontal size={19}/></button></div>
-        <div className="subject-progress-list">{subjects.slice(0, 5).map((subject) => <div className="subject-progress" key={subject.id}><div className="subject-mini-icon" style={{ background: `${subject.color}18`, color: subject.color }}>{subject.icon}</div><div className="subject-progress-main"><div><b>{subject.name}</b><span>{subject.progress}%</span></div><div className="progress-track"><div style={{ width: `${subject.progress}%`, background: subject.color }}/></div></div></div>)}</div>
-        <button className="panel-footer-link" onClick={() => onGo('courses')}>عرض كل المواد <ArrowLeft size={14}/></button>
+      <section className="panel progress-panel">
+        <div className="panel-head"><div><h3>المواد الدراسية</h3><span>المواد التي ينشرها مدير المنصة</span></div><button className="icon-button" onClick={() => onGo('courses')}><MoreHorizontal size={19}/></button></div>
+        <div className="subject-progress-list">{subjects.slice(0, 5).map((subject) => <div className="subject-progress" key={subject.id}><div className="subject-mini-icon" style={{ background: subject.color + '18', color: subject.color }}>{subject.icon}</div><div className="subject-progress-main"><div><b>{subject.name}</b><span>{subject.progress}%</span></div><div className="progress-track"><div style={{ width: subject.progress + '%', background: subject.color }}/></div></div></div>)}</div>
+        {subjects.length === 0 && <EmptyState title="لم تتم إضافة مواد بعد" body="ستظهر المواد هنا بعد نشرها من لوحة الإدارة."/>}
+        <button className="panel-footer-link" onClick={() => onGo('courses')}>عرض المواد <ArrowLeft size={14}/></button>
       </section>
     </div>
 
     <div className="lower-grid">
-      <section className="panel schedule-panel"><div className="panel-head"><div><h3>نظرة على الأسبوع</h3><span>نشاطك الدراسي خلال الأيام الماضية</span></div><span className="select-chip">هذا الأسبوع <ChevronDown size={13}/></span></div><WeeklyChart/></section>
-      <section className="panel deadline-panel"><div className="panel-head"><div><h3>المواعيد القادمة</h3><span>لا تدع موعداً يفوتك</span></div><button className="icon-button" onClick={() => onGo('planner')}><CalendarDays size={17}/></button></div>
-        <div className="deadline-item"><div className="date-tile"><b>19</b><span>نوفمبر</span></div><div className="deadline-copy"><b>Calculus — Sheet 03</b><span>11:59 مساءً · تسليم واجب</span></div><span className="deadline-pill urgent-pill">غداً</span></div>
-        <div className="deadline-item"><div className="date-tile"><b>20</b><span>نوفمبر</span></div><div className="deadline-copy"><b>Quiz 02 — Derivatives</b><span>10:00 صباحاً · اختبار</span></div><span className="deadline-pill">بعد 3 أيام</span></div>
-        <div className="deadline-item"><div className="date-tile"><b>21</b><span>نوفمبر</span></div><div className="deadline-copy"><b>Physics Lab Report</b><span>08:00 مساءً · تقرير</span></div><span className="deadline-pill">بعد 4 أيام</span></div>
+      <section className="panel schedule-panel"><div className="panel-head"><div><h3>نشاط المذاكرة</h3><span>سجل جلسات المذاكرة الفعلية</span></div></div><EmptyState title="لا توجد جلسات مسجلة بعد" body="عند توفر سجل جلسات المذاكرة ستظهر إحصائيات النشاط هنا."/></section>
+      <section className="panel deadline-panel"><div className="panel-head"><div><h3>المواعيد القادمة</h3><span>المواعيد من مهامك واختباراتك</span></div><button className="icon-button" onClick={() => onGo('planner')}><CalendarDays size={17}/></button></div>
+        {deadlines.map((item) => <div className="deadline-item" key={item.id}><div className="date-tile"><b>{item.date.toLocaleDateString('ar-EG', { day: 'numeric' })}</b><span>{item.date.toLocaleDateString('ar-EG', { month: 'short' })}</span></div><div className="deadline-copy"><b>{item.title}</b><span>{item.sub} · {item.kind}</span></div><span className="deadline-pill">{item.date.toLocaleDateString('ar-EG', { weekday: 'short' })}</span></div>)}
+        {deadlines.length === 0 && <EmptyState title="لا توجد مواعيد قادمة" body="ستظهر هنا مواعيد المهام والاختبارات المنشورة."/>}
       </section>
     </div>
-    <div className="bottom-note"><Sparkles size={15}/><span>أنت تتقدم بشكل جيد. حافظ على تركيزك وخذ استراحة قصيرة كل فترة.</span><span className="note-decoration">ENG HUB · STUDY SMARTER</span></div>
+    <div className="bottom-note"><Sparkles size={15}/><span>ستتحدث هذه المساحة تلقائياً عند إضافة محتوى جديد.</span><span className="note-decoration">ENG HUB · STUDY SMARTER</span></div>
   </>;
 }
 
-function StatCard({ label, value, meta, icon, tone, trend }: { label: string; value: string; meta: string; icon: ReactNode; tone: string; trend: string }) {
-  return <div className="stat-card"><div className="stat-top"><span>{label}</span><div className={`stat-icon ${tone}`}>{icon}</div></div><div className="stat-value">{value}</div><div className="stat-meta">{meta}</div><div className="stat-trend">{trend}</div></div>;
+function StatCard({ label, value, meta, icon, tone, trend }: { label: string; value: string; meta: string; icon: ReactNode; tone: string; trend?: string }) {
+  return <div className="stat-card"><div className="stat-top"><span>{label}</span><div className={`stat-icon ${tone}`}>{icon}</div></div><div className="stat-value">{value}</div><div className="stat-meta">{meta}</div>{trend ? <div className="stat-trend">{trend}</div> : null}</div>;
 }
 
 function WeeklyChart() {
