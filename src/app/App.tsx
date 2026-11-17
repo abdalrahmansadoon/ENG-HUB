@@ -15,9 +15,9 @@ import { uploadFile } from '../lib/uploads';
 import { enablePushNotifications, listenForForegroundMessages } from '../lib/messaging';
 import { isFirebaseConfigured } from '../lib/firebase';
 import { readLocal, writeLocal } from '../lib/storage';
-import { createExamCloud, createLectureCloud, createSubjectCloud, createTaskCloud, deleteTaskCloud, saveFileMetadataCloud, subscribeExams, subscribeFiles, subscribeLectures, subscribeSubjects, subscribeTasks, updateTaskStatusCloud } from '../lib/cloudData';
+import { createExamCloud, createLectureCloud, createLecturePartCloud, createLecturerCloud, createSubjectCloud, createTaskCloud, deleteTaskCloud, saveFileMetadataCloud, subscribeExams, subscribeFiles, subscribeLectureParts, subscribeLecturers, subscribeLectures, subscribeSubjects, subscribeTasks, updateTaskStatusCloud } from '../lib/cloudData';
 import { deleteGeneralChatMessage, joinGeneralChat, sendGeneralChatMessage, subscribeGeneralChat, type ChatAttachment, type ChatMessage } from '../lib/chat';
-import type { AppNotification, AppUser, Exam, Lecture, LibraryFile, Priority, StudyTask, Subject, TaskStatus } from '../types';
+import type { AppNotification, AppUser, Exam, Lecture, LecturePart, Lecturer, LibraryFile, Priority, StudyTask, Subject, TaskStatus } from '../types';
 
 const navGroups = [
   { title: 'مساحة الدراسة', items: [
@@ -54,6 +54,11 @@ function App() {
   const [tasks, setTasks] = useState<StudyTask[]>([]);
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [lectures, setCloudLectures] = useState<Lecture[]>([]);
+  const [lecturers, setLecturers] = useState<Lecturer[]>([]);
+  const [selectedSubjectId, setSelectedSubjectId] = useState('');
+  const [selectedLecturerId, setSelectedLecturerId] = useState('');
+  const [selectedLectureId, setSelectedLectureId] = useState('');
+  const [lectureParts, setLectureParts] = useState<LecturePart[]>([]);
   const [exams, setExams] = useState<Exam[]>([]);
   const [files, setFiles] = useState<LibraryFile[]>([]);
   const [cloudinarySettings, setCloudinarySettings] = useState<CloudinarySettings>(defaultCloudinarySettings);
@@ -61,6 +66,8 @@ function App() {
   const [taskModal, setTaskModal] = useState(false);
   const [subjectModal, setSubjectModal] = useState(false);
   const [lectureModal, setLectureModal] = useState(false);
+  const [lecturerModal, setLecturerModal] = useState(false);
+  const [lecturePartModal, setLecturePartModal] = useState(false);
   const [examModal, setExamModal] = useState(false);
   const [toast, setToast] = useState('');
 
@@ -129,11 +136,22 @@ function App() {
       subscribeTasks(activeUser.uid, isAdmin, setTasks, onError),
       subscribeSubjects(isAdmin, setSubjects, onError),
       subscribeLectures(setCloudLectures, onError),
+      subscribeLecturers(setLecturers, onError),
       subscribeExams(setExams, onError),
       subscribeFiles(activeUser.uid, isAdmin, setFiles, onError),
     ].filter(Boolean) as Array<() => void>;
     return () => stops.forEach((stop) => stop());
   }, [user?.uid, isDemo, activeUser.uid, isAdmin]);
+
+  useEffect(() => {
+    if (!user || isDemo || !selectedLectureId) {
+      setLectureParts([]);
+      return;
+    }
+    return subscribeLectureParts(selectedLectureId, setLectureParts, (error) => {
+      setToast(`تعذر تحميل أجزاء المحاضرة: ${error.message}`);
+    });
+  }, [user?.uid, isDemo, selectedLectureId]);
 
   const addTask = (data: Omit<StudyTask, 'id' | 'createdAt' | 'createdBy'>) => {
     const next: StudyTask = { ...data, id: crypto.randomUUID(), createdAt: new Date().toISOString(), createdBy: activeUser.displayName };
@@ -157,13 +175,46 @@ function App() {
     else setToast('تمت إضافة المادة');
   };
 
-  const addLecture = async (data: { title: string; subjectId: string; subjectName: string; instructor: string; duration: string; videoUrl: string }) => {
-    setLectureModal(false);
+  const addLecturer = async (data: { name: string; subjectId: string; subjectName: string; bio?: string; description?: string; photoURL?: string | null }) => {
     try {
-      await createLectureCloud(data);
-      setToast('تم نشر المحاضرة بنجاح');
+      await createLecturerCloud(data);
+      setLecturerModal(false);
+      setToast('تمت إضافة المدرس إلى المادة');
+    } catch (error) {
+      setToast(error instanceof Error ? error.message : 'تعذرت إضافة المدرس');
+    }
+  };
+
+  const addLecture = async (data: { title: string; description?: string; lecturerId: string; duration?: string }) => {
+    const lecturer = lecturers.find((item) => item.id === data.lecturerId);
+    if (!lecturer) {
+      setToast('اختر مدرساً صحيحاً تابعاً للمادة أولاً.');
+      return;
+    }
+    try {
+      await createLectureCloud({
+        ...data,
+        subjectId: lecturer.subjectId,
+        subjectName: lecturer.subjectName,
+        lecturerName: lecturer.name,
+      });
+      setLectureModal(false);
+      setSelectedSubjectId(lecturer.subjectId);
+      setSelectedLecturerId(lecturer.id);
+      setToast('تم إنشاء المحاضرة. أضف الآن أجزاء الفيديو الخاصة بها.');
     } catch (error) {
       setToast(error instanceof Error ? error.message : 'تعذر إنشاء المحاضرة');
+    }
+  };
+
+  const addLecturePart = async (data: { title: string; videoUrl: string; duration: string; order: number }) => {
+    if (!selectedLectureId) return;
+    try {
+      await createLecturePartCloud({ ...data, lectureId: selectedLectureId });
+      setLecturePartModal(false);
+      setToast('تمت إضافة جزء الفيديو إلى المحاضرة');
+    } catch (error) {
+      setToast(error instanceof Error ? error.message : 'تعذرت إضافة جزء المحاضرة');
     }
   };
 
@@ -263,22 +314,35 @@ function App() {
         <div className="page-wrap">
           {page === 'home' && <Dashboard userName={activeUser.displayName} tasks={tasks} subjects={subjects} exams={exams} lectures={lectures} onGo={setPage} onNewTask={() => setTaskModal(true)} onStatus={changeTaskStatus} canCreateTask={isAdmin}/>}
           {page === 'tasks' && <TasksPage tasks={tasks} onNew={() => setTaskModal(true)} onStatus={changeTaskStatus} onDelete={(id) => void removeTask(id)} canEdit={isAdmin}/>}
-          {page === 'courses' && <CoursesPage subjects={subjects} onAdd={() => setSubjectModal(true)} canEdit={isAdmin} onOpen={() => setPage('lectures')} />}
-          {page === 'lectures' && <LecturesPage lectures={lectures} subjects={subjects} canEdit={isAdmin} onAdd={() => setLectureModal(true)}/>}
+          {(page === 'courses' || page === 'lectures') && <AcademicHubPage
+            subjects={subjects} lecturers={lecturers} lectures={lectures} parts={lectureParts}
+            selectedSubjectId={selectedSubjectId} selectedLecturerId={selectedLecturerId} selectedLectureId={selectedLectureId}
+            canEdit={isAdmin}
+            onSelectSubject={(id) => { setSelectedSubjectId(id); setSelectedLecturerId(''); setSelectedLectureId(''); }}
+            onSelectLecturer={(id) => { setSelectedLecturerId(id); setSelectedLectureId(''); }}
+            onSelectLecture={setSelectedLectureId}
+            onBack={() => { if (selectedLectureId) setSelectedLectureId(''); else if (selectedLecturerId) setSelectedLecturerId(''); else setSelectedSubjectId(''); }}
+            onAddSubject={() => setSubjectModal(true)}
+            onAddLecturer={() => setLecturerModal(true)}
+            onAddLecture={() => setLectureModal(true)}
+            onAddPart={() => setLecturePartModal(true)}
+          />}
           {page === 'exams' && <ExamsPage exams={exams} setExams={setExams} canEdit={isAdmin} onAdd={() => setExamModal(true)}/>}
           {page === 'files' && <FilesPage files={files} onUpload={addFile} cloudinaryReady={isCloudinaryConfigured(cloudinarySettings)} isDemo={isDemo} />}
           {page === 'chat' && <ChatPage user={activeUser} cloudinarySettings={cloudinarySettings} isDemo={isDemo} isAdmin={isAdmin}/>}
           {page === 'planner' && <PlannerPage tasks={tasks} />}
           {page === 'analytics' && <AnalyticsPage tasks={tasks} subjects={subjects} lectures={lectures} />}
           {page === 'notifications' && <NotificationsPage items={notifications} setItems={setNotifications} />}
-          {page === 'admin' && <AdminPage tasks={tasks} subjects={subjects} lectures={lectures} exams={exams} files={files} currentUser={activeUser} cloudinarySettings={cloudinarySettings} onNewTask={() => setTaskModal(true)} onAddSubject={() => setSubjectModal(true)} onAddLecture={() => setLectureModal(true)} onAddExam={() => setExamModal(true)} onSaved={() => setToast('تم حفظ إعدادات Cloudinary في Firestore')} onError={(message) => setToast(message)} />}
+          {page === 'admin' && <AdminPage tasks={tasks} subjects={subjects} lecturers={lecturers} lectures={lectures} exams={exams} files={files} currentUser={activeUser} cloudinarySettings={cloudinarySettings} onNewTask={() => setTaskModal(true)} onAddSubject={() => setSubjectModal(true)} onAddLecturer={() => { setPage('courses'); setSelectedSubjectId(subjects[0]?.id ?? ''); setSelectedLecturerId(''); setSelectedLectureId(''); setLecturerModal(true); }} onAddLecture={() => setLectureModal(true)} onAddExam={() => setExamModal(true)} onSaved={() => setToast('تم حفظ إعدادات Cloudinary في Firestore')} onError={(message) => setToast(message)} />}
           {page === 'profile' && <ProfilePage user={activeUser} isDemo={isDemo} onToggleRole={toggleDemoRole} onLogout={logout} onDeleteAccount={deleteAccount} onSaveProfile={saveProfile} themePreference={themePreference} onThemeChange={setThemePreference} cloudinarySettings={cloudinarySettings} onToggleTheme={() => setThemePreference(dark ? 'light' : 'dark')} dark={dark} />}
         </div>
       </main>
 
       {taskModal && <TaskModal subjects={subjects} userId={activeUser.uid} onClose={() => setTaskModal(false)} onSave={addTask}/>}
       {subjectModal && <SubjectModal onClose={() => setSubjectModal(false)} onSave={addSubject}/>}
-      {lectureModal && <LectureModal subjects={subjects} onClose={() => setLectureModal(false)} onSave={addLecture}/>}
+      {lecturerModal && <LecturerModal subject={subjects.find((item) => item.id === selectedSubjectId) ?? null} onClose={() => setLecturerModal(false)} onSave={addLecturer}/>}
+      {lectureModal && <LectureModal lecturers={lecturers} selectedLecturerId={selectedLecturerId} onClose={() => setLectureModal(false)} onSave={addLecture}/>}
+      {lecturePartModal && <LecturePartModal nextOrder={lectureParts.length + 1} onClose={() => setLecturePartModal(false)} onSave={addLecturePart}/>}
       {examModal && <ExamModal subjects={subjects} onClose={() => setExamModal(false)} onSave={addExam}/>}
       {toast && <div className="toast"><CheckCircle2 size={17}/>{toast}</div>}
     </div>
