@@ -35,17 +35,19 @@ service cloud.firestore {
     match /users/{userId} {
       allow create: if owns(userId)
         && request.resource.data.role == 'student'
-        && request.resource.data.status == 'active';
+        && request.resource.data.status == 'active'
+        && request.resource.data.profileCompleted == true;
       allow read: if owns(userId) || isAdmin() || (activeUser() && resource.data.profileVisibility == 'public');
       allow update: if owns(userId)
         && request.resource.data.role == resource.data.role
         && request.resource.data.status == resource.data.status
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
-          'displayName', 'username', 'photoURL', 'bio', 'academicYear', 'term',
-          'locale', 'theme', 'notificationPreferences', 'privacy', 'updatedAt'
+          'displayName', 'username', 'photoURL', 'bio', 'phone', 'profileCompleted',
+          'academicYear', 'term', 'locale', 'theme', 'notificationPreferences',
+          'privacy', 'updatedAt'
         ])
         || isAdmin();
-      allow delete: if isAdmin();
+      allow delete: if owns(userId) || isAdmin();
     }
 
     match /roles/{roleId} {
@@ -98,21 +100,21 @@ service cloud.firestore {
       allow read: if activeUser() && (isAdmin() || (resource.data.status == 'published' && resource.data.assignedTo.hasAny([request.auth.uid])) || resource.data.createdBy == request.auth.uid);
       allow create: if isAdmin() || (activeUser() && request.resource.data.createdBy == request.auth.uid && request.resource.data.type == 'personal' && request.resource.data.assignedTo.hasAny([request.auth.uid]));
       allow update: if isAdmin() || (activeUser() && resource.data.createdBy == request.auth.uid && resource.data.type == 'personal' && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['title', 'description', 'priority', 'dueAt', 'updatedAt']));
-      allow delete: if isAdmin();
+      allow delete: if isAdmin() || (activeUser() && resource.data.createdBy == request.auth.uid && resource.data.type == 'personal');
       match /assignments/{userId} {
         allow read: if activeUser() && (owns(userId) || isAdmin() || isModerator());
         allow create: if isAdmin() || (owns(userId) && request.resource.data.userId == userId && get(/databases/$(database)/documents/tasks/$(taskId)).data.assignedTo.hasAny([request.auth.uid]));
         allow update: if isAdmin() || (activeUser() && owns(userId) && request.resource.data.userId == resource.data.userId && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
           'status', 'startedAt', 'submittedAt', 'submissionText', 'submissionFiles', 'updatedAt'
         ]));
-        allow delete: if isAdmin();
+        allow delete: if isAdmin() || (activeUser() && owns(userId));
       }
       match /submissions/{submissionId} {
         allow read: if activeUser() && (resource.data.userId == request.auth.uid || isModerator());
         allow create: if activeUser() && request.resource.data.userId == request.auth.uid
           && get(/databases/$(database)/documents/tasks/$(taskId)).data.assignedTo.hasAny([request.auth.uid]);
         allow update: if isModerator();
-        allow delete: if isAdmin();
+        allow delete: if isAdmin() || (activeUser() && resource.data.userId == request.auth.uid);
       }
       match /comments/{commentId} {
         allow read: if activeUser() && (isModerator() || get(/databases/$(database)/documents/tasks/$(taskId)).data.assignedTo.hasAny([request.auth.uid]) || get(/databases/$(database)/documents/tasks/$(taskId)).data.createdBy == request.auth.uid);
@@ -154,12 +156,27 @@ service cloud.firestore {
 
     match /conversations/{conversationId} {
       allow read: if activeUser() && exists(/databases/$(database)/documents/conversations/$(conversationId)/members/$(request.auth.uid));
-      allow create: if activeUser() && request.resource.data.createdBy == request.auth.uid;
-      allow update: if isModerator() || (activeUser() && resource.data.createdBy == request.auth.uid && request.resource.data.createdBy == resource.data.createdBy);
+      allow create: if activeUser()
+        && conversationId == 'general'
+        && request.resource.data.type == 'global'
+        && request.resource.data.createdBy == request.auth.uid;
+      allow update: if isModerator();
       allow delete: if isAdmin();
       match /members/{userId} {
         allow read: if activeUser() && (owns(userId) || isModerator());
-        allow write: if isModerator() || (activeUser() && get(/databases/$(database)/documents/conversations/$(conversationId)).data.createdBy == request.auth.uid);
+        allow create: if isModerator() || (
+          activeUser()
+          && owns(userId)
+          && conversationId == 'general'
+          && get(/databases/$(database)/documents/conversations/$(conversationId)).data.type == 'global'
+        );
+        allow update: if isModerator() || (
+          activeUser()
+          && owns(userId)
+          && request.resource.data.userId == resource.data.userId
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['displayName', 'photoURL', 'lastSeenAt'])
+        );
+        allow delete: if isModerator() || (activeUser() && owns(userId));
       }
       match /messages/{messageId} {
         allow read: if activeUser() && exists(/databases/$(database)/documents/conversations/$(conversationId)/members/$(request.auth.uid));
@@ -210,7 +227,9 @@ service cloud.firestore {
     }
     match /reports/{reportId} {
       allow create: if signedIn() && request.resource.data.reporterId == request.auth.uid;
-      allow read, update, delete: if isModerator();
+      allow read: if isModerator() || (signedIn() && resource.data.reporterId == request.auth.uid);
+      allow update: if isModerator();
+      allow delete: if isModerator() || (signedIn() && resource.data.reporterId == request.auth.uid);
     }
     match /auditLogs/{logId} {
       allow read: if isAdmin();
