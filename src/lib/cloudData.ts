@@ -95,11 +95,40 @@ export function subscribeExams(onData: (items: Exam[]) => void, onError: (error:
 }
 
 
-export function subscribeFiles(uid: string, onData: (items: LibraryFile[]) => void, onError: (error: Error) => void): Unsubscribe | undefined {
+export function subscribeFiles(uid: string, isAdmin: boolean, onData: (items: LibraryFile[]) => void, onError: (error: Error) => void): Unsubscribe | undefined {
   if (!db) return;
-  const q = query(collection(db, 'files'), where('ownerId', '==', uid), orderBy('createdAt', 'desc'));
-  return onSnapshot(q, (snapshot) => onData(snapshot.docs.map((entry) => ({ id: entry.id, ...entry.data() } as LibraryFile))), onError);
+  const base = collection(db, 'files');
+  const mapSnapshot = (snapshot: Awaited<ReturnType<typeof getDocs>>) =>
+    snapshot.docs.map((entry) => ({ id: entry.id, ...entry.data() } as LibraryFile));
+
+  if (isAdmin) {
+    return onSnapshot(query(base, orderBy('createdAt', 'desc')), (snapshot) => {
+      onData(snapshot.docs.map((entry) => ({ id: entry.id, ...entry.data() } as LibraryFile)));
+    }, onError);
+  }
+
+  let publicFiles: LibraryFile[] = [];
+  let ownFiles: LibraryFile[] = [];
+  const publish = () => {
+    const merged = new Map<string, LibraryFile>();
+    for (const file of [...publicFiles, ...ownFiles]) merged.set(file.id, file);
+    onData([...merged.values()].sort((a, b) => {
+      const left = a.updatedAt || '';
+      const right = b.updatedAt || '';
+      return right.localeCompare(left);
+    }));
+  };
+  const stopPublic = onSnapshot(query(base, where('visibility', '==', 'public')), (snapshot) => {
+    publicFiles = snapshot.docs.map((entry) => ({ id: entry.id, ...entry.data() } as LibraryFile));
+    publish();
+  }, onError);
+  const stopOwn = onSnapshot(query(base, where('ownerId', '==', uid)), (snapshot) => {
+    ownFiles = snapshot.docs.map((entry) => ({ id: entry.id, ...entry.data() } as LibraryFile));
+    publish();
+  }, onError);
+  return () => { stopPublic(); stopOwn(); };
 }
+
 
 export async function createTaskCloud(task: Omit<StudyTask, 'id' | 'createdAt' | 'createdBy'>, uid: string, displayName: string, isAdmin: boolean) {
   const firestore = requireDb();
@@ -216,9 +245,9 @@ export async function createSubjectCloud(subject: Omit<Subject, 'id' | 'lectures
   });
 }
 
-export async function saveFileMetadataCloud(file: LibraryFile, ownerId: string) {
+export async function saveFileMetadataCloud(file: LibraryFile, ownerId: string, visibility: 'private' | 'public' = 'private') {
   await addDoc(collection(requireDb(), 'files'), {
     name: file.name, type: file.type, subjectName: file.subjectName, size: file.size,
-    url: file.url ?? null, ownerId, visibility: 'private', createdAt: serverTimestamp(), updatedAt: serverTimestamp(),
+    url: file.url ?? null, ownerId, visibility, createdAt: serverTimestamp(), updatedAt: serverTimestamp(),
   });
 }
