@@ -485,12 +485,166 @@ function FilesPage({ files, onUpload, cloudinaryReady, isDemo }: { files: Librar
   </>;
 }
 
-function ChatPage({ messages, setMessages }: { messages: Array<{ id: string; name: string; text: string; time: string; mine: boolean }>; setMessages: (fn: (items: Array<{ id: string; name: string; text: string; time: string; mine: boolean }>) => Array<{ id: string; name: string; text: string; time: string; mine: boolean }>) => void }) {
+function ChatPage({ user, cloudinarySettings, isDemo, isAdmin }: {
+  user: AppUser;
+  cloudinarySettings: CloudinarySettings;
+  isDemo: boolean;
+  isAdmin: boolean;
+}) {
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [draft, setDraft] = useState('');
-  const send = (event: FormEvent) => { event.preventDefault(); if (!draft.trim()) return; setMessages((items) => [...items, { id: crypto.randomUUID(), name: 'أنت', text: draft.trim(), time: new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }), mine: true }]); setDraft(''); };
-  return <><PageHeader eyebrow="STUDY TOGETHER" title="المحادثات" description="تواصل مع زملائك وشارك الأسئلة والملفات الدراسية." action={<button className="btn btn-primary"><Plus size={16}/> محادثة جديدة</button>}/>
-    <div className="chat-layout panel"><aside className="chat-list"><div className="chat-list-header"><b>محادثاتك</b><button className="icon-button"><Plus size={17}/></button></div><div className="chat-search"><Search size={15}/><input placeholder="ابحث في المحادثات"/></div><button className="chat-contact active"><div className="avatar avatar-cyan">C</div><div><b>Computer Science — Group</b><span>كريم: رفعت ملف المراجعة...</span></div><small>11:02</small></button><button className="chat-contact"><div className="avatar avatar-orange">S</div><div><b>Study Buddies</b><span>سارة: تمام، شكراً!</span></div><small>أمس</small></button><button className="chat-contact"><div className="avatar avatar-pink">A</div><div><b>أحمد سمير</b><span>تم استلام سؤالك.</span></div><small>الإثنين</small></button></aside>
-      <section className="chat-conversation"><div className="chat-top"><div className="avatar avatar-cyan">C</div><div><b>Computer Science — Group</b><span><i className="live-dot"/> 18 عضواً في المجموعة</span></div><button className="icon-button"><MoreHorizontal size={19}/></button></div><div className="chat-date-separator"><span>اليوم · 17 نوفمبر 2026</span></div><div className="chat-messages">{messages.map((message) => <div className={message.mine ? 'message-line mine' : 'message-line'} key={message.id}>{!message.mine && <div className="message-avatar">{message.name.slice(0, 1)}</div>}<div className="message-bubble"><span>{message.name}</span><p>{message.text}</p><small>{message.time}</small></div></div>)}</div><form className="chat-composer" onSubmit={send}><button type="button" className="icon-button"><Paperclip size={18}/></button><input value={draft} onChange={(e) => setDraft(e.target.value)} placeholder="اكتب رسالتك هنا..."/><button type="submit" className="send-button" aria-label="إرسال"><Send size={17}/></button></form></section>
+  const [files, setFiles] = useState<File[]>([]);
+  const [replyTo, setReplyTo] = useState<ChatMessage | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState('');
+  const [search, setSearch] = useState('');
+  const fileInput = useRef<HTMLInputElement>(null);
+  const bottomRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (isDemo) {
+      setLoading(false);
+      setError('الدردشة المشتركة تحتاج إلى الاتصال بقاعدة Firebase.');
+      return;
+    }
+    let cancelled = false;
+    let unsubscribe: (() => void) | undefined;
+    const start = async () => {
+      setLoading(true);
+      setError('');
+      try {
+        await joinGeneralChat({ uid: user.uid, displayName: user.displayName, photoURL: user.photoURL });
+        if (cancelled) return;
+        unsubscribe = subscribeGeneralChat(setMessages, (reason) => setError(reason.message));
+      } catch (reason) {
+        setError(reason instanceof Error ? reason.message : 'تعذر فتح المحادثة العامة.');
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+    void start();
+    return () => {
+      cancelled = true;
+      unsubscribe?.();
+    };
+  }, [user.uid, user.displayName, user.photoURL, isDemo]);
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+  }, [messages.length]);
+
+  const visibleMessages = messages.filter((message) =>
+    (message.text + ' ' + message.senderName + ' ' + message.attachments.map((item) => item.name).join(' '))
+      .toLowerCase().includes(search.trim().toLowerCase()),
+  );
+
+  const send = async (event: FormEvent) => {
+    event.preventDefault();
+    if ((!draft.trim() && files.length === 0) || sending) return;
+    setSending(true);
+    setError('');
+    try {
+      const attachments: ChatAttachment[] = [];
+      for (const file of files) {
+        const url = await uploadFile(file, cloudinarySettings);
+        attachments.push({ name: file.name, url, mimeType: file.type || 'application/octet-stream', size: file.size });
+      }
+      await sendGeneralChatMessage({
+        text: draft,
+        senderId: user.uid,
+        senderName: user.displayName,
+        senderPhotoURL: user.photoURL,
+        attachments,
+        replyTo: replyTo ? {
+          id: replyTo.id,
+          text: replyTo.text || (replyTo.attachments[0]?.name ?? 'مرفق'),
+          senderName: replyTo.senderName,
+        } : null,
+      });
+      setDraft('');
+      setFiles([]);
+      setReplyTo(null);
+      if (fileInput.current) fileInput.current.value = '';
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : 'تعذر إرسال الرسالة.');
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const removeMessage = async (messageId: string) => {
+    try {
+      await deleteGeneralChatMessage(messageId);
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : 'تعذر حذف الرسالة.');
+    }
+  };
+
+  const clearRoom = async () => {
+    if (!isAdmin || !window.confirm('سيتم حذف جميع رسائل المحادثة العامة. هل تريد المتابعة؟')) return;
+    try {
+      const { deleteGeneralChatRoomMessages } = await import('../lib/chat');
+      await deleteGeneralChatRoomMessages();
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : 'تعذر تفريغ المحادثة.');
+    }
+  };
+
+  return <>
+    <PageHeader eyebrow="STUDY TOGETHER" title="المحادثات" description="تواصل مع زملائك في مساحة مشتركة، وأرسل الرسائل والمرفقات الدراسية."/>
+    <div className="chat-layout panel chat-layout-live">
+      <aside className="chat-list">
+        <div className="chat-list-header"><b>المحادثات</b><span className="chat-room-count">غرفة واحدة</span></div>
+        <div className="chat-search"><Search size={15}/><input placeholder="ابحث في الرسائل" value={search} onChange={(event) => setSearch(event.target.value)}/></div>
+        <div className="chat-contact active">
+          <div className="avatar avatar-cyan"><MessageCircle size={17}/></div>
+          <div><b>المحادثة العامة</b><span>غرفة طلاب ENG HUB</span></div>
+          <span className="live-dot"/>
+        </div>
+        <div className="chat-list-note"><Users size={15}/><span>كل مستخدم مسجل في المنصة يستطيع الانضمام إلى هذه الغرفة.</span></div>
+      </aside>
+      <section className="chat-conversation chat-conversation-live">
+        <div className="chat-top">
+          <div className="avatar avatar-cyan"><MessageCircle size={17}/></div>
+          <div className="chat-top-copy"><b>المحادثة العامة</b><span><i className="live-dot"/> رسائل مباشرة عبر Firestore</span></div>
+          {isAdmin && <button className="btn btn-outline btn-small" type="button" onClick={() => void clearRoom()}><Trash2 size={14}/> تفريغ المحادثة</button>}
+        </div>
+        <div className="chat-messages chat-messages-live" aria-live="polite">
+          {loading && <EmptyState title="جاري فتح المحادثة" body="يتم الاتصال بغرفة الدردشة المشتركة."/>}
+          {!loading && visibleMessages.length === 0 && <EmptyState title={messages.length === 0 ? 'لا توجد رسائل بعد' : 'لا توجد نتائج مطابقة'} body={messages.length === 0 ? 'ابدأ المحادثة بإرسال أول رسالة إلى زملائك.' : 'جرّب كلمة بحث أخرى.'}/>}
+          {visibleMessages.map((message) => {
+            const mine = message.senderId === user.uid;
+            return <article className={'chat-msg ' + (mine ? 'sent' : 'received')} key={message.id}>
+              <div className="msg-header">
+                <span className="chat-sender">{mine ? 'أنت' : message.senderName}</span>
+                <time className="msg-time">{message.createdAt ? message.createdAt.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }) : 'الآن'}</time>
+              </div>
+              {message.replyTo && <div className="reply-block"><span className="ru">{message.replyTo.senderName}</span><span className="rt">{message.replyTo.text}</span></div>}
+              {message.text && <p className="chat-message-text">{message.text}</p>}
+              {message.attachments.length > 0 && <div className="chat-attachments">
+                {message.attachments.map((attachment, index) => attachment.mimeType.startsWith('image/')
+                  ? <a href={attachment.url} target="_blank" rel="noreferrer" className="chat-image-attachment" key={attachment.url + index}><img src={attachment.url} alt={attachment.name}/><span>{attachment.name}</span></a>
+                  : <a href={attachment.url} target="_blank" rel="noreferrer" className="chat-file-attachment" key={attachment.url + index}><FileText size={18}/><span><b>{attachment.name}</b><small>{(attachment.size / 1024 / 1024).toFixed(1)} MB</small></span><Download size={15}/></a>)}
+              </div>}
+              <div className="msg-actions">
+                <button type="button" onClick={() => setReplyTo(message)} title="الرد على الرسالة"><ArrowDownLeft size={14}/> رد</button>
+                {mine && <button type="button" onClick={() => void removeMessage(message.id)} title="حذف الرسالة"><Trash2 size={14}/> حذف</button>}
+              </div>
+            </article>;
+          })}
+          <div ref={bottomRef}/>
+        </div>
+        {error && <div className="chat-error" role="alert"><AlertCircle size={14}/>{error}</div>}
+        <form className="chat-composer chat-composer-live" onSubmit={send}>
+          {replyTo && <div className="reply-indicator active"><div className="ri-text"><strong>الرد على {replyTo.senderName}</strong><span>{replyTo.text || replyTo.attachments[0]?.name || 'مرفق'}</span></div><button type="button" className="ri-close" onClick={() => setReplyTo(null)} aria-label="إلغاء الرد"><X size={15}/></button></div>}
+          {files.length > 0 && <div className="chat-selected-files">{files.map((file, index) => <span key={file.name + index}><Paperclip size={13}/>{file.name}<button type="button" onClick={() => setFiles((all) => all.filter((_, i) => i !== index))} aria-label="إزالة المرفق"><X size={12}/></button></span>)}</div>}
+          <button type="button" className="icon-button chat-attach-button" onClick={() => fileInput.current?.click()} aria-label="إرفاق ملف"><Paperclip size={18}/></button>
+          <input ref={fileInput} type="file" multiple accept="image/*,video/mp4,video/webm,.pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.zip,.txt" className="visually-hidden" onChange={(event) => setFiles((all) => [...all, ...Array.from(event.target.files ?? [])])}/>
+          <textarea rows={1} value={draft} onChange={(event) => setDraft(event.target.value)} placeholder="اكتب رسالتك هنا..." aria-label="نص الرسالة" onKeyDown={(event) => { if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); void send(event as unknown as FormEvent); } }}/>
+          <button type="submit" className="send-button" aria-label="إرسال الرسالة" disabled={sending || (!draft.trim() && files.length === 0)}>{sending ? <span className="spinner"/> : <Send size={17}/>}</button>
+        </form>
+      </section>
     </div>
   </>;
 }
