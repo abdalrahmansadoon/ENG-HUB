@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode, type MouseEvent } from 'react';
 import {
   Activity, AlarmClock, AlertCircle, ArrowDownLeft, ArrowLeft, ArrowUpLeft, Bell, BookOpen,
   BookOpenCheck, CalendarDays, Check, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight,
@@ -22,14 +22,14 @@ import type { AppNotification, AppUser, Exam, Lecture, LibraryFile, Priority, St
 const navGroups = [
   { title: 'مساحة الدراسة', items: [
     { id: 'home', label: 'الرئيسية', icon: Home },
-    { id: 'tasks', label: 'المهام', icon: ListChecks, count: '3' },
+    { id: 'tasks', label: 'المهام', icon: ListChecks },
     { id: 'courses', label: 'المواد الدراسية', icon: BookOpen },
     { id: 'lectures', label: 'المحاضرات', icon: Video },
     { id: 'exams', label: 'الاختبارات', icon: ClipboardList },
     { id: 'files', label: 'مكتبة الملفات', icon: FolderOpen },
   ] },
   { title: 'التواصل والتنظيم', items: [
-    { id: 'chat', label: 'المحادثات', icon: MessageCircle, count: '2' },
+    { id: 'chat', label: 'المحادثات', icon: MessageCircle },
     { id: 'planner', label: 'مخطط المذاكرة', icon: CalendarDays },
     { id: 'analytics', label: 'إحصائياتي', icon: ChartNoAxesCombined },
   ] },
@@ -48,7 +48,7 @@ function App() {
   const [page, setPage] = useState('home');
   const [mobileNav, setMobileNav] = useState(false);
   const [search, setSearch] = useState('');
-  const [themePreference, setThemePreference] = useState<'system' | 'light' | 'dark'>(() => readLocal('themePreference', 'system'));
+  const [themePreference, setThemePreference] = useState<'system' | 'light' | 'dark'>(() => readLocal<'system' | 'light' | 'dark'>('themePreference', 'system'));
   const [systemDark, setSystemDark] = useState(() => window.matchMedia?.('(prefers-color-scheme: dark)').matches ?? true);
   const dark = themePreference === 'system' ? systemDark : themePreference === 'dark';
   const [tasks, setTasks] = useState<StudyTask[]>([]);
@@ -230,7 +230,7 @@ function App() {
             {group.items.map((item) => {
               const Icon = item.icon;
               return <button key={item.id} onClick={() => { setPage(item.id); setMobileNav(false); }} className={`nav-item ${page === item.id ? 'active' : ''}`}>
-                <Icon size={18}/><span>{item.label}</span>{'count' in item && <small>{item.count}</small>}
+                <Icon size={18}/><span>{item.label}</span>
               </button>;
             })}
           </div>)}
@@ -311,6 +311,62 @@ function AuthScreen({ onLogin, onGoogle }: { onLogin: (email: string, password: 
     }
   };
   return <div className="auth-screen" dir="rtl"><div className="auth-visual"><div className="auth-brand"><div className="brand-mark">EH</div><div><b>ENG HUB</b><span>CAIRO UNIVERSITY · FACULTY OF ENGINEERING</span></div></div><div className="auth-visual-copy"><div className="eyebrow">YOUR ENGINEERING JOURNEY</div><h1>كل أدوات دراستك،<br/><span>في مساحة واحدة.</span></h1><p>نظّم محاضراتك، تابع مهامك، وذاكر بتركيز أكبر مع مجتمع هندسة القاهرة.</p><div className="auth-feature-list"><span><CheckCircle2 size={15}/> تنظيم المواد والمحاضرات</span><span><CheckCircle2 size={15}/> متابعة المهام والتسليمات</span><span><CheckCircle2 size={15}/> تعاون ومشاركة مع زملائك</span></div></div><div className="auth-orbit"/><div className="auth-foot">ENG HUB · STUDY SMARTER, BUILD BETTER</div></div><div className="auth-form-side"><form className="auth-form" onSubmit={submit}><div className="auth-mobile-brand"><div className="brand-mark">EH</div><b>ENG HUB</b></div><div className="eyebrow">WELCOME TO ENG HUB</div><h2>{mode === 'login' ? 'مرحباً بعودتك' : 'أنشئ حسابك'}</h2><p>{mode === 'login' ? 'سجل دخولك للوصول إلى مساحة دراستك.' : 'انضم إلى مساحة طلاب هندسة القاهرة.'}</p>{mode === 'register' && <label>الاسم بالكامل<input required value={name} onChange={(e) => setName(e.target.value)} placeholder="اسمك كما تحب أن يظهر"/></label>}<label>البريد الإلكتروني<input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="name@example.com"/></label><label>كلمة المرور<input type="password" required minLength={6} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="6 أحرف على الأقل"/></label>{error && <div className="auth-error"><AlertCircle size={15}/>{error}</div>}<button type="submit" className="btn btn-primary auth-submit" disabled={busy}>{busy ? <span className="spinner"/> : null}{mode === 'login' ? 'تسجيل الدخول' : 'إنشاء الحساب'} <ArrowLeft size={16}/></button><div className="auth-divider"><span>أو</span></div><button type="button" className="btn btn-outline google-btn" onClick={() => void continueWithGoogle()} disabled={busy}><span className="google-g">G</span> المتابعة باستخدام Google</button><div className="auth-switch">{mode === 'login' ? 'ليس لديك حساب؟' : 'لديك حساب بالفعل؟'} <button type="button" onClick={() => { setMode(mode === 'login' ? 'register' : 'login'); setError(''); }}>{mode === 'login' ? 'إنشاء حساب' : 'تسجيل الدخول'}</button></div><div className="auth-foot-mobile">بالاستمرار، أنت توافق على شروط الاستخدام وسياسة الخصوصية.</div></form></div></div>;
+}
+
+function ProfileCompletionScreen({ user, cloudinarySettings, onComplete }: {
+  user: AppUser;
+  cloudinarySettings: CloudinarySettings;
+  onComplete: (profile: { displayName: string; photoURL?: string | null; phone?: string; bio?: string }) => Promise<void>;
+}) {
+  const [displayName, setDisplayName] = useState(user.displayName || '');
+  const [phone, setPhone] = useState(user.phone || '');
+  const [bio, setBio] = useState(user.bio || '');
+  const [photoURL, setPhotoURL] = useState(user.photoURL || '');
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+
+  const submit = async (event: FormEvent) => {
+    event.preventDefault();
+    setError('');
+    if (displayName.trim().length < 2) {
+      setError('اكتب اسمك كما تريد أن يظهر للطلاب.');
+      return;
+    }
+    setBusy(true);
+    try {
+      let nextPhoto = photoURL;
+      if (photoFile) {
+        nextPhoto = await uploadFile(photoFile, cloudinarySettings);
+      }
+      await onComplete({ displayName: displayName.trim(), photoURL: nextPhoto || null, phone: phone.trim(), bio: bio.trim() });
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : 'تعذر حفظ بيانات حسابك. حاول مرة أخرى.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return <div className="profile-onboarding" dir="rtl">
+    <div className="profile-onboarding-card panel">
+      <div className="brand-row onboarding-brand"><div className="brand-mark">EH</div><div className="brand-copy"><strong>ENG HUB</strong><span>CAIRO UNIVERSITY</span></div></div>
+      <div className="eyebrow">COMPLETE YOUR ACCOUNT</div>
+      <h1>أكمل إعداد حسابك</h1>
+      <p className="onboarding-subtitle">هذه الخطوة مطلوبة قبل الدخول إلى مساحة الدراسة. اختر الاسم والصورة التي سيراها زملاؤك.</p>
+      <form className="form-stack" onSubmit={submit}>
+        <div className="onboarding-photo-row">
+          <div className="onboarding-avatar">{photoFile ? <span>{photoFile.name.slice(0, 1).toUpperCase()}</span> : photoURL ? <img src={photoURL} alt="صورتك الشخصية"/> : displayName.trim().slice(0, 1) || <Users size={26}/>}</div>
+          <div className="onboarding-photo-copy"><b>الصورة الشخصية</b><span>اختيارية — يمكنك إضافتها أو تغييرها لاحقاً</span><label className="btn btn-outline btn-small photo-pick-button"><ImagePlus size={14}/> اختيار صورة<input type="file" accept="image/*" className="visually-hidden" onChange={(event) => setPhotoFile(event.target.files?.[0] ?? null)}/></label></div>
+        </div>
+        <label>الاسم الذي سيظهر في المنصة<input required minLength={2} maxLength={80} autoFocus value={displayName} onChange={(event) => setDisplayName(event.target.value)} placeholder="اكتب اسمك الكامل"/></label>
+        <label>رقم الهاتف أو واتساب (اختياري)<input type="tel" maxLength={24} value={phone} onChange={(event) => setPhone(event.target.value)} placeholder="+20 1xxxxxxxxx" dir="ltr"/></label>
+        <label>نبذة قصيرة عنك (اختياري)<textarea rows={3} maxLength={240} value={bio} onChange={(event) => setBio(event.target.value)} placeholder="اكتب نبذة مختصرة تظهر في ملفك الشخصي..."/></label>
+        <div className="onboarding-account-email"><b>الحساب المسجل</b><span dir="ltr">{user.email}</span></div>
+        {error && <div className="auth-error"><AlertCircle size={15}/>{error}</div>}
+        <button className="btn btn-primary onboarding-submit" type="submit" disabled={busy || displayName.trim().length < 2}>{busy ? <span className="spinner"/> : <Check size={16}/>} حفظ وإكمال الحساب</button>
+      </form>
+    </div>
+  </div>;
 }
 
 function pageTitle(page: string) {
