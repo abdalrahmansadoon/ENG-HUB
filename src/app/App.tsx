@@ -982,7 +982,7 @@ function AdminPage({ tasks, subjects, lectures, exams, files, currentUser, cloud
     {tab === 'users' && <div className="panel users-placeholder">
       <Users size={32}/><h3>إدارة حسابات المديرين</h3>
       <p>يتم منح صلاحية الإدارة من Firebase Console، وليس من ملف الطالب. أنشئ حساب المستخدم أولاً في Authentication، ثم أضف مستنداً في مجموعة <b dir="ltr">admins</b> يكون معرّفه هو بريده الإلكتروني المطابق تماماً.</p>
-      <div className="admin-permission-example"><b>أول مدير أعلى</b><code dir="ltr">admins/your-email@example.com</code><pre>{'{\\n  "email": "your-email@example.com",\\n  "role": "super-admin",\\n  "active": true\\n}'}</pre><span>استبدل البريد التجريبي ببريدك الفعلي، واجعل active من النوع Boolean.</span></div>
+      <div className="admin-permission-example"><b>أول مدير أعلى</b><code dir="ltr">admins/your-email@example.com</code><pre>{JSON.stringify({ email: 'your-email@example.com', role: 'super-admin', active: true }, null, 2)}</pre><span>استبدل البريد التجريبي ببريدك الفعلي، واجعل active من النوع Boolean.</span></div>
       <p>لمدير عادي استخدم <code>role: "admin"</code>. لتعطيل مدير استخدم <code>active: false</code>. بعد ذلك سجّل الخروج والدخول مجدداً.</p>
       <a className="admin-external-link" href="https://console.firebase.google.com/project/eng-hub-5c30a/firestore" target="_blank" rel="noreferrer">فتح Firestore Console</a>
       <span className="admin-status"><i/> تُقرأ الصلاحيات من Firestore مع قواعد حماية تمنع المستخدم من ترقية نفسه.</span>
