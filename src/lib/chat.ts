@@ -1,6 +1,6 @@
 import {
-  addDoc, collection, deleteDoc, doc, limit, onSnapshot, orderBy, query,
-  serverTimestamp, setDoc, type Unsubscribe,
+  addDoc, collection, deleteDoc, doc, getDoc, limit, onSnapshot, orderBy, query,
+  serverTimestamp, setDoc, updateDoc, type Unsubscribe,
 } from 'firebase/firestore';
 import { db } from './firebase';
 
@@ -47,13 +47,23 @@ export async function joinGeneralChat(user: { uid: string; displayName: string; 
     if (code !== 'permission-denied') throw error;
   }
 
-  await setDoc(doc(conversationRef, 'members', user.uid), {
-    userId: user.uid,
-    displayName: user.displayName,
-    photoURL: user.photoURL ?? null,
-    joinedAt: serverTimestamp(),
-    lastSeenAt: serverTimestamp(),
-  }, { merge: true });
+  const memberRef = doc(conversationRef, 'members', user.uid);
+  const memberSnapshot = await getDoc(memberRef);
+  if (memberSnapshot.exists()) {
+    await updateDoc(memberRef, {
+      displayName: user.displayName,
+      photoURL: user.photoURL ?? null,
+      lastSeenAt: serverTimestamp(),
+    });
+  } else {
+    await setDoc(memberRef, {
+      userId: user.uid,
+      displayName: user.displayName,
+      photoURL: user.photoURL ?? null,
+      joinedAt: serverTimestamp(),
+      lastSeenAt: serverTimestamp(),
+    });
+  }
 }
 
 export function subscribeGeneralChat(
