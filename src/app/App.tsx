@@ -586,9 +586,9 @@ function AcademicHubPage({ subjects, lecturers, lectures, parts, selectedSubject
   return <>
     <PageHeader eyebrow="ACADEMIC LIBRARY" title={stageTitle} description={stageDescription} action={action}/>
     <div className="academic-breadcrumbs">
-      <button className={!subject ? 'current' : ''} onClick={() => { if (subject) { onBack(); if (lecturer) onBack(); if (lecture) onBack(); } }}>المواد</button>
-      {subject && <><ChevronLeft size={14}/><button className={!lecturer ? 'current' : ''} onClick={() => { if (lecture) onBack(); if (lecturer) onBack(); }}>{subject.name}</button></>}
-      {lecturer && <><ChevronLeft size={14}/><button className={!lecture ? 'current' : ''} onClick={() => { if (lecture) onBack(); }}>{lecturer.name}</button></>}
+      <button className={!subject ? 'current' : ''} onClick={() => { onSelectSubject(''); onSelectLecturer(''); onSelectLecture(''); }}>المواد</button>
+      {subject && <><ChevronLeft size={14}/><button className={!lecturer ? 'current' : ''} onClick={() => { onSelectLecturer(''); onSelectLecture(''); }}>{subject.name}</button></>}
+      {lecturer && <><ChevronLeft size={14}/><button className={!lecture ? 'current' : ''} onClick={() => { onSelectLecture(''); }}>{lecturer.name}</button></>}
       {lecture && <><ChevronLeft size={14}/><span className="current">{lecture.title}</span></>}
       {subject && <button className="academic-back" onClick={onBack}><ArrowLeft size={14}/> رجوع</button>}
     </div>
@@ -1061,7 +1061,7 @@ function AdminPage({ tasks, subjects, lecturers, lectures, exams, files, current
     {tab === 'academic' && <>
       <div className="panel admin-content-list">
         <div className="panel-head"><div><h3>المواد الدراسية</h3><span>الترم الأول — أضف المواد الفعلية للطلاب</span></div><button className="btn btn-primary btn-small" onClick={onAddSubject}><Plus size={14}/> إضافة مادة</button></div>
-        {subjects.map((subject) => <div className="admin-list-row" key={subject.id}><div className="subject-mini-icon" style={{ background: subject.color + '18', color: subject.color }}>{subject.icon}</div><div><b>{subject.name}</b><span>{subject.code} · {subject.instructor}</span></div><span>{subject.lectures} محاضرة</span><span className="status-chip status-completed">منشورة</span></div>)}
+        {subjects.map((subject) => <div className="admin-list-row" key={subject.id}><div className="subject-mini-icon" style={{ background: subject.color + '18', color: subject.color }}>{subject.icon}</div><div><b>{subject.name}</b><span>{subject.code} · {subject.description || 'مقرر دراسي'}</span></div><span>{subject.lectures} محاضرة</span><span className="status-chip status-completed">منشورة</span></div>)}
         {subjects.length === 0 && <EmptyState title="لا توجد مواد بعد" body="ابدأ بإضافة أول مادة دراسية."/ >}
       </div>
       <div className="panel admin-content-list">
@@ -1367,35 +1367,67 @@ function TaskModal({ subjects, userId, onClose, onSave }: {
   );
 }
 
-function LectureModal({ subjects, onClose, onSave }: {
-  subjects: Subject[];
-  onClose: () => void;
-  onSave: (data: { title: string; subjectId: string; subjectName: string; instructor: string; duration: string; videoUrl: string }) => void;
+function LecturerModal({ subject, onClose, onSave }: {
+  subject: Subject | null; onClose: () => void;
+  onSave: (data: { name: string; subjectId: string; subjectName: string; bio?: string; description?: string }) => void;
+}) {
+  const [name, setName] = useState('');
+  const [bio, setBio] = useState('');
+  const [description, setDescription] = useState('');
+  return <div className="modal-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
+    <section className="modal-card" role="dialog" aria-modal="true" aria-labelledby="lecturer-modal-title">
+      <div className="modal-head"><div><h2 id="lecturer-modal-title">إضافة مدرس للمادة</h2><p>{subject?.name || 'اختر مادة أولاً من صفحة المواد.'}</p></div><button type="button" className="icon-button" onClick={onClose} aria-label="إغلاق"><X size={18}/></button></div>
+      {!subject ? <EmptyState title="لم يتم اختيار مادة" body="افتح المادة المطلوبة ثم أضف المدرس من داخلها."/> : <form className="form-stack" onSubmit={(event) => { event.preventDefault(); onSave({ name: name.trim(), subjectId: subject.id, subjectName: subject.name, bio: bio.trim(), description: description.trim() }); }}>
+        <label>اسم المدرس أو المعيد<input autoFocus required maxLength={100} value={name} onChange={(event) => setName(event.target.value)} placeholder="اسم المدرس"/></label>
+        <label>نبذة قصيرة<input maxLength={180} value={bio} onChange={(event) => setBio(event.target.value)} placeholder="مثال: مدرس مادة التفاضل"/></label>
+        <label>تفاصيل إضافية<textarea rows={3} maxLength={600} value={description} onChange={(event) => setDescription(event.target.value)} placeholder="معلومات إضافية عن المدرس أو القسم..."/></label>
+        <div className="modal-actions"><button type="button" className="btn btn-outline" onClick={onClose}>إلغاء</button><button type="submit" className="btn btn-primary" disabled={!name.trim()}><Plus size={15}/> إضافة المدرس</button></div>
+      </form>}
+    </section>
+  </div>;
+}
+
+function LectureModal({ lecturers, selectedLecturerId, onClose, onSave }: {
+  lecturers: Lecturer[]; selectedLecturerId: string; onClose: () => void;
+  onSave: (data: { title: string; description?: string; lecturerId: string; duration?: string }) => void;
 }) {
   const [title, setTitle] = useState('');
-  const [subjectId, setSubjectId] = useState(subjects[0]?.id ?? '');
-  const [instructor, setInstructor] = useState('');
+  const [lecturerId, setLecturerId] = useState(selectedLecturerId || lecturers[0]?.id || '');
+  const [description, setDescription] = useState('');
   const [duration, setDuration] = useState('');
-  const [videoUrl, setVideoUrl] = useState('');
-  const subject = subjects.find((item) => item.id === subjectId);
-
-  const submit = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    if (!subject) return;
-    onSave({ title: title.trim(), subjectId, subjectName: subject.name, instructor: instructor.trim(), duration: duration.trim(), videoUrl: videoUrl.trim() });
-  };
-
+  const availableLecturers = lecturers.filter((item) => item.status === 'active');
   return <div className="modal-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
     <section className="modal-card" role="dialog" aria-modal="true" aria-labelledby="lecture-modal-title">
-      <div className="modal-head"><div><h2 id="lecture-modal-title">إضافة محاضرة</h2><p>أدخل بيانات المحاضرة ورابط الفيديو المراد عرضه.</p></div><button type="button" className="icon-button" onClick={onClose} aria-label="إغلاق"><X size={18}/></button></div>
-      {subjects.length === 0 ? <EmptyState title="أضف مادة أولاً" body="يجب إنشاء مادة دراسية قبل إضافة محاضرات إليها."/> : <form className="form-stack" onSubmit={submit}>
-        <label>عنوان المحاضرة<input autoFocus required maxLength={120} value={title} onChange={(event) => setTitle(event.target.value)} placeholder="عنوان المحاضرة"/></label>
-        <label>المادة الدراسية<select required value={subjectId} onChange={(event) => setSubjectId(event.target.value)}>{subjects.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
-        <div className="form-row"><label>المحاضر<input required value={instructor} maxLength={100} onChange={(event) => setInstructor(event.target.value)} placeholder="اسم المحاضر"/></label><label>المدة<input required value={duration} maxLength={40} onChange={(event) => setDuration(event.target.value)} placeholder="مثال: 45 دقيقة"/></label></div>
-        <label>رابط الفيديو<input required type="url" dir="ltr" value={videoUrl} onChange={(event) => setVideoUrl(event.target.value)} placeholder="YouTube / Vimeo / MP4 URL"/></label>
-        <p className="settings-hint">يدعم المشغل روابط YouTube وVimeo وروابط MP4 أو WEBM أو MOV المباشرة.</p>
-        <div className="modal-actions"><button type="button" className="btn btn-outline" onClick={onClose}>إلغاء</button><button type="submit" className="btn btn-primary" disabled={!title.trim() || !subject || !instructor.trim() || !duration.trim() || !videoUrl.trim()}><Plus size={15}/> نشر المحاضرة</button></div>
+      <div className="modal-head"><div><h2 id="lecture-modal-title">إنشاء محاضرة</h2><p>المحاضرة تتبع مدرساً داخل المادة، وتُضاف أجزاؤها بعد إنشائها.</p></div><button type="button" className="icon-button" onClick={onClose} aria-label="إغلاق"><X size={18}/></button></div>
+      {availableLecturers.length === 0 ? <EmptyState title="أضف مدرساً أولاً" body="الترتيب الأكاديمي هو: مادة، ثم مدرس، ثم محاضرة، ثم أجزاء الفيديو."/> : <form className="form-stack" onSubmit={(event) => { event.preventDefault(); onSave({ title: title.trim(), lecturerId, description: description.trim(), duration: duration.trim() }); }}>
+        <label>اختيار المدرس<select required value={lecturerId} onChange={(event) => setLecturerId(event.target.value)}>{availableLecturers.map((item) => <option key={item.id} value={item.id}>{item.subjectName} — {item.name}</option>)}</select></label>
+        <label>عنوان المحاضرة<input autoFocus required maxLength={120} value={title} onChange={(event) => setTitle(event.target.value)} placeholder="مثال: مقدمة في المتجهات"/></label>
+        <div className="form-row"><label>المدة الإجمالية (اختياري)<input maxLength={40} value={duration} onChange={(event) => setDuration(event.target.value)} placeholder="مثال: 90 دقيقة"/></label><label>وصف المحاضرة<input maxLength={180} value={description} onChange={(event) => setDescription(event.target.value)} placeholder="موضوعات المحاضرة"/></label></div>
+        <p className="settings-hint">بعد الحفظ ستتمكن من الدخول إلى المحاضرة وإضافة عدد غير محدود من الأجزاء وروابط الفيديو.</p>
+        <div className="modal-actions"><button type="button" className="btn btn-outline" onClick={onClose}>إلغاء</button><button type="submit" className="btn btn-primary" disabled={!title.trim() || !lecturerId}><Plus size={15}/> إنشاء المحاضرة</button></div>
       </form>}
+    </section>
+  </div>;
+}
+
+function LecturePartModal({ nextOrder, onClose, onSave }: {
+  nextOrder: number; onClose: () => void;
+  onSave: (data: { title: string; videoUrl: string; duration: string; order: number }) => void;
+}) {
+  const [title, setTitle] = useState('');
+  const [videoUrl, setVideoUrl] = useState('');
+  const [duration, setDuration] = useState('');
+  const [order, setOrder] = useState(String(nextOrder));
+  return <div className="modal-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
+    <section className="modal-card" role="dialog" aria-modal="true" aria-labelledby="part-modal-title">
+      <div className="modal-head"><div><h2 id="part-modal-title">إضافة جزء للمحاضرة</h2><p>أضف رابط فيديو واحداً لهذا الجزء.</p></div><button type="button" className="icon-button" onClick={onClose} aria-label="إغلاق"><X size={18}/></button></div>
+      <form className="form-stack" onSubmit={(event) => { event.preventDefault(); onSave({ title: title.trim(), videoUrl: videoUrl.trim(), duration: duration.trim(), order: Math.max(1, Number(order) || nextOrder) }); }}>
+        <label>عنوان الجزء<input autoFocus required maxLength={120} value={title} onChange={(event) => setTitle(event.target.value)} placeholder="مثال: الجزء الأول — شرح المفاهيم"/></label>
+        <label>رابط الفيديو<input required type="url" dir="ltr" value={videoUrl} onChange={(event) => setVideoUrl(event.target.value)} placeholder="YouTube / Vimeo / MP4 / WEBM"/></label>
+        <div className="form-row"><label>المدة<input value={duration} maxLength={40} onChange={(event) => setDuration(event.target.value)} placeholder="مثال: 25 دقيقة"/></label><label>ترتيب الجزء<input type="number" min="1" value={order} onChange={(event) => setOrder(event.target.value)}/></label></div>
+        <p className="settings-hint">يدعم المشغل YouTube وVimeo وروابط الفيديو المباشرة. الروابط الخارجية الأخرى ستفتح حسب دعم المصدر.</p>
+        <div className="modal-actions"><button type="button" className="btn btn-outline" onClick={onClose}>إلغاء</button><button type="submit" className="btn btn-primary" disabled={!title.trim() || !videoUrl.trim()}><Plus size={15}/> حفظ الجزء</button></div>
+      </form>
     </section>
   </div>;
 }
@@ -1437,13 +1469,14 @@ function SubjectModal({ onClose, onSave }: {
 }) {
   const [name, setName] = useState('');
   const [code, setCode] = useState('');
+  const [description, setDescription] = useState('');
   const [icon, setIcon] = useState('∫');
   const [color, setColor] = useState('#8b7cff');
   const colors = ['#8b7cff', '#41c8ad', '#f0ad62', '#5d9eff', '#ec82ad', '#9aabbd', '#d1a25b'];
 
   const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    onSave({ name: name.trim(), code: code.trim().toUpperCase(), icon: icon.trim() || '✳', color });
+    onSave({ name: name.trim(), code: code.trim().toUpperCase(), description: description.trim(), icon: icon.trim() || '✳', color });
   };
 
   return (
@@ -1462,7 +1495,7 @@ function SubjectModal({ onClose, onSave }: {
               <input required maxLength={20} value={code} onChange={(event) => setCode(event.target.value)} placeholder="MTH 101" dir="ltr"/>
             </label>
             <label>وصف المادة (اختياري)
-              <input maxLength={180} placeholder="نبذة قصيرة عن المقرر"/>
+              <input maxLength={180} value={description} onChange={(event) => setDescription(event.target.value)} placeholder="نبذة قصيرة عن المقرر"/>
             </label>
           </div>
           <div className="form-row">
