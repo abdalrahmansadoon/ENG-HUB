@@ -952,11 +952,16 @@ function AdminPage({ tasks, subjects, files, currentUser, cloudinarySettings, on
     </form>}
   </>;
 }
-function ProfilePage({ user, isDemo, onToggleRole, onLogout, onToggleTheme, dark }: {
-  user: { uid: string; displayName: string; email: string; role: string; academicYear: string; term: string };
+function ProfilePage({ user, isDemo, onToggleRole, onLogout, onDeleteAccount, onSaveProfile, themePreference, onThemeChange, cloudinarySettings, dark }: {
+  user: AppUser;
   isDemo: boolean;
   onToggleRole: () => void;
   onLogout: () => Promise<void>;
+  onDeleteAccount: (password?: string) => Promise<void>;
+  onSaveProfile: (profile: { displayName: string; photoURL?: string | null; phone?: string; bio?: string }) => Promise<void>;
+  themePreference: 'system' | 'light' | 'dark';
+  onThemeChange: (preference: 'system' | 'light' | 'dark') => void;
+  cloudinarySettings: CloudinarySettings;
   onToggleTheme: () => void;
   dark: boolean;
 }) {
@@ -965,6 +970,24 @@ function ProfilePage({ user, isDemo, onToggleRole, onLogout, onToggleTheme, dark
   const [pushGranted, setPushGranted] = useState(() =>
     typeof Notification !== 'undefined' && Notification.permission === 'granted',
   );
+  const [name, setName] = useState(user.displayName);
+  const [phone, setPhone] = useState(user.phone || '');
+  const [bio, setBio] = useState(user.bio || '');
+  const [photoURL, setPhotoURL] = useState(user.photoURL || '');
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [profileMessage, setProfileMessage] = useState('');
+  const [showDelete, setShowDelete] = useState(false);
+  const [deletePassword, setDeletePassword] = useState('');
+  const [deleteError, setDeleteError] = useState('');
+  const [deleting, setDeleting] = useState(false);
+
+  useEffect(() => {
+    setName(user.displayName);
+    setPhone(user.phone || '');
+    setBio(user.bio || '');
+    setPhotoURL(user.photoURL || '');
+  }, [user.displayName, user.phone, user.bio, user.photoURL]);
 
   const activatePush = async () => {
     setPushBusy(true);
@@ -981,13 +1004,43 @@ function ProfilePage({ user, isDemo, onToggleRole, onLogout, onToggleTheme, dark
     }
   };
 
+  const saveProfile = async (event: FormEvent) => {
+    event.preventDefault();
+    setSavingProfile(true);
+    setProfileMessage('');
+    try {
+      const nextPhoto = photoFile ? await uploadFile(photoFile, cloudinarySettings) : photoURL;
+      await onSaveProfile({ displayName: name, photoURL: nextPhoto || null, phone, bio });
+      setPhotoFile(null);
+      setPhotoURL(nextPhoto || '');
+      setProfileMessage('تم حفظ بيانات الملف الشخصي.');
+    } catch (reason) {
+      setProfileMessage(reason instanceof Error ? reason.message : 'تعذر حفظ بيانات الملف الشخصي.');
+    } finally {
+      setSavingProfile(false);
+    }
+  };
+
+  const confirmDelete = async (event: FormEvent) => {
+    event.preventDefault();
+    setDeleting(true);
+    setDeleteError('');
+    try {
+      await onDeleteAccount(deletePassword || undefined);
+    } catch (reason) {
+      setDeleteError(reason instanceof Error ? reason.message : 'تعذر حذف الحساب.');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   return <>
-    <PageHeader eyebrow="ACCOUNT SETTINGS" title="الملف الشخصي والإعدادات" description="تحكم في بيانات حسابك وطريقة ظهور المنصة."/>
+    <PageHeader eyebrow="ACCOUNT SETTINGS" title="الملف الشخصي والإعدادات" description="حدّث بياناتك، واختر مظهر المنصة، وتحكم في حسابك."/>
     <div className="profile-layout">
       <section className="panel profile-card">
         <div className="profile-cover"/>
         <div className="profile-details">
-          <div className="profile-avatar-large">{user.displayName.slice(0, 1)}</div>
+          <div className="profile-avatar-large">{photoFile ? photoFile.name.slice(0, 1).toUpperCase() : photoURL ? <img src={photoURL} alt={user.displayName}/> : user.displayName.slice(0, 1)}</div>
           <h2>{user.displayName}</h2>
           <p>{user.email}</p>
           <span className="role-chip">{user.role === 'admin' || user.role === 'super-admin' ? 'مدير المنصة' : 'طالب هندسة'}</span>
@@ -998,26 +1051,34 @@ function ProfilePage({ user, isDemo, onToggleRole, onLogout, onToggleTheme, dark
         </div>
       </section>
       <section className="panel settings-panel">
+        <form className="settings-section profile-edit-form" onSubmit={(event) => void saveProfile(event)}>
+          <h3>بيانات الملف الشخصي</h3>
+          <div className="profile-edit-photo">
+            <div className="avatar avatar-purple">{photoFile ? photoFile.name.slice(0, 1).toUpperCase() : photoURL ? <img src={photoURL} alt=""/> : name.slice(0, 1)}</div>
+            <div><b>الصورة الشخصية</b><span>ارفع صورة جديدة من جهازك</span></div>
+            <label className="btn btn-outline btn-small"><ImagePlus size={14}/> تغيير الصورة<input type="file" accept="image/*" className="visually-hidden" onChange={(event) => setPhotoFile(event.target.files?.[0] ?? null)}/></label>
+          </div>
+          <label>الاسم الظاهر<input required minLength={2} maxLength={80} value={name} onChange={(event) => setName(event.target.value)}/></label>
+          <label>رقم الهاتف أو واتساب<input type="tel" maxLength={24} value={phone} onChange={(event) => setPhone(event.target.value)} placeholder="+20 1xxxxxxxxx" dir="ltr"/></label>
+          <label>نبذة عنك<textarea rows={3} maxLength={240} value={bio} onChange={(event) => setBio(event.target.value)} placeholder="نبذة قصيرة عنك..."/></label>
+          {profileMessage && <p className="settings-hint" role="status">{profileMessage}</p>}
+          <button className="btn btn-primary btn-small" type="submit" disabled={savingProfile || name.trim().length < 2}>{savingProfile ? <span className="spinner"/> : <Check size={14}/>} حفظ بيانات الملف</button>
+        </form>
         <div className="settings-section">
           <h3>المظهر</h3>
-          <div className="setting-row">
-            <div className="setting-icon"><Sun size={18}/></div>
-            <div><b>الوضع الليلي</b><span>تغيير مظهر المنصة بين الفاتح والداكن</span></div>
-            <button className={`toggle-switch ${dark ? 'on' : ''}`} onClick={onToggleTheme} aria-pressed={dark}><i/></button>
+          <div className="theme-choice-group" role="group" aria-label="تفضيل المظهر">
+            <button type="button" className={themePreference === 'system' ? 'selected' : ''} onClick={() => onThemeChange('system')} aria-pressed={themePreference === 'system'}><Monitor size={17}/><span>حسب الجهاز</span></button>
+            <button type="button" className={themePreference === 'light' ? 'selected' : ''} onClick={() => onThemeChange('light')} aria-pressed={themePreference === 'light'}><Sun size={17}/><span>فاتح</span></button>
+            <button type="button" className={themePreference === 'dark' ? 'selected' : ''} onClick={() => onThemeChange('dark')} aria-pressed={themePreference === 'dark'}><Moon size={17}/><span>داكن</span></button>
           </div>
+          <p className="settings-hint">{themePreference === 'system' ? 'يتغير المظهر تلقائياً حسب إعدادات جهازك.' : themePreference === 'light' ? 'المظهر الفاتح مفعل.' : 'المظهر الداكن مفعل.'}</p>
         </div>
         <div className="settings-section">
           <h3>الإشعارات</h3>
           <div className="setting-row">
             <div className="setting-icon"><Bell size={18}/></div>
-            <div>
-              <b>إشعارات المتصفح</b>
-              <span>{isDemo ? 'تفعيلها متاح بعد ربط Firebase بالموقع.' : pushGranted ? 'إذن الإشعارات ممنوح؛ يمكنك تحديث تسجيل هذا الجهاز.' : 'اسمح للموقع بإرسال إشعارات المهام والتنبيهات.'}</span>
-            </div>
-            <button className="btn btn-outline btn-small" onClick={() => void activatePush()} disabled={isDemo || pushBusy}>
-              {pushBusy ? <span className="spinner"/> : null}
-              {pushGranted ? 'تحديث التسجيل' : 'تفعيل الإشعارات'}
-            </button>
+            <div><b>إشعارات المتصفح</b><span>{isDemo ? 'تفعيلها متاح بعد ربط Firebase بالموقع.' : pushGranted ? 'إذن الإشعارات ممنوح لهذا المتصفح.' : 'اسمح للموقع بإرسال تنبيهات المنصة.'}</span></div>
+            <button className="btn btn-outline btn-small" onClick={() => void activatePush()} disabled={isDemo || pushBusy}>{pushBusy ? <span className="spinner"/> : null}{pushGranted ? 'تحديث التسجيل' : 'تفعيل الإشعارات'}</button>
           </div>
           {pushMessage && <p className="settings-hint" role="status">{pushMessage}</p>}
         </div>
@@ -1026,27 +1087,43 @@ function ProfilePage({ user, isDemo, onToggleRole, onLogout, onToggleTheme, dark
           <div className="setting-row">
             <div className="setting-icon"><ShieldCheck size={18}/></div>
             <div><b>حالة الاتصال</b><span>{isDemo ? 'وضع تجريبي — لا يوجد اتصال بقاعدة البيانات' : 'متصل بخدمات Firebase'}</span></div>
-            <span className={`connection-state ${isDemo ? 'demo' : ''}`}><i/>{isDemo ? 'Demo' : 'Online'}</span>
+            <span className={'connection-state ' + (isDemo ? 'demo' : '')}><i/>{isDemo ? 'Demo' : 'Online'}</span>
           </div>
-          {isDemo && <div className="setting-row">
-            <div className="setting-icon"><Users size={18}/></div>
-            <div><b>تجربة صلاحيات الأدمن</b><span>التبديل بين حساب الطالب والمدير داخل العرض التجريبي</span></div>
-            <button className="btn btn-outline btn-small" onClick={onToggleRole}>تبديل الدور</button>
-          </div>}
+          {isDemo && <div className="setting-row"><div className="setting-icon"><Users size={18}/></div><div><b>تجربة صلاحيات المدير</b><span>للعرض التجريبي فقط</span></div><button className="btn btn-outline btn-small" onClick={onToggleRole}>تبديل الدور</button></div>}
         </div>
         <div className="settings-section">
           <h3>الجلسة</h3>
           <div className="setting-row">
-            <div className="setting-icon danger-setting"><LogOut size={18}/></div>
+            <div className="setting-icon"><LogOut size={18}/></div>
             <div><b>تسجيل الخروج</b><span>إنهاء جلستك الحالية</span></div>
             <button className="btn btn-outline btn-small" onClick={() => void onLogout()}>تسجيل الخروج</button>
           </div>
         </div>
+        <div className="settings-section danger-zone">
+          <h3>منطقة الخطر</h3>
+          <div className="setting-row">
+            <div className="setting-icon danger-setting"><Trash2 size={18}/></div>
+            <div><b>حذف الحساب نهائياً</b><span>حذف حساب Firebase وملفك والبيانات الشخصية القابلة للحذف.</span></div>
+            <button className="btn btn-danger btn-small" onClick={() => { setShowDelete(true); setDeleteError(''); }}>حذف الحساب</button>
+          </div>
+          <p className="settings-hint">لن تُحذف ملفات Cloudinary الثنائية تلقائياً من المتصفح؛ ستُزال بيانات ربطها بحسابك من Firestore. احتفظ بنسخة من ملفاتك قبل المتابعة.</p>
+        </div>
       </section>
     </div>
+    {showDelete && <div className="modal-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) setShowDelete(false); }}>
+      <section className="modal-card delete-account-dialog" role="dialog" aria-modal="true" aria-labelledby="delete-account-title">
+        <div className="modal-head"><div><h2 id="delete-account-title">تأكيد حذف الحساب</h2><p>هذا الإجراء نهائي ولا يمكن التراجع عنه.</p></div><button className="icon-button" type="button" onClick={() => setShowDelete(false)} aria-label="إغلاق"><X size={18}/></button></div>
+        <form className="form-stack" onSubmit={(event) => void confirmDelete(event)}>
+          <div className="delete-warning"><AlertCircle size={18}/><span>سيتم حذف حساب تسجيل الدخول وملف المستخدم والبيانات الشخصية المرتبطة به من Firestore.</span></div>
+          {!isDemo && user.providerId === 'password' && <label>أدخل كلمة المرور لتأكيد هويتك<input type="password" required autoComplete="current-password" value={deletePassword} onChange={(event) => setDeletePassword(event.target.value)}/></label>}
+          {user.role === 'admin' || user.role === 'super-admin' ? <p className="auth-error">لا يمكن حذف حساب مدير ما دامت له صلاحية إدارة. عطّل سجله في admins من Firebase Console أولاً ثم سجّل الدخول مجدداً.</p> : null}
+          {deleteError && <p className="auth-error">{deleteError}</p>}
+          <div className="modal-actions"><button type="button" className="btn btn-outline" onClick={() => setShowDelete(false)}>إلغاء</button><button type="submit" className="btn btn-danger" disabled={deleting || user.role === 'admin' || user.role === 'super-admin'}>{deleting ? <span className="spinner"/> : <Trash2 size={15}/>} حذف الحساب نهائياً</button></div>
+        </form>
+      </section>
+    </div>}
   </>;
 }
-
 
 function TaskModal({ subjects, userId, onClose, onSave }: {
   subjects: Subject[];
