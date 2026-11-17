@@ -512,9 +512,9 @@ function EmptyState({ title, body }: { title: string; body: string }) {
 }
 
 function TaskRow({ task, onStatus }: { task: StudyTask; onStatus: (id: string, status: TaskStatus) => void }) {
-  const [open, setOpen] = useState(false);
   const due = new Date(task.dueAt);
-  return <div className="task-row"><div className={`task-subject-dot dot-${task.subjectId}`}/><div className="task-row-copy"><b>{task.title}</b><span>{task.subjectName} <i>•</i> {due.toLocaleDateString('ar-EG', { day: 'numeric', month: 'short' })}</span></div><span className={`priority-badge priority-${task.priority}`}>{priorityText[task.priority]}</span><div className="task-status-control"><button className={`status-chip status-${task.status}`} onClick={() => setOpen(!open)}>{statusText[task.status]} <ChevronDown size={12}/></button>{open && <div className="status-menu">{(['not-started', 'in-progress', 'submitted', 'completed'] as TaskStatus[]).map((status) => <button key={status} onClick={() => { onStatus(task.id, status); setOpen(false); }}>{statusText[status]}</button>)}</div>}</div></div>;
+  const completed = task.status === 'completed';
+  return <div className="task-row"><div className={`task-subject-dot dot-${task.subjectId}`}/><div className="task-row-copy"><b>{task.title}</b><span>{task.subjectName} <i>•</i> ينتهي {due.toLocaleDateString('ar-EG', { day: 'numeric', month: 'short' })}</span></div><span className={`priority-badge priority-${task.priority}`}>{priorityText[task.priority]}</span><button type="button" className={`task-complete-toggle ${completed ? 'completed' : ''}`} onClick={() => onStatus(task.id, completed ? 'in-progress' : 'completed')} aria-pressed={completed}><CheckCircle2 size={15}/><span>{completed ? 'مكتملة' : 'إكمال المهمة'}</span></button></div>;
 }
 
 function TasksPage({ tasks, onNew, onStatus, onDelete, canEdit }: {
