@@ -501,24 +501,60 @@ function PlannerPage({ tasks }: { tasks: StudyTask[] }) {
   const [mode, setMode] = useState<'focus' | 'break'>('focus');
   useEffect(() => {
     if (!running) return;
-    const timer = window.setInterval(() => setSeconds((value) => { if (value <= 1) { setRunning(false); return 0; } return value - 1; }), 1000);
+    const timer = window.setInterval(() => setSeconds((value) => {
+      if (value <= 1) { setRunning(false); return 0; }
+      return value - 1;
+    }), 1000);
     return () => window.clearInterval(timer);
   }, [running]);
-  const switchMode = (next: 'focus' | 'break') => { setMode(next); setSeconds(next === 'focus' ? 25 * 60 : 5 * 60); setRunning(false); };
-  const timeLabel = `${String(Math.floor(seconds / 60)).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`;
-  return <><PageHeader eyebrow="PLAN YOUR DAY" title="مخطط المذاكرة" description="نظّم وقتك بين المحاضرات والمهام، وخصص مساحة للتركيز والراحة." action={<button className="btn btn-outline"><Plus size={16}/> جلسة مذاكرة</button>}/>
-    <div className="planner-grid"><section className="panel pomodoro-panel"><div className="panel-head"><div><h3>مؤقت التركيز</h3><span>تقنية بومودورو — ركز ثم استرح</span></div><div className="pomodoro-spark"><Sparkles size={17}/></div></div><div className="pomodoro-tabs"><button className={mode === 'focus' ? 'active' : ''} onClick={() => switchMode('focus')}>وقت التركيز</button><button className={mode === 'break' ? 'active' : ''} onClick={() => switchMode('break')}>استراحة قصيرة</button></div><div className="timer-ring"><div className="timer-inner"><span>{mode === 'focus' ? 'FOCUS SESSION' : 'SHORT BREAK'}</span><b>{timeLabel}</b><small>{running ? 'أنت في حالة تركيز' : 'جاهز للبدء'}</small></div></div><button className="btn btn-primary timer-action" onClick={() => { if (seconds === 0) setSeconds(mode === 'focus' ? 25 * 60 : 5 * 60); setRunning(!running); }}>{running ? 'إيقاف مؤقت' : seconds === 0 ? 'ابدأ من جديد' : 'ابدأ التركيز'} <Play size={15}/></button><div className="pomodoro-foot"><span><CheckCircle2 size={14}/> 4 جلسات مكتملة اليوم</span><span><Clock3 size={14}/> هدفك: ساعتان</span></div></section>
-      <section className="panel today-plan"><div className="panel-head"><div><h3>خطة اليوم</h3><span>الثلاثاء، 17 نوفمبر 2026</span></div><button className="icon-button"><CalendarDays size={17}/></button></div><div className="timeline"><div className="timeline-row done"><time>09:00</time><i/><div><b>مراجعة Calculus 1</b><span>45 دقيقة · مكتملة</span></div><CheckCircle2 size={16}/></div><div className="timeline-row current"><time>11:00</time><i/><div><b>حل ورقة التمارين 03</b><span>ساعة واحدة · جاري التنفيذ</span></div><span className="now-tag">الآن</span></div><div className="timeline-row"><time>13:00</time><i/><div><b>استراحة وغداء</b><span>30 دقيقة</span></div></div><div className="timeline-row"><time>14:00</time><i/><div><b>مشاهدة محاضرة Physics</b><span>50 دقيقة</span></div></div><div className="timeline-row"><time>16:00</time><i/><div><b>حل أسئلة Computer Science</b><span>45 دقيقة</span></div></div></div></section></div>
-    <div className="section-title-row"><div><h2>مهامك ضمن الخطة</h2><p>ابدأ بالأقرب موعداً والأعلى أولوية</p></div></div><div className="planner-task-strip">{tasks.filter((t) => t.status !== 'completed').slice(0, 3).map((task) => <div key={task.id}><div className="planner-task-icon"><Target size={17}/></div><div><b>{task.title}</b><span>{task.subjectName}</span></div><span className={`priority-badge priority-${task.priority}`}>{priorityText[task.priority]}</span></div>)}</div>
+  const switchMode = (next: 'focus' | 'break') => {
+    setMode(next);
+    setSeconds(next === 'focus' ? 25 * 60 : 5 * 60);
+    setRunning(false);
+  };
+  const timeLabel = String(Math.floor(seconds / 60)).padStart(2, '0') + ':' + String(seconds % 60).padStart(2, '0');
+  const upcoming = tasks.filter((task) => task.status !== 'completed').sort((a, b) => new Date(a.dueAt).getTime() - new Date(b.dueAt).getTime());
+  return <>
+    <PageHeader eyebrow="PLAN YOUR DAY" title="مخطط المذاكرة" description="استخدم المؤقت لتنظيم وقت التركيز، وتابع مواعيد مهامك الفعلية."/>
+    <div className="planner-grid">
+      <section className="panel pomodoro-panel">
+        <div className="panel-head"><div><h3>مؤقت التركيز</h3><span>تقنية بومودورو — ركز ثم استرح</span></div><div className="pomodoro-spark"><Sparkles size={17}/></div></div>
+        <div className="pomodoro-tabs"><button className={mode === 'focus' ? 'active' : ''} onClick={() => switchMode('focus')}>وقت التركيز</button><button className={mode === 'break' ? 'active' : ''} onClick={() => switchMode('break')}>استراحة قصيرة</button></div>
+        <div className="timer-ring"><div className="timer-inner"><span>{mode === 'focus' ? 'FOCUS SESSION' : 'SHORT BREAK'}</span><b>{timeLabel}</b><small>{running ? 'المؤقت يعمل' : 'جاهز للبدء'}</small></div></div>
+        <button className="btn btn-primary timer-action" onClick={() => { if (seconds === 0) setSeconds(mode === 'focus' ? 25 * 60 : 5 * 60); setRunning(!running); }}>{running ? 'إيقاف مؤقت' : seconds === 0 ? 'ابدأ من جديد' : 'ابدأ التركيز'} <Play size={15}/></button>
+      </section>
+      <section className="panel today-plan">
+        <div className="panel-head"><div><h3>المهام المرتبطة بموعد</h3><span>{new Date().toLocaleDateString('ar-EG', { weekday: 'long', day: 'numeric', month: 'long' })}</span></div><button className="icon-button"><CalendarDays size={17}/></button></div>
+        {upcoming.length ? <div className="timeline">{upcoming.slice(0, 8).map((task) => <div className="timeline-row" key={task.id}><time>{new Date(task.dueAt).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })}</time><i/><div><b>{task.title}</b><span>{task.subjectName} · {new Date(task.dueAt).toLocaleDateString('ar-EG')}</span></div><span className={'priority-badge priority-' + task.priority}>{priorityText[task.priority]}</span></div>)}</div> : <EmptyState title="لا توجد مهام في خطتك بعد" body="ستظهر هنا المهام المنشورة التي لم تنتهِ بعد."/>}
+      </section>
+    </div>
   </>;
 }
 
 function AnalyticsPage({ tasks, subjects, lectures }: { tasks: StudyTask[]; subjects: Subject[]; lectures: Lecture[] }) {
-  const completed = tasks.filter((t) => t.status === 'completed').length;
+  const completed = tasks.filter((task) => task.status === 'completed').length;
   const completion = tasks.length ? Math.round(completed / tasks.length * 100) : 0;
-  return <><PageHeader eyebrow="YOUR PERFORMANCE" title="إحصائياتك الدراسية" description="راقب تقدمك وحدد أين تركز مجهودك خلال الأسابيع القادمة." action={<button className="filter-button"><CalendarDays size={15}/> آخر 30 يوماً <ChevronDown size={13}/></button>}/>
-    <div className="analytics-summary"><div className="analytics-score"><div className="score-ring"><div><b>{completion}%</b><span>إنجاز المهام</span></div></div><div><div className="eyebrow">YOUR PRODUCTIVITY</div><h2>أداء ثابت، أحسنت!</h2><p>استمر في تقسيم مهامك الكبيرة إلى خطوات صغيرة قابلة للإنجاز.</p></div></div><div className="analytics-kpis"><div><span>ساعات المذاكرة</span><b>12.5 <small>ساعة</small></b><i>+18% هذا الأسبوع</i></div><div><span>محاضرات مكتملة</span><b>{lectures.filter((l) => l.progress === 100).length}</b><i>من أصل {lectures.length}</i></div><div><span>المهام المكتملة</span><b>{completed}</b><i>من أصل {tasks.length}</i></div></div></div>
-    <div className="analytics-grid"><section className="panel"><div className="panel-head"><div><h3>تقدمك حسب المادة</h3><span>نسبة استكمال المحتوى الدراسي</span></div></div><div className="analytics-subjects">{subjects.map((s) => <div key={s.id}><span className="analytics-subject-name"><i style={{ background: s.color }}/>{s.name}</span><div className="progress-track"><div style={{ width: `${s.progress}%`, background: s.color }}/></div><b>{s.progress}%</b></div>)}</div></section><section className="panel"><div className="panel-head"><div><h3>إنجاز المهام</h3><span>توزيع الحالات الحالية</span></div></div><div className="task-donut-wrap"><div className="task-donut"><div><b>{tasks.length}</b><span>مهمة</span></div></div><div className="donut-legend"><span><i className="legend-green"/> مكتملة <b>{completed}</b></span><span><i className="legend-purple"/> قيد التنفيذ <b>{tasks.filter((t) => t.status === 'in-progress').length}</b></span><span><i className="legend-gray"/> لم تبدأ <b>{tasks.filter((t) => t.status === 'not-started').length}</b></span></div></div></section></div>
+  const inProgress = tasks.filter((task) => task.status === 'in-progress').length;
+  const notStarted = tasks.filter((task) => task.status === 'not-started').length;
+  return <>
+    <PageHeader eyebrow="YOUR PERFORMANCE" title="إحصائياتك الدراسية" description="تعرض هذه الصفحة أرقاماً مستندة إلى نشاطك المسجل فقط."/>
+    <div className="analytics-summary">
+      <div className="analytics-score"><div className="score-ring"><div><b>{completion}%</b><span>إنجاز المهام</span></div></div><div><div className="eyebrow">YOUR PRODUCTIVITY</div><h2>ملخص تقدمك</h2><p>{tasks.length ? 'يتم حساب النسبة من المهام المسجلة في حسابك.' : 'ستظهر المؤشرات عند إضافة المهام والمحتوى الدراسي.'}</p></div></div>
+      <div className="analytics-kpis">
+        <div><span>ساعات المذاكرة</span><b>—</b><i>لا توجد جلسات مسجلة</i></div>
+        <div><span>محاضرات مكتملة</span><b>{lectures.filter((lecture) => lecture.progress === 100).length}</b><i>من أصل {lectures.length}</i></div>
+        <div><span>المهام المكتملة</span><b>{completed}</b><i>من أصل {tasks.length}</i></div>
+      </div>
+    </div>
+    <div className="analytics-grid">
+      <section className="panel"><div className="panel-head"><div><h3>تقدمك حسب المادة</h3><span>نسبة استكمال المحتوى المنشور</span></div></div>
+        <div className="analytics-subjects">{subjects.map((subject) => <div key={subject.id}><span className="analytics-subject-name"><i style={{ background: subject.color }}/>{subject.name}</span><div className="progress-track"><div style={{ width: subject.progress + '%', background: subject.color }}/></div><b>{subject.progress}%</b></div>)}
+        {subjects.length === 0 && <EmptyState title="لا توجد مواد لتحليلها" body="ستظهر إحصائيات المواد بعد إضافتها من لوحة الإدارة."/>}</div>
+      </section>
+      <section className="panel"><div className="panel-head"><div><h3>إنجاز المهام</h3><span>توزيع الحالات الحالية</span></div></div>
+        {tasks.length ? <div className="task-donut-wrap"><div className="task-donut"><div><b>{tasks.length}</b><span>مهمة</span></div></div><div className="donut-legend"><span><i className="legend-green"/> مكتملة <b>{completed}</b></span><span><i className="legend-purple"/> قيد التنفيذ <b>{inProgress}</b></span><span><i className="legend-gray"/> لم تبدأ <b>{notStarted}</b></span></div></div> : <EmptyState title="لا توجد مهام لتحليلها" body="ستظهر الإحصائيات بعد نشر المهام وتحديث حالتها."/>}
+      </section>
+    </div>
   </>;
 }
 
