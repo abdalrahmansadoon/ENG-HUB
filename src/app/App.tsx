@@ -531,7 +531,7 @@ function TasksPage({ tasks, onNew, onStatus, onDelete, canEdit }: {
     <PageHeader eyebrow="TASK MANAGEMENT" title="إدارة المهام" description="المهام التي نشرها مدير المنصة أو أضفتها إلى خطتك." action={canEdit ? <button className="btn btn-primary" onClick={onNew}><Plus size={16}/> إنشاء مهمة</button> : undefined}/>
     <div className="task-overview-strip"><div><b>{tasks.length}</b><span>إجمالي المهام</span></div><div><b>{tasks.filter((t) => t.status === 'completed').length}</b><span>مكتملة</span></div><div><b>{tasks.filter((t) => t.status === 'in-progress').length}</b><span>قيد التنفيذ</span></div><div><b>{tasks.filter((t) => t.status === 'under-review').length}</b><span>قيد المراجعة</span></div><div><b>{tasks.filter((t) => new Date(t.dueAt) < new Date() && t.status !== 'completed').length}</b><span>متأخرة</span></div></div>
     <div className="panel table-panel"><div className="table-toolbar"><div className="filter-tabs">{[{ id: 'all', label: 'الكل' }, { id: 'pending', label: 'غير مكتملة' }, { id: 'completed', label: 'مكتملة' }, { id: 'under-review', label: 'قيد المراجعة' }].map((tab) => <button key={tab.id} className={filter === tab.id ? 'filter-tab active' : 'filter-tab'} onClick={() => setFilter(tab.id)}>{tab.label}</button>)}</div><div className="table-tools"><div className="inline-search"><Search size={15}/><input placeholder="ابحث في المهام" value={query} onChange={(e) => setQuery(e.target.value)}/></div></div></div>
-      <div className="tasks-table"><div className="table-head"><span>المهمة</span><span>المادة</span><span>الأولوية</span><span>موعد التسليم</span><span>الحالة</span><span/></div>{filtered.map((task) => <div className="table-row" key={task.id}><div className="table-task"><button type="button" className="task-check" onClick={() => onStatus(task.id, task.status === 'completed' ? 'in-progress' : 'completed')} aria-label="تغيير حالة المهمة"><Check size={13}/></button><div><b>{task.title}</b><span>أُضيفت {new Date(task.createdAt).toLocaleDateString('ar-EG')}</span></div></div><span className="table-secondary">{task.subjectName}</span><span><i className={'priority-dot priority-dot-' + task.priority}/>{priorityText[task.priority]}</span><span className="table-secondary">{new Date(task.dueAt).toLocaleDateString('ar-EG', { day: 'numeric', month: 'short' })}</span><span><span className={'status-chip status-' + task.status}>{statusText[task.status]}</span></span><TaskActionsMenu task={task} onStatus={onStatus} onDelete={onDelete} canEdit={canEdit}/></div>)}{filtered.length === 0 && <EmptyState title={tasks.length === 0 ? 'لا توجد مهام بعد' : 'لا توجد نتائج'} body={tasks.length === 0 ? 'ستظهر هنا المهام التي ينشرها مدير المنصة.' : 'جرّب تغيير عبارة البحث أو الفلتر.'}/>}</div>
+      <div className="tasks-table"><div className="table-head"><span>المهمة</span><span>المادة</span><span>الأولوية</span><span>البداية / الانتهاء</span><span>الحالة</span><span/></div>{filtered.map((task) => <div className="table-row" key={task.id}><div className="table-task"><button type="button" className={'task-check ' + (task.status === 'completed' ? 'is-complete' : '')} onClick={() => onStatus(task.id, task.status === 'completed' ? 'in-progress' : 'completed')} aria-label={task.status === 'completed' ? 'إلغاء إكمال المهمة' : 'تحديد المهمة كمكتملة'} aria-pressed={task.status === 'completed'}><Check size={14}/></button><div><b>{task.title}</b><span>أُضيفت {new Date(task.createdAt).toLocaleDateString('ar-EG')}</span></div></div><span className="table-secondary">{task.subjectName}</span><span><i className={'priority-dot priority-dot-' + task.priority}/>{priorityText[task.priority]}</span><span className="table-secondary task-dates-cell"><small>تبدأ: {task.startAt ? new Date(task.startAt).toLocaleDateString('ar-EG', { day: 'numeric', month: 'short' }) : '—'}</small><small>تنتهي: {new Date(task.dueAt).toLocaleDateString('ar-EG', { day: 'numeric', month: 'short' })}</small></span><span><span className={'status-chip status-' + task.status}>{statusText[task.status]}</span></span><TaskActionsMenu task={task} onStatus={onStatus} onDelete={onDelete} canEdit={canEdit}/></div>)}{filtered.length === 0 && <EmptyState title={tasks.length === 0 ? 'لا توجد مهام بعد' : 'لا توجد نتائج'} body={tasks.length === 0 ? 'ستظهر هنا المهام التي ينشرها مدير المنصة.' : 'جرّب تغيير عبارة البحث أو الفلتر.'}/>}</div>
       <div className="table-footer"><span>عرض {filtered.length} من {tasks.length} مهمة</span><div><button className="pagination-button" disabled><ChevronRight size={14}/></button><button className="pagination-button active">1</button><button className="pagination-button" disabled><ChevronLeft size={14}/></button></div></div>
     </div>
   </>;
@@ -1281,6 +1281,10 @@ function TaskModal({ subjects, userId, onClose, onSave }: {
   const [description, setDescription] = useState('');
   const [subjectId, setSubjectId] = useState(subjects[0]?.id ?? '');
   const [priority, setPriority] = useState<Priority>('normal');
+  const [startAt, setStartAt] = useState(() => {
+    const now = new Date();
+    return new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+  });
   const [dueAt, setDueAt] = useState(() => {
     const date = new Date();
     date.setDate(date.getDate() + 2);
@@ -1299,6 +1303,7 @@ function TaskModal({ subjects, userId, onClose, onSave }: {
       subjectName: subject?.name ?? 'بدون مادة',
       priority,
       status: 'not-started',
+      startAt: new Date(startAt).toISOString(),
       dueAt: new Date(dueAt).toISOString(),
       assignedTo: userId ? [userId] : [],
     });
@@ -1335,12 +1340,18 @@ function TaskModal({ subjects, userId, onClose, onSave }: {
               </select>
             </label>
           </div>
-          <label>موعد التسليم
-            <input required type="datetime-local" value={dueAt} onChange={(event) => setDueAt(event.target.value)} min={new Date().toISOString().slice(0, 16)}/>
-          </label>
+          <div className="form-row">
+            <label>موعد بدء المهمة
+              <input required type="datetime-local" value={startAt} onChange={(event) => setStartAt(event.target.value)} max={dueAt}/>
+            </label>
+            <label>موعد الانتهاء والتسليم
+              <input required type="datetime-local" value={dueAt} onChange={(event) => setDueAt(event.target.value)} min={startAt}/>
+            </label>
+          </div>
+          {new Date(dueAt) < new Date(startAt) && <p className="auth-error">يجب أن يكون موعد الانتهاء بعد موعد البداية.</p>}
           <div className="modal-actions">
             <button type="button" className="btn btn-outline" onClick={onClose}>إلغاء</button>
-            <button type="submit" className="btn btn-primary" disabled={!title.trim() || !subjectId}><Plus size={15}/> إنشاء المهمة</button>
+            <button type="submit" className="btn btn-primary" disabled={!title.trim() || !subjectId || new Date(dueAt) < new Date(startAt)}><Plus size={15}/> إنشاء المهمة</button>
           </div>
         </form>
       </section>
@@ -1418,14 +1429,13 @@ function SubjectModal({ onClose, onSave }: {
 }) {
   const [name, setName] = useState('');
   const [code, setCode] = useState('');
-  const [instructor, setInstructor] = useState('');
   const [icon, setIcon] = useState('∫');
   const [color, setColor] = useState('#8b7cff');
   const colors = ['#8b7cff', '#41c8ad', '#f0ad62', '#5d9eff', '#ec82ad', '#9aabbd', '#d1a25b'];
 
   const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    onSave({ name: name.trim(), code: code.trim().toUpperCase(), instructor: instructor.trim(), icon: icon.trim() || '✳', color });
+    onSave({ name: name.trim(), code: code.trim().toUpperCase(), icon: icon.trim() || '✳', color });
   };
 
   return (
@@ -1443,8 +1453,8 @@ function SubjectModal({ onClose, onSave }: {
             <label>كود المادة
               <input required maxLength={20} value={code} onChange={(event) => setCode(event.target.value)} placeholder="MTH 101" dir="ltr"/>
             </label>
-            <label>المحاضر أو المعيد
-              <input required maxLength={100} value={instructor} onChange={(event) => setInstructor(event.target.value)} placeholder="اسم المحاضر"/>
+            <label>وصف المادة (اختياري)
+              <input maxLength={180} placeholder="نبذة قصيرة عن المقرر"/>
             </label>
           </div>
           <div className="form-row">
@@ -1457,7 +1467,7 @@ function SubjectModal({ onClose, onSave }: {
           </div>
           <div className="modal-actions">
             <button type="button" className="btn btn-outline" onClick={onClose}>إلغاء</button>
-            <button type="submit" className="btn btn-primary" disabled={!name.trim() || !code.trim() || !instructor.trim()}><Plus size={15}/> إضافة المادة</button>
+            <button type="submit" className="btn btn-primary" disabled={!name.trim() || !code.trim()}><Plus size={15}/> إضافة المادة</button>
           </div>
         </form>
       </section>
