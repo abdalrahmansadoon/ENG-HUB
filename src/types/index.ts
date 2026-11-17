@@ -7,6 +7,9 @@ export interface AppUser {
   displayName: string;
   email: string;
   photoURL?: string | null;
+  phone?: string;
+  bio?: string;
+  providerId?: string;
   role: UserRole;
   academicYear: string;
   term: string;
@@ -48,6 +51,7 @@ export interface Lecture {
   parts: number;
   progress: number;
   date: string;
+  videoUrl?: string;
 }
 
 export interface Exam {
