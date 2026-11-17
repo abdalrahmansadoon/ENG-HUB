@@ -169,35 +169,45 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!firebaseUser || !firestore) throw new Error('يجب تسجيل الدخول قبل حفظ بيانات الملف الشخصي.');
     if (displayName.length < 2) throw new Error('اكتب اسمًا صحيحًا من حرفين على الأقل.');
 
-    await updateProfile(firebaseUser, {
-      displayName,
-      photoURL: profile.photoURL?.trim() || null,
-    });
+    const photoURL = profile.photoURL?.trim() || null;
+    const phone = profile.phone?.trim() || '';
+    const bio = profile.bio?.trim() || '';
+
+    await updateProfile(firebaseUser, { displayName, photoURL });
 
     const profileRef = doc(firestore, 'users', firebaseUser.uid);
     const existing = await getDoc(profileRef);
-    await setDoc(profileRef, {
+    const editableFields = {
       displayName,
-      email: firebaseUser.email || '',
-      photoURL: profile.photoURL?.trim() || null,
-      phone: profile.phone?.trim() || '',
-      bio: profile.bio?.trim() || '',
+      photoURL,
+      phone,
+      bio,
       profileCompleted: true,
-      role: 'student',
-      status: 'active',
-      academicYear: 'السنة الإعدادية',
-      term: 'الترم الأول',
-      ...(!existing.exists() ? { createdAt: serverTimestamp() } : {}),
       updatedAt: serverTimestamp(),
-    }, { merge: true });
+    };
+
+    if (existing.exists()) {
+      // Keep protected account fields unchanged; Firestore rules allow only profile edits.
+      await setDoc(profileRef, editableFields, { merge: true });
+    } else {
+      await setDoc(profileRef, {
+        ...editableFields,
+        email: firebaseUser.email || '',
+        role: 'student',
+        status: 'active',
+        academicYear: 'السنة الإعدادية',
+        term: 'الترم الأول',
+        createdAt: serverTimestamp(),
+      });
+    }
 
     const previousRole = user?.role ?? 'student';
     setUser((current) => current ? {
       ...current,
       displayName,
-      photoURL: profile.photoURL?.trim() || null,
-      phone: profile.phone?.trim() || '',
-      bio: profile.bio?.trim() || '',
+      photoURL,
+      phone,
+      bio,
       role: previousRole,
     } : current);
     setProfileComplete(true);
