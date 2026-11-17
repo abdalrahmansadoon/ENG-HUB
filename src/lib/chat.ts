@@ -63,7 +63,7 @@ export function subscribeGeneralChat(
   const firestore = requireDb();
   const messagesQuery = query(
     collection(firestore, 'conversations', GENERAL_CHAT_ID, 'messages'),
-    orderBy('createdAt', 'asc'),
+    orderBy('createdAt', 'desc'),
     limit(150),
   );
   return onSnapshot(messagesQuery, (snapshot) => {
@@ -80,7 +80,7 @@ export function subscribeGeneralChat(
         attachments: Array.isArray(data.attachments) ? data.attachments as ChatAttachment[] : [],
         replyTo: data.replyTo ?? null,
       };
-    }));
+    }).reverse());
   }, onError);
 }
 
