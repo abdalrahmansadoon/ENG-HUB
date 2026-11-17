@@ -1154,7 +1154,7 @@ function ProfilePage({ user, isDemo, onToggleRole, onLogout, onDeleteAccount, on
             <div><b>حذف الحساب نهائياً</b><span>حذف حساب Firebase وملفك والبيانات الشخصية القابلة للحذف.</span></div>
             <button className="btn btn-danger btn-small" onClick={() => { setShowDelete(true); setDeleteError(''); }}>حذف الحساب</button>
           </div>
-          <p className="settings-hint">لن تُحذف ملفات Cloudinary الثنائية تلقائياً من المتصفح؛ ستُزال بيانات ربطها بحسابك من Firestore. احتفظ بنسخة من ملفاتك قبل المتابعة.</p>
+          <p className="settings-hint">{isDemo ? 'حذف الحساب متاح للحسابات المسجلة في Firebase فقط.' : 'لن تُحذف ملفات Cloudinary الثنائية تلقائياً من المتصفح؛ ستُزال بيانات ربطها بحسابك من Firestore. احتفظ بنسخة من ملفاتك قبل المتابعة.'}</p>
         </div>
       </section>
     </div>
@@ -1166,7 +1166,7 @@ function ProfilePage({ user, isDemo, onToggleRole, onLogout, onDeleteAccount, on
           {!isDemo && user.providerId === 'password' && <label>أدخل كلمة المرور لتأكيد هويتك<input type="password" required autoComplete="current-password" value={deletePassword} onChange={(event) => setDeletePassword(event.target.value)}/></label>}
           {user.role === 'admin' || user.role === 'super-admin' ? <p className="auth-error">لا يمكن حذف حساب مدير ما دامت له صلاحية إدارة. عطّل سجله في admins من Firebase Console أولاً ثم سجّل الدخول مجدداً.</p> : null}
           {deleteError && <p className="auth-error">{deleteError}</p>}
-          <div className="modal-actions"><button type="button" className="btn btn-outline" onClick={() => setShowDelete(false)}>إلغاء</button><button type="submit" className="btn btn-danger" disabled={deleting || user.role === 'admin' || user.role === 'super-admin'}>{deleting ? <span className="spinner"/> : <Trash2 size={15}/>} حذف الحساب نهائياً</button></div>
+          <div className="modal-actions"><button type="button" className="btn btn-outline" onClick={() => setShowDelete(false)}>إلغاء</button><button type="submit" className="btn btn-danger" disabled={deleting || isDemo || user.role === 'admin' || user.role === 'super-admin'}>{deleting ? <span className="spinner"/> : <Trash2 size={15}/>} حذف الحساب نهائياً</button></div>
         </form>
       </section>
     </div>}
