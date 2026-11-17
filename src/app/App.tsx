@@ -880,14 +880,18 @@ function NotificationsPage({ items, setItems }: { items: AppNotification[]; setI
   return <><PageHeader eyebrow="UPDATES" title="الإشعارات" description="آخر التحديثات والتنبيهات الخاصة بموادك ومهامك." action={<button className="btn btn-outline" onClick={() => setItems((all) => all.map((item) => ({ ...item, read: true })))}><Check size={15}/> تحديد الكل كمقروء</button>}/><div className="panel notifications-panel">{items.map((item) => { const Icon = iconForKind[item.kind]; return <div className={`notification-row ${item.read ? '' : 'unread'}`} key={item.id}><div className={`notification-kind kind-${item.kind}`}><Icon size={18}/></div><div><b>{item.title}</b><p>{item.body}</p><span>{item.time}</span></div><div className="notification-actions">{!item.read && <i/>}<button className="icon-button" onClick={() => setItems((all) => all.map((n) => n.id === item.id ? { ...n, read: !n.read } : n))}>{item.read ? <Check size={15}/> : <MoreHorizontal size={18}/>}</button></div></div>; })}{items.length === 0 && <EmptyState title="لا توجد إشعارات" body="ستظهر هنا التحديثات الجديدة."/>}</div></>;
 }
 
-function AdminPage({ tasks, subjects, files, currentUser, cloudinarySettings, onNewTask, onAddSubject, onSaved, onError }: {
+function AdminPage({ tasks, subjects, lectures, exams, files, currentUser, cloudinarySettings, onNewTask, onAddSubject, onAddLecture, onAddExam, onSaved, onError }: {
   tasks: StudyTask[];
   subjects: Subject[];
+  lectures: Lecture[];
+  exams: Exam[];
   files: LibraryFile[];
   currentUser: AppUser;
   cloudinarySettings: CloudinarySettings;
   onNewTask: () => void;
   onAddSubject: () => void;
+  onAddLecture: () => void;
+  onAddExam: () => void;
   onSaved: () => void;
   onError: (message: string) => void;
 }) {
@@ -934,24 +938,67 @@ function AdminPage({ tasks, subjects, files, currentUser, cloudinarySettings, on
     }
   };
 
-  return <><PageHeader eyebrow="MANAGEMENT CENTER" title="لوحة إدارة المنصة" description="إدارة المحتوى الأكاديمي وإعدادات الخدمات المرتبطة بالمنصة." action={<span className="admin-status"><i/> وضع الإدارة</span>}/>
-    <div className="admin-tabs">{[{ id: 'overview', label: 'نظرة عامة' }, { id: 'academic', label: 'المحتوى الأكاديمي' }, { id: 'tasks', label: 'إدارة المهام' }, { id: 'users', label: 'المستخدمون' }, { id: 'cloudinary', label: 'إعدادات Cloudinary' }].map((item) => <button key={item.id} onClick={() => setTab(item.id)} className={tab === item.id ? 'active' : ''}>{item.label}</button>)}</div>
-    {tab === 'overview' && <><div className="admin-stats"><StatCard label="إجمالي الطلاب" value="248" meta="حساباً مسجلاً" icon={<Users size={18}/>} tone="violet" trend="حسابات المنصة"/><StatCard label="المواد الدراسية" value={subjects.length.toString()} meta="مادة نشطة" icon={<BookOpen size={18}/>} tone="blue" trend="الترم الأول"/><StatCard label="المهام المنشورة" value={tasks.length.toString()} meta="مهمة في النظام" icon={<ListChecks size={18}/>} tone="green" trend="آخر تحديث اليوم"/><StatCard label="الملفات" value={files.length.toString()} meta="ملف في المكتبة" icon={<FolderOpen size={18}/>} tone="amber" trend="Cloudinary"/></div><div className="admin-quick-grid"><button onClick={onNewTask}><div><Plus size={19}/></div><b>إنشاء مهمة</b><span>نشر تكليف للطلاب</span></button><button onClick={onAddSubject}><div><BookOpen size={19}/></div><b>إضافة مادة</b><span>تحديث الهيكل الأكاديمي</span></button><button onClick={() => setTab('users')}><div><Users size={19}/></div><b>إدارة المستخدمين</b><span>الأدوار والصلاحيات</span></button></div></>}
-    {tab === 'academic' && <div className="panel admin-content-list"><div className="panel-head"><div><h3>المواد الدراسية</h3><span>السنة الإعدادية — الترم الأول</span></div><button className="btn btn-primary btn-small" onClick={onAddSubject}><Plus size={14}/> إضافة مادة</button></div>{subjects.map((s) => <div className="admin-list-row" key={s.id}><div className="subject-mini-icon" style={{ background: `${s.color}18`, color: s.color }}>{s.icon}</div><div><b>{s.name}</b><span>{s.code} · {s.instructor}</span></div><span>{s.lectures} محاضرة</span><span className="status-chip status-completed">منشورة</span></div>)}</div>}
-    {tab === 'tasks' && <div className="panel admin-content-list"><div className="panel-head"><div><h3>المهام المنشورة</h3><span>راجع التسليمات وحالة تقدم الطلاب</span></div><button className="btn btn-primary btn-small" onClick={onNewTask}><Plus size={14}/> مهمة جديدة</button></div>{tasks.map((t) => <div className="admin-list-row" key={t.id}><div className="admin-task-symbol"><ClipboardList size={17}/></div><div><b>{t.title}</b><span>{t.subjectName}</span></div><span className={`priority-badge priority-${t.priority}`}>{priorityText[t.priority]}</span><span className={`status-chip status-${t.status}`}>{statusText[t.status]}</span></div>)}</div>}
-    {tab === 'users' && <div className="panel users-placeholder"><Users size={32}/><h3>إدارة حسابات المديرين</h3><p>تُضاف حسابات المديرين من Firebase Console داخل مجموعة <b dir="ltr">admins</b>. أنشئ مستنداً لكل بريد إلكتروني مطابقاً لحساب Authentication. راجع دليل README للحصول على الحقول الدقيقة.</p><span className="admin-status"><i/> الصلاحيات تُقرأ من Firestore</span></div>}
+  return <>
+    <PageHeader eyebrow="MANAGEMENT CENTER" title="لوحة إدارة المنصة" description="انشر المحتوى الأكاديمي واضبط خدمات المنصة من مكان واحد." action={<span className="admin-status"><i/> وضع الإدارة</span>}/>
+    <div className="admin-tabs">{[{ id: 'overview', label: 'نظرة عامة' }, { id: 'academic', label: 'المحتوى الأكاديمي' }, { id: 'tasks', label: 'إدارة المهام' }, { id: 'users', label: 'المستخدمون والصلاحيات' }, { id: 'cloudinary', label: 'إعدادات Cloudinary' }].map((item) => <button key={item.id} onClick={() => setTab(item.id)} className={tab === item.id ? 'active' : ''}>{item.label}</button>)}</div>
+    {tab === 'overview' && <>
+      <div className="admin-stats">
+        <StatCard label="المواد الدراسية" value={subjects.length.toString()} meta="مواد منشورة" icon={<BookOpen size={18}/>} tone="blue"/>
+        <StatCard label="المهام" value={tasks.length.toString()} meta="مهام مسجلة" icon={<ListChecks size={18}/>} tone="green"/>
+        <StatCard label="المحاضرات" value={lectures.length.toString()} meta="محاضرات منشورة" icon={<Video size={18}/>} tone="violet"/>
+        <StatCard label="الاختبارات" value={exams.length.toString()} meta="اختبارات منشورة" icon={<ClipboardList size={18}/>} tone="amber"/>
+      </div>
+      <div className="admin-quick-grid">
+        <button onClick={onAddSubject}><div><BookOpen size={19}/></div><b>إضافة مادة</b><span>إنشاء مقرر دراسي</span></button>
+        <button onClick={onNewTask}><div><ListChecks size={19}/></div><b>إنشاء مهمة</b><span>نشر تكليف للطلاب</span></button>
+        <button onClick={onAddLecture}><div><Video size={19}/></div><b>إضافة محاضرة</b><span>رابط فيديو من YouTube أو Vimeo أو ملف فيديو</span></button>
+        <button onClick={onAddExam}><div><ClipboardList size={19}/></div><b>إضافة اختبار</b><span>حدد المادة والموعد والمدة</span></button>
+      </div>
+      <div className="panel admin-content-list admin-storage-summary"><div className="panel-head"><div><h3>حالة المكتبة</h3><span>أرقام فعلية من المحتوى المسجل</span></div></div><div className="admin-summary-numbers"><div><b>{files.length}</b><span>ملف</span></div><div><b>{subjects.reduce((sum, subject) => sum + subject.lectures, 0)}</b><span>عدد المحاضرات المرتبطة بالمواد</span></div></div></div>
+    </>}
+    {tab === 'academic' && <>
+      <div className="panel admin-content-list">
+        <div className="panel-head"><div><h3>المواد الدراسية</h3><span>الترم الأول — أضف المواد الفعلية للطلاب</span></div><button className="btn btn-primary btn-small" onClick={onAddSubject}><Plus size={14}/> إضافة مادة</button></div>
+        {subjects.map((subject) => <div className="admin-list-row" key={subject.id}><div className="subject-mini-icon" style={{ background: subject.color + '18', color: subject.color }}>{subject.icon}</div><div><b>{subject.name}</b><span>{subject.code} · {subject.instructor}</span></div><span>{subject.lectures} محاضرة</span><span className="status-chip status-completed">منشورة</span></div>)}
+        {subjects.length === 0 && <EmptyState title="لا توجد مواد بعد" body="ابدأ بإضافة أول مادة دراسية."/ >}
+      </div>
+      <div className="panel admin-content-list">
+        <div className="panel-head"><div><h3>المحاضرات</h3><span>أضف روابط الفيديو داخل المقررات</span></div><button className="btn btn-primary btn-small" onClick={onAddLecture} disabled={subjects.length === 0}><Plus size={14}/> إضافة محاضرة</button></div>
+        {lectures.map((lecture) => <div className="admin-list-row" key={lecture.id}><div className="admin-task-symbol"><Video size={17}/></div><div><b>{lecture.title}</b><span>{lecture.subjectName} · {lecture.instructor}</span></div><span>{lecture.duration}</span><a className="admin-external-link" href={lecture.videoUrl} target="_blank" rel="noreferrer">فتح الرابط</a></div>)}
+        {lectures.length === 0 && <EmptyState title="لا توجد محاضرات بعد" body="أضف محاضرة واربطها برابط فيديو."/ >}
+      </div>
+      <div className="panel admin-content-list">
+        <div className="panel-head"><div><h3>الاختبارات</h3><span>أضف مواعيد التقييمات والامتحانات</span></div><button className="btn btn-primary btn-small" onClick={onAddExam}><Plus size={14}/> إضافة اختبار</button></div>
+        {exams.map((exam) => <div className="admin-list-row" key={exam.id}><div className="admin-task-symbol"><ClipboardList size={17}/></div><div><b>{exam.title}</b><span>{exam.subjectName}</span></div><span>{new Date(exam.date).toLocaleString('ar-EG')}</span><span>{exam.duration}</span></div>)}
+        {exams.length === 0 && <EmptyState title="لا توجد اختبارات بعد" body="أضف الاختبار القادم ليظهر للطلاب."/ >}
+      </div>
+    </>}
+    {tab === 'tasks' && <div className="panel admin-content-list">
+      <div className="panel-head"><div><h3>المهام المنشورة</h3><span>راجع المهام المسجلة حالياً</span></div><button className="btn btn-primary btn-small" onClick={onNewTask} disabled={subjects.length === 0}><Plus size={14}/> مهمة جديدة</button></div>
+      {tasks.map((task) => <div className="admin-list-row" key={task.id}><div className="admin-task-symbol"><ClipboardList size={17}/></div><div><b>{task.title}</b><span>{task.subjectName}</span></div><span className={'priority-badge priority-' + task.priority}>{priorityText[task.priority]}</span><span className={'status-chip status-' + task.status}>{statusText[task.status]}</span></div>)}
+      {tasks.length === 0 && <EmptyState title="لا توجد مهام بعد" body="أنشئ المهام بعد إضافة المواد الدراسية."/ >}
+    </div>}
+    {tab === 'users' && <div className="panel users-placeholder">
+      <Users size={32}/><h3>إدارة حسابات المديرين</h3>
+      <p>يتم منح صلاحية الإدارة من Firebase Console، وليس من ملف الطالب. أنشئ حساب المستخدم أولاً في Authentication، ثم أضف مستنداً في مجموعة <b dir="ltr">admins</b> يكون معرّفه هو بريده الإلكتروني المطابق تماماً.</p>
+      <div className="admin-permission-example"><b>أول مدير أعلى</b><code dir="ltr">admins/your-email@example.com</code><pre>{'{\\n  "email": "your-email@example.com",\\n  "role": "super-admin",\\n  "active": true\\n}'}</pre><span>استبدل البريد التجريبي ببريدك الفعلي، واجعل active من النوع Boolean.</span></div>
+      <p>لمدير عادي استخدم <code>role: "admin"</code>. لتعطيل مدير استخدم <code>active: false</code>. بعد ذلك سجّل الخروج والدخول مجدداً.</p>
+      <a className="admin-external-link" href="https://console.firebase.google.com/project/eng-hub-5c30a/firestore" target="_blank" rel="noreferrer">فتح Firestore Console</a>
+      <span className="admin-status"><i/> تُقرأ الصلاحيات من Firestore مع قواعد حماية تمنع المستخدم من ترقية نفسه.</span>
+    </div>}
     {tab === 'cloudinary' && <form className="panel admin-content-list form-stack" onSubmit={(event) => void saveCloudinary(event)}>
-      <div className="panel-head"><div><h3>ربط Cloudinary</h3><span>تُرفع كل الملفات والصور والفيديوهات إلى Cloudinary، ويحتفظ Firestore بالنصوص والبيانات الوصفية فقط.</span></div><span className={`connection-state ${isCloudinaryConfigured(cloudinarySettings) ? '' : 'demo'}`}><i/>{isCloudinaryConfigured(cloudinarySettings) ? 'متصل' : 'غير مهيأ'}</span></div>
+      <div className="panel-head"><div><h3>ربط Cloudinary</h3><span>تُرفع الملفات والصور والفيديوهات إلى Cloudinary، ويحتفظ Firestore بالروابط والبيانات الوصفية.</span></div><span className={'connection-state ' + (isCloudinaryConfigured(cloudinarySettings) ? '' : 'demo')}><i/>{isCloudinaryConfigured(cloudinarySettings) ? 'متصل' : 'غير مهيأ'}</span></div>
       <label>Cloud Name<input dir="ltr" autoComplete="off" value={cloudName} onChange={(event) => setCloudName(event.target.value)} placeholder="your-cloud-name"/></label>
-      <label>Unsigned Upload Preset<input dir="ltr" autoComplete="off" value={uploadPreset} onChange={(event) => setUploadPreset(event.target.value)} placeholder="eng-hub-unsigned"/></label>
-      <div className="setting-row"><div><b>تفعيل الرفع</b><span>عند إيقافه لن يتم رفع الملفات من المنصة.</span></div><button type="button" className={`toggle-switch ${enabled ? 'on' : ''}`} onClick={() => setEnabled((value) => !value)} aria-pressed={enabled}><i/></button></div>
+      <label>Unsigned Upload Preset<input dir="ltr" autoComplete="off" value={uploadPreset} onChange={(event) => setUploadPreset(event.target.value)} placeholder="eng_hub_unsigned"/></label>
+      <div className="setting-row"><div><b>تفعيل الرفع</b><span>عند إيقافه لن يتم رفع الملفات من المنصة.</span></div><button type="button" className={'toggle-switch ' + (enabled ? 'on' : '')} onClick={() => setEnabled((value) => !value)} aria-pressed={enabled}><i/></button></div>
       <div className="admin-cloudinary-limits"><label>حد الصورة (MB)<input type="number" min="1" max="100" value={maxImageMB} onChange={(event) => setMaxImageMB(event.target.value)}/></label><label>حد الفيديو (MB)<input type="number" min="1" max="500" value={maxVideoMB} onChange={(event) => setMaxVideoMB(event.target.value)}/></label><label>حد المستند (MB)<input type="number" min="1" max="100" value={maxDocumentMB} onChange={(event) => setMaxDocumentMB(event.target.value)}/></label></div>
       <div className="inline-info"><AlertCircle size={16}/> استخدم Unsigned Upload Preset مقيّداً بالأنواع والأحجام والمجلد من لوحة Cloudinary. لا تضع API Secret هنا ولا في الموقع.</div>
-      <p className="settings-hint">الامتدادات المدعومة: PDF وDOC/DOCX وPPT/PPTX وXLS/XLSX وCSV وTXT وZIP وJPG/PNG/WEBP/GIF وMP4/MOV/WEBM.</p>
+      <p className="settings-hint">الصيغ المدعومة: PDF وDOC/DOCX وPPT/PPTX وXLS/XLSX وCSV وTXT وZIP والصور والفيديو.</p>
       <div><button className="btn btn-primary" type="submit" disabled={savingCloudinary}>{savingCloudinary ? <span className="spinner"/> : <Check size={15}/>} حفظ إعدادات Cloudinary</button></div>
     </form>}
   </>;
 }
+
 function ProfilePage({ user, isDemo, onToggleRole, onLogout, onDeleteAccount, onSaveProfile, themePreference, onThemeChange, cloudinarySettings, dark }: {
   user: AppUser;
   isDemo: boolean;
