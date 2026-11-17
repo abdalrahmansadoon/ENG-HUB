@@ -1,6 +1,6 @@
 import {
-  addDoc, collection, doc, getDoc, getDocs, onSnapshot, orderBy, query,
-  serverTimestamp, setDoc, writeBatch, where, type Unsubscribe,
+  addDoc, collection, doc, getDoc, getDocs, increment, onSnapshot, orderBy, query,
+  serverTimestamp, setDoc, updateDoc, writeBatch, where, type Unsubscribe,
 } from 'firebase/firestore';
 import { db } from './firebase';
 import type { Exam, Lecture, LibraryFile, StudyTask, Subject, TaskStatus } from '../types';
@@ -228,7 +228,8 @@ export async function deleteTaskCloud(taskId: string) {
 export async function createLectureCloud(input: {
   title: string; subjectId: string; subjectName: string; instructor: string; duration: string; videoUrl: string;
 }) {
-  return addDoc(collection(requireDb(), 'lectures'), {
+  const firestore = requireDb();
+  const lectureRef = await addDoc(collection(firestore, 'lectures'), {
     ...input,
     parts: 1,
     progress: 0,
@@ -236,6 +237,11 @@ export async function createLectureCloud(input: {
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   });
+  await updateDoc(doc(firestore, 'subjects', input.subjectId), {
+    lectures: increment(1),
+    updatedAt: serverTimestamp(),
+  });
+  return lectureRef;
 }
 
 export async function createExamCloud(input: {
