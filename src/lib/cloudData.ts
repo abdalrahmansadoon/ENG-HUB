@@ -98,18 +98,22 @@ export function subscribeSubjects(isAdmin: boolean, onData: (items: Subject[]) =
 export function subscribeLectures(onData: (items: Lecture[]) => void, onError: (error: Error) => void): Unsubscribe | undefined {
   if (!db) return;
   const q = query(collection(db, 'lectures'), where('publicationStatus', '==', 'published'));
-  return onSnapshot(q, (snapshot) => onData(snapshot.docs.map((entry) => {
-    const data = entry.data();
-    const created = data.createdAt?.toDate?.() ?? new Date();
-    return {
-      id: entry.id,
-      ...data,
-      parts: Number(data.partsCount ?? data.parts ?? 0),
-      partsCount: Number(data.partsCount ?? data.parts ?? 0),
-      lecturerName: String(data.lecturerName ?? data.instructor ?? ''),
-      date: created.toLocaleDateString('ar-EG', { day: 'numeric', month: 'long', year: 'numeric' }),
-    } as Lecture;
-  }).sort((a, b) => b.date.localeCompare(a.date, 'ar-EG'))), onError);
+  return onSnapshot(q, (snapshot) => {
+    const items = snapshot.docs.map((entry) => {
+      const data = entry.data();
+      const created = data.createdAt?.toDate?.() ?? new Date();
+      return {
+        id: entry.id,
+        ...data,
+        parts: Number(data.partsCount ?? data.parts ?? 0),
+        partsCount: Number(data.partsCount ?? data.parts ?? 0),
+        lecturerName: String(data.lecturerName ?? data.instructor ?? ''),
+        date: created.toLocaleDateString('ar-EG', { day: 'numeric', month: 'long', year: 'numeric' }),
+        __sortAt: created.getTime(),
+      } as Lecture & { __sortAt: number };
+    }).sort((a, b) => b.__sortAt - a.__sortAt);
+    onData(items.map(({ __sortAt, ...item }) => item));
+  }, onError);
 }
 
 export function subscribeExams(onData: (items: Exam[]) => void, onError: (error: Error) => void): Unsubscribe | undefined {
@@ -336,9 +340,9 @@ export async function createLectureCloud(input: {
 }
 
 function classifyVideoSource(url: string): LecturePart['sourceType'] {
-  if (/youtu\\.be|youtube\\.com/i.test(url)) return 'youtube';
-  if (/vimeo\\.com/i.test(url)) return 'vimeo';
-  if (/\\.(mp4|webm|mov)(?:[?#]|$)/i.test(url)) return 'direct';
+  if (/youtu\.be|youtube\.com/i.test(url)) return 'youtube';
+  if (/vimeo\.com/i.test(url)) return 'vimeo';
+  if (/\.(mp4|webm|mov)(?:[?#]|$)/i.test(url)) return 'direct';
   return 'external';
 }
 
