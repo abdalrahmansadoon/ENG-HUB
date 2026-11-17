@@ -450,23 +450,131 @@ function CoursesPage({ subjects, onAdd, canEdit, onOpen }: { subjects: Subject[]
   </>;
 }
 
-function LecturesPage({ lectures, subjects }: { lectures: Lecture[]; subjects: Subject[] }) {
+function LecturesPage({ lectures, subjects, canEdit, onAdd }: {
+  lectures: Lecture[];
+  subjects: Subject[];
+  canEdit: boolean;
+  onAdd: () => void;
+}) {
   const [subjectFilter, setSubjectFilter] = useState('all');
-  const [playing, setPlaying] = useState<string | null>(null);
+  const [selectedLecture, setSelectedLecture] = useState<Lecture | null>(null);
   const filtered = lectures.filter((lecture) => subjectFilter === 'all' || lecture.subjectId === subjectFilter);
-  return <><PageHeader eyebrow="LECTURE LIBRARY" title="المحاضرات" description="استكمل من حيث توقفت، وراجع الأجزاء المسجلة في أي وقت." action={<button className="filter-button"><Filter size={15}/> ترتيب حسب الأحدث</button>}/>
-    <div className="filter-tabs lecture-filters"><button className={subjectFilter === 'all' ? 'filter-tab active' : 'filter-tab'} onClick={() => setSubjectFilter('all')}>كل المواد</button>{subjects.map((s) => <button className={subjectFilter === s.id ? 'filter-tab active' : 'filter-tab'} key={s.id} onClick={() => setSubjectFilter(s.id)}>{s.name}</button>)}</div>
-    <div className="lecture-grid">{filtered.map((lecture, index) => <article className="lecture-card" key={lecture.id}><div className={`lecture-cover cover-${index % 4}`}><div className="cover-grid"/><span className="lecture-subject-tag">{lecture.subjectName}</span><button className="play-button" onClick={() => setPlaying(playing === lecture.id ? null : lecture.id)}>{playing === lecture.id ? <Check size={24}/> : <Play size={23} fill="currentColor"/>}</button><span className="cover-duration"><Clock3 size={12}/>{lecture.duration}</span></div><div className="lecture-card-body"><div className="lecture-meta"><span>{lecture.instructor}</span><span>{lecture.date}</span></div><h3>{lecture.title}</h3><div className="lecture-progress-head"><span>{lecture.parts} أجزاء · {lecture.progress === 100 ? 'مكتملة' : 'نسبة المشاهدة'}</span><b>{lecture.progress}%</b></div><div className="progress-track"><div style={{ width: `${lecture.progress}%` }}/></div>{playing === lecture.id && <div className="inline-player-state"><Play size={13}/> وضع المعاينة التجريبية — أضف رابط الفيديو من لوحة الإدارة</div>}</div></article>)}</div>
+  return <>
+    <PageHeader eyebrow="LECTURE LIBRARY" title="المحاضرات" description="المحتوى المسجل الذي ينشره مدير المنصة." action={canEdit ? <button className="btn btn-primary" onClick={onAdd}><Plus size={16}/> إضافة محاضرة</button> : undefined}/>
+    <div className="filter-tabs lecture-filters"><button className={subjectFilter === 'all' ? 'filter-tab active' : 'filter-tab'} onClick={() => setSubjectFilter('all')}>كل المواد</button>{subjects.map((subject) => <button className={subjectFilter === subject.id ? 'filter-tab active' : 'filter-tab'} key={subject.id} onClick={() => setSubjectFilter(subject.id)}>{subject.name}</button>)}</div>
+    <div className="lecture-grid">{filtered.map((lecture, index) => <article className="lecture-card" key={lecture.id}><div className={'lecture-cover cover-' + (index % 4)}><div className="cover-grid"/><span className="lecture-subject-tag">{lecture.subjectName}</span><button className="play-button" onClick={() => setSelectedLecture(lecture)} aria-label={'تشغيل ' + lecture.title}><Play size={23} fill="currentColor"/></button><span className="cover-duration"><Clock3 size={12}/>{lecture.duration}</span></div><div className="lecture-card-body"><div className="lecture-meta"><span>{lecture.instructor}</span><span>{lecture.date}</span></div><h3>{lecture.title}</h3><div className="lecture-progress-head"><span>{lecture.parts} أجزاء · {lecture.progress === 100 ? 'مكتملة' : 'لم تسجل مشاهدة'}</span><b>{lecture.progress}%</b></div><div className="progress-track"><div style={{ width: lecture.progress + '%' }}/></div></div></article>)}</div>
+    {filtered.length === 0 && <EmptyState title={lectures.length === 0 ? 'لا توجد محاضرات بعد' : 'لا توجد محاضرات لهذه المادة'} body={lectures.length === 0 ? (canEdit ? 'أضف أول محاضرة من لوحة الإدارة أو من هذا القسم.' : 'سيضيف مدير المنصة المحاضرات هنا عند تجهيز المحتوى.') : 'اختر مادة أخرى لعرض محاضراتها.'}/>}
+    {selectedLecture && <div className="video-modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setSelectedLecture(null); }}>
+      <section className="video-modal-card" role="dialog" aria-modal="true" aria-label={selectedLecture.title}>
+        <header className="video-modal-header"><div><b>{selectedLecture.title}</b><span>{selectedLecture.subjectName} · {selectedLecture.instructor}</span></div><button type="button" className="icon-button" onClick={() => setSelectedLecture(null)} aria-label="إغلاق المشغل"><X size={20}/></button></header>
+        {selectedLecture.videoUrl ? <VideoPlayer source={selectedLecture.videoUrl} title={selectedLecture.title}/> : <div className="video-unavailable"><EmptyState title="لم تتم إضافة رابط الفيديو بعد" body={canEdit ? 'حرر المحاضرة أو أضف رابط الفيديو من لوحة الإدارة.' : 'سيظهر الفيديو هنا بمجرد أن يضيف المدير رابط المحاضرة.'}/></div>}
+      </section>
+    </div>}
   </>;
 }
 
-function ExamsPage({ exams, setExams }: { exams: Exam[]; setExams: (fn: (items: Exam[]) => Exam[]) => void }) {
-  const [selected, setSelected] = useState<string | null>(null);
-  return <><PageHeader eyebrow="ASSESSMENTS" title="الاختبارات والامتحانات" description="استعد لاختباراتك القادمة وتابع نتائج محاولاتك السابقة." action={<button className="filter-button"><CalendarDays size={15}/> عرض التقويم</button>}/>
-    <div className="exam-highlight"><div className="exam-highlight-icon"><AlarmClock size={23}/></div><div><span>الاختبار القادم</span><h2>{exams.find((exam) => exam.status === 'upcoming')?.title ?? 'لا يوجد اختبار قادم'}</h2><p>تأكد من مراجعة المحاضرات وحل نماذج التدريب قبل موعد الاختبار.</p></div><div className="exam-countdown"><b>03</b><span>أيام متبقية</span></div></div>
-    <div className="section-title-row exam-list-title"><div><h2>كل الاختبارات</h2><p>اختبارات تدريبية وتقييمات المقررات</p></div><div className="filter-tabs"><button className="filter-tab active">الكل</button><button className="filter-tab">قادمة</button><button className="filter-tab">مكتملة</button></div></div>
-    <div className="exam-list">{exams.map((exam) => <div className="exam-row" key={exam.id}><div className={`exam-type-icon ${exam.status}`}><ClipboardList size={20}/></div><div className="exam-row-copy"><b>{exam.title}</b><span>{exam.subjectName} <i>•</i> {exam.questions} سؤال <i>•</i> {exam.duration}</span></div><div className="exam-date"><b>{new Date(exam.date).toLocaleDateString('ar-EG', { day: 'numeric', month: 'short' })}</b><span>{new Date(exam.date).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })}</span></div><span className={`exam-status ${exam.status}`}>{exam.status === 'upcoming' ? 'قادم' : exam.status === 'available' ? 'متاح الآن' : 'مكتمل'}</span><button className="btn btn-outline btn-small" onClick={() => { setSelected(exam.id); if (exam.status === 'available') setExams((items) => items.map((item) => item.id === exam.id ? { ...item, status: 'completed' } : item)); }}>{exam.status === 'completed' ? 'عرض النتيجة' : exam.status === 'available' ? 'ابدأ الاختبار' : 'التفاصيل'}</button></div>)}</div>
-    {selected && <div className="inline-info"><CheckCircle2 size={16}/> {exams.find((e) => e.id === selected)?.status === 'completed' ? 'تم تسجيل فتح تفاصيل الاختبار في النسخة التجريبية.' : 'تفاصيل الاختبار جاهزة.'}<button onClick={() => setSelected(null)}><X size={14}/></button></div>}
+function VideoPlayer({ source, title }: { source: string; title: string }) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [current, setCurrent] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [playing, setPlaying] = useState(false);
+  const [muted, setMuted] = useState(false);
+  const [volume, setVolume] = useState(1);
+  const [speed, setSpeed] = useState(1);
+  const [showSpeeds, setShowSpeeds] = useState(false);
+
+  const getEmbedUrl = (value: string) => {
+    try {
+      const url = new URL(value);
+      const host = url.hostname.replace(/^www\./, '');
+      if (host === 'youtu.be') {
+        const id = url.pathname.split('/').filter(Boolean)[0];
+        return id ? 'https://www.youtube-nocookie.com/embed/' + id + '?rel=0&controls=1' : '';
+      }
+      if (host.endsWith('youtube.com') || host === 'youtube-nocookie.com') {
+        const id = url.searchParams.get('v') || url.pathname.split('/').filter(Boolean).pop();
+        return id ? 'https://www.youtube-nocookie.com/embed/' + id + '?rel=0&controls=1' : '';
+      }
+      if (host.endsWith('vimeo.com')) {
+        const id = url.pathname.split('/').filter(Boolean).pop();
+        return id ? 'https://player.vimeo.com/video/' + id + '?dnt=1' : '';
+      }
+      return '';
+    } catch {
+      return '';
+    }
+  };
+  const embedUrl = getEmbedUrl(source);
+  const isDirectVideo = !embedUrl && /\.(mp4|webm|mov)(?:[?#].*)?$/i.test(source);
+  const time = (seconds: number) => {
+    if (!Number.isFinite(seconds)) return '00:00';
+    const value = Math.max(0, Math.floor(seconds));
+    return String(Math.floor(value / 60)).padStart(2, '0') + ':' + String(value % 60).padStart(2, '0');
+  };
+  useEffect(() => {
+    if (videoRef.current) videoRef.current.playbackRate = speed;
+  }, [speed]);
+
+  const togglePlay = async () => {
+    const video = videoRef.current;
+    if (!video) return;
+    if (video.paused) {
+      try { await video.play(); setPlaying(true); } catch { setPlaying(false); }
+    } else {
+      video.pause();
+      setPlaying(false);
+    }
+  };
+  const seek = (offset: number) => {
+    const video = videoRef.current;
+    if (!video) return;
+    video.currentTime = Math.max(0, Math.min(duration || video.duration || 0, video.currentTime + offset));
+  };
+  const toggleFullscreen = () => {
+    const wrapper = videoRef.current?.parentElement;
+    if (!wrapper) return;
+    if (document.fullscreenElement) void document.exitFullscreen();
+    else void wrapper.requestFullscreen?.();
+  };
+
+  if (embedUrl) return <div className="video-player-frame"><iframe src={embedUrl} title={title} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowFullScreen referrerPolicy="strict-origin-when-cross-origin"/></div>;
+  if (!isDirectVideo) return <div className="video-unavailable"><EmptyState title="صيغة رابط الفيديو غير مدعومة" body="استخدم رابط YouTube أو Vimeo أو رابط MP4 / WEBM / MOV مباشر."/></div>;
+
+  return <div className="video-player-frame native-video-player">
+    <video ref={videoRef} src={source} playsInline preload="metadata" onLoadedMetadata={(event) => setDuration(event.currentTarget.duration || 0)} onTimeUpdate={(event) => setCurrent(event.currentTarget.currentTime)} onPlay={() => setPlaying(true)} onPause={() => setPlaying(false)} onEnded={() => setPlaying(false)}/>
+    <div className="video-control-layer">
+      <input aria-label="تقدم الفيديو" className="video-progress" type="range" min="0" max={duration || 0} step="0.1" value={Math.min(current, duration || 0)} onChange={(event) => { const next = Number(event.target.value); if (videoRef.current) videoRef.current.currentTime = next; setCurrent(next); }}/>
+      <div className="video-controls-row">
+        <div className="video-controls-group">
+          <button type="button" onClick={() => seek(-10)} title="رجوع 10 ثوانٍ"><ArrowDownLeft size={16}/><small>10</small></button>
+          <button type="button" onClick={() => seek(10)} title="تقديم 10 ثوانٍ"><ArrowUpLeft size={16}/><small>10</small></button>
+          <button type="button" onClick={() => void togglePlay()} title={playing ? 'إيقاف مؤقت' : 'تشغيل'}>{playing ? <Pause size={18}/> : <Play size={18}/>}</button>
+          <button type="button" onClick={() => { const next = !muted; setMuted(next); if (videoRef.current) videoRef.current.muted = next; }} title="كتم الصوت">{muted ? <VolumeX size={17}/> : <Volume2 size={17}/>}</button>
+          <input aria-label="مستوى الصوت" className="video-volume" type="range" min="0" max="1" step="0.05" value={muted ? 0 : volume} onChange={(event) => { const next = Number(event.target.value); setVolume(next); setMuted(next === 0); if (videoRef.current) { videoRef.current.volume = next; videoRef.current.muted = next === 0; } }}/>
+        </div>
+        <span className="video-clock">{time(current)} / {time(duration)}</span>
+        <div className="video-controls-group">
+          <div className="video-speed-wrap"><button type="button" onClick={() => setShowSpeeds((value) => !value)}>{speed}x <ChevronDown size={13}/></button>{showSpeeds && <div className="video-speed-menu">{[0.5, 0.75, 1, 1.25, 1.5, 2].map((value) => <button type="button" className={speed === value ? 'active' : ''} key={value} onClick={() => { setSpeed(value); setShowSpeeds(false); }}>{value}x</button>)}</div>}</div>
+          <button type="button" onClick={toggleFullscreen} title="ملء الشاشة"><Maximize size={17}/></button>
+        </div>
+      </div>
+    </div>
+  </div>;
+}
+
+function ExamsPage({ exams, setExams, canEdit, onAdd }: {
+  exams: Exam[];
+  setExams: (fn: (items: Exam[]) => Exam[]) => void;
+  canEdit: boolean;
+  onAdd: () => void;
+}) {
+  const upcoming = exams.filter((exam) => exam.status === 'upcoming').sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+  return <>
+    <PageHeader eyebrow="ASSESSMENTS" title="الاختبارات والامتحانات" description="مواعيد الاختبارات التي ينشرها مدير المنصة." action={canEdit ? <button className="btn btn-primary" onClick={onAdd}><Plus size={16}/> إضافة اختبار</button> : undefined}/>
+    <div className="exam-highlight"><div className="exam-highlight-icon"><AlarmClock size={23}/></div><div><span>الاختبار القادم</span><h2>{upcoming[0]?.title ?? 'لا يوجد اختبار قادم'}</h2><p>{upcoming[0] ? upcoming[0].subjectName + ' · ' + new Date(upcoming[0].date).toLocaleDateString('ar-EG') : 'ستظهر المواعيد هنا عند نشر الاختبارات.'}</p></div><div className="exam-countdown"><b>{upcoming.length}</b><span>اختبارات قادمة</span></div></div>
+    <div className="section-title-row exam-list-title"><div><h2>كل الاختبارات</h2><p>الاختبارات المنشورة في حسابك</p></div></div>
+    <div className="exam-list">{exams.map((exam) => <div className="exam-row" key={exam.id}><div className={'exam-type-icon ' + exam.status}><ClipboardList size={20}/></div><div className="exam-row-copy"><b>{exam.title}</b><span>{exam.subjectName} <i>•</i> {exam.questions} سؤال <i>•</i> {exam.duration}</span></div><div className="exam-date"><b>{new Date(exam.date).toLocaleDateString('ar-EG', { day: 'numeric', month: 'short' })}</b><span>{new Date(exam.date).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })}</span></div><span className={'exam-status ' + exam.status}>{exam.status === 'upcoming' ? 'قادم' : exam.status === 'available' ? 'متاح الآن' : 'مكتمل'}</span></div>)}</div>
+    {exams.length === 0 && <EmptyState title="لا توجد اختبارات بعد" body={canEdit ? 'انشر أول اختبار من زر إضافة اختبار.' : 'سيضيف مدير المنصة مواعيد الاختبارات هنا.'}/>}
   </>;
 }
 
