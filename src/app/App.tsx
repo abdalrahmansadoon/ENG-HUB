@@ -1140,6 +1140,11 @@ function ChatPage({ user, cloudinarySettings, isDemo, isAdmin, onBack }: {
   const [lightboxScale, setLightboxScale] = useState(1);
   const lightbox = lightboxItems[lightboxIndex] ?? null;
   const [muteState, setMuteState] = useState<ChatMuteStatus>({ muted: false, mutedUntil: null });
+  const [lockState, setLockState] = useState<ChatLockStatus>({ locked: false, startAt: null, endAt: null, reason: '', autoExpire: false });
+  const [warnings, setWarnings] = useState<ChatWarning[]>([]);
+  const [lockSettingsOpen, setLockSettingsOpen] = useState(false);
+  const [muteTarget, setMuteTarget] = useState<ChatMessage | null>(null);
+  const [moderationBusy, setModerationBusy] = useState(false);
   const [contextMuted, setContextMuted] = useState(false);
   const [notice, setNotice] = useState('');
   const [filePreviews, setFilePreviews] = useState<Array<{ key: string; url: string }>>([]);
@@ -1182,6 +1187,28 @@ function ChatPage({ user, cloudinarySettings, isDemo, isAdmin, onBack }: {
     if (isDemo) { setMuteState({ muted: false, mutedUntil: null }); return; }
     return subscribeGeneralChatMuteStatus(user.uid, setMuteState, (reason) => setError(reason.message));
   }, [user.uid, isDemo]);
+
+  useEffect(() => {
+    if (isDemo) {
+      setLockState({ locked: false, startAt: null, endAt: null, reason: '', autoExpire: false });
+      setWarnings([]);
+      return;
+    }
+    const stopLock = subscribeGeneralChatLockStatus(setLockState, (reason) => setError(reason.message));
+    const stopWarnings = subscribeGeneralChatWarnings(user.uid, setWarnings, (reason) => setError(reason.message));
+    return () => { stopLock(); stopWarnings(); };
+  }, [user.uid, isDemo]);
+
+  useEffect(() => {
+    if (!lockState.locked || !lockState.endAt) return;
+    const delay = lockState.endAt.getTime() - Date.now();
+    if (delay <= 0) {
+      setLockState((current) => ({ ...current, locked: false }));
+      return;
+    }
+    const timer = window.setTimeout(() => setLockState((current) => ({ ...current, locked: false })), delay + 100);
+    return () => window.clearTimeout(timer);
+  }, [lockState.locked, lockState.endAt]);
 
   useEffect(() => {
     if (!muteState.muted || !muteState.mutedUntil) return;
