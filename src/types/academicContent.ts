@@ -2,6 +2,7 @@ import type { Timestamp } from 'firebase/firestore';
 
 export type AcademicContentKind =
   | 'folder'
+  | 'lecturer'
   | 'lecture'
   | 'video'
   | 'file'
