@@ -1,6 +1,6 @@
 import { Fragment, useEffect, useMemo, useRef, useState, type FormEvent, type MouseEvent } from 'react';
 import {
-  AlertCircle, ArrowDownLeft, ArrowLeft, Check, CheckCircle2, ChevronLeft, ChevronRight,
+  AlertCircle, ArrowDownLeft, ArrowLeft, Check, CheckCircle2, ChevronLeft, ChevronRight, Clock3,
   Copy, Download, EyeOff, File, FileText, ImagePlus, Lock, Maximize, Megaphone,
   MessageCircle, Minus, MoreHorizontal, Paperclip, Pencil, Pin, Plus, Search, Send,
   ShieldCheck, Smile, Timer, Trash2, Unlock, Upload, Video, X,
@@ -858,6 +858,6 @@ export function ChatPage({ user, cloudinarySettings, isDemo, isAdmin, roomId, ro
     {muteTarget && <ChatMuteModal userName={muteTarget.senderName} onClose={() => setMuteTarget(null)} onSave={saveMuteDuration} busy={moderationBusy}/>}
     {warningTarget && <ChatWarningModal userName={warningTarget.senderName} onClose={() => setWarningTarget(null)} onSave={saveWarning} busy={moderationBusy}/>}
     {announcementModalOpen && <ChatAnnouncementModal initialText={announcementTarget?.text ?? ''} onClose={() => { if (!moderationBusy) { setAnnouncementModalOpen(false); setAnnouncementTarget(null); } }} onSave={saveAnnouncement} busy={moderationBusy}/>}
-    {slowModeSettingsOpen && <ChatSlowModeModal initial={slowMode} onClose={() => { if (!moderationBusy) setSlowModeSettingsOpen(false); }} onSave={saveSlowMode} busy={moderationBusy}/ >}
+    {slowModeSettingsOpen && <ChatSlowModeModal initial={slowMode} onClose={() => { if (!moderationBusy) setSlowModeSettingsOpen(false); }} onSave={saveSlowMode} busy={moderationBusy}/>}
   </section>;
 }
