@@ -27,6 +27,7 @@ import { PublicStudentProfilePage } from './profile/PublicStudentProfilePage';
 import { ChatLockModal } from './chat/ChatLockModal';
 import { ChatMuteModal } from './chat/ChatMuteModal';
 import { ChatWarningModal } from './chat/ChatWarningModal';
+import { ChatAnnouncementModal } from './chat/ChatAnnouncementModal';
 import type { AcademicContentNode, CreateAcademicContentInput } from '../types/academicContent';
 
 const navGroups = [
