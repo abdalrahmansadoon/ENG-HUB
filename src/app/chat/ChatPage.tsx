@@ -9,7 +9,7 @@ import type { AppUser } from '../../types';
 import { isCloudinaryConfigured, type CloudinarySettings } from '../../lib/cloudinary';
 import { uploadFile } from '../../lib/uploads';
 import {
-  adminSoftDeleteGeneralChatMessage, clearChatBackground, clearGeneralChatLock, markChatRoomRead,
+  adminSoftDeleteGeneralChatMessage, clearChatBackground, clearGeneralChatHistoryForUser, clearGeneralChatLock, markChatRoomRead,
   createChatAnnouncement, createGeneralChatWarning, deleteChatAnnouncement,
   deleteGeneralChatMessage, deleteGeneralChatRoomMessages, editGeneralChatMessage, getGeneralChatMuteStatus,
   hideGeneralChatMessageForUser, joinGeneralChat, saveChatBackground,
@@ -596,6 +596,21 @@ export function ChatPage({ user, cloudinarySettings, isDemo, isAdmin, roomId, ro
     }
   };
 
+  const clearPersonalHistory = async () => {
+    if (isAdmin || isDemo) return;
+    const confirmed = window.confirm('سيتم إخفاء سجل هذه المحادثة من حسابك على أجهزتك فقط. لن تُحذف الرسائل من حسابات بقية المشاركين. هل تريد المتابعة؟');
+    if (!confirmed) return;
+    setError('');
+    try {
+      await clearGeneralChatHistoryForUser(user.uid, roomId);
+      setReplyTo(null);
+      setContextMessage(null);
+      setNotice('تم إخفاء سجل المحادثة من حسابك فقط.');
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : 'تعذر إخفاء سجل المحادثة من حسابك.');
+    }
+  };
+
   const clearRoom = async () => {
     if (!isAdmin || !window.confirm(`سيتم حذف جميع رسائل ${roomTitle} نهائياً. هل تريد المتابعة؟`)) return;
     try {
@@ -723,6 +738,12 @@ export function ChatPage({ user, cloudinarySettings, isDemo, isAdmin, roomId, ro
           <div className="chat-topbar-search"><Search size={15}/><input placeholder="ابحث داخل المحادثة" value={search} onChange={(event) => setSearch(event.target.value)}/></div>
           <button type="button" className="chat-topbar-btn" onClick={() => backgroundFileInput.current?.click()} disabled={backgroundBusy} title="اختيار خلفية المحادثة">{backgroundBusy ? <span className="spinner"/> : <ImagePlus size={16}/>}</button>
           {chatBackgroundUrl && <button type="button" className="chat-topbar-btn" onClick={() => void resetChatBackground()} title="إزالة الخلفية"><X size={15}/></button>}
+          {!isAdmin && !isDemo && <details className="chat-student-tools">
+            <summary className="chat-topbar-btn" aria-label="إعدادات المحادثة الشخصية" title="إعدادات المحادثة"><MoreHorizontal size={18}/></summary>
+            <div role="menu">
+              <button type="button" className="danger" onClick={(event) => { event.currentTarget.closest('details')?.removeAttribute('open'); void clearPersonalHistory(); }}><EyeOff size={15}/> إخفاء سجل المحادثة لدي فقط</button>
+            </div>
+          </details>}
           {isAdmin && <details className="chat-admin-tools">
             <summary className="chat-topbar-btn" aria-label="أدوات إدارة المحادثة" title="أدوات الإدارة"><MoreHorizontal size={18}/></summary>
             <div role="menu">
