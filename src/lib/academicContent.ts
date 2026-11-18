@@ -1,6 +1,6 @@
 import {
   addDoc, collection, doc, onSnapshot, query, serverTimestamp,
-  updateDoc, where, writeBatch, setDoc, doc, collection, onSnapshot, serverTimestamp, type Unsubscribe,
+  updateDoc, where, writeBatch, setDoc, type Unsubscribe,
 } from 'firebase/firestore';
 import { db } from './firebase';
 import type { AcademicContentNode, CreateAcademicContentInput } from '../types/academicContent';
