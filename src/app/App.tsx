@@ -238,23 +238,29 @@ function App() {
     }
   };
 
-  const addLecture = async (data: { title: string; description?: string; lecturerId: string; duration?: string }) => {
-    const lecturer = lecturers.find((item) => item.id === data.lecturerId);
-    if (!lecturer) {
-      setToast('اختر مدرساً صحيحاً تابعاً للمادة أولاً.');
+  const addLecture = async (data: { title: string; description?: string; lecturerId?: string; duration?: string }) => {
+    const lecturer = data.lecturerId ? lecturers.find((item) => item.id === data.lecturerId) : undefined;
+    const subject = subjects.find((item) => item.id === selectedSubjectId);
+    const subjectId = lecturer?.subjectId || subject?.id;
+    const subjectName = lecturer?.subjectName || subject?.name;
+    if (!subjectId || !subjectName) {
+      setToast('اختر المادة التي ستُضاف إليها المحاضرة أولاً.');
       return;
     }
     try {
       await createLectureCloud({
         ...data,
-        subjectId: lecturer.subjectId,
-        subjectName: lecturer.subjectName,
-        lecturerName: lecturer.name,
+        lecturerId: lecturer?.id ?? '',
+        lecturerName: lecturer?.name ?? '',
+        subjectId,
+        subjectName,
       });
       setLectureModal(false);
-      setSelectedSubjectId(lecturer.subjectId);
-      setSelectedLecturerId(lecturer.id);
-      setToast('تم إنشاء المحاضرة. أضف الآن أجزاء الفيديو الخاصة بها.');
+      setSelectedSubjectId(subjectId);
+      setSelectedSubjectCategory('lectures');
+      setSelectedLecturerId(lecturer?.id ?? '');
+      setSelectedLectureId('');
+      setToast(lecturer ? 'تم إنشاء المحاضرة للمدرس المحدد.' : 'تم إنشاء المحاضرة مباشرة داخل المادة دون ربطها بمدرس.');
     } catch (error) {
       setToast(error instanceof Error ? error.message : 'تعذر إنشاء المحاضرة');
     }
