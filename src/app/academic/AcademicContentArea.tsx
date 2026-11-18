@@ -55,9 +55,12 @@ export function AcademicContentArea({
       .filter((node) => (node.title + ' ' + node.description).toLowerCase().includes(search.trim().toLowerCase())),
     [nodes, activeNodeId, category, search],
   );
-  const linked = activeNode?.linkedNodeIds
+  const linked = activeNode ? [...new Set([
+    ...activeNode.linkedNodeIds,
+    ...nodes.filter((node) => node.linkedNodeIds.includes(activeNode.id)).map((node) => node.id),
+  ])]
     .map((id) => nodes.find((node) => node.id === id))
-    .filter((node): node is AcademicContentNode => Boolean(node)) ?? [];
+    .filter((node): node is AcademicContentNode => Boolean(node) && node.id !== activeNode.id) : [];
   const openAdd = () => setModalOpen(true);
 
   const remove = async (node: AcademicContentNode) => {
