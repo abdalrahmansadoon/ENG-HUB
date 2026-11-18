@@ -1335,17 +1335,40 @@ function ChatPage({ user, cloudinarySettings, isDemo, isAdmin, onBack }: {
   };
 
   const removeMessage = async (message: ChatMessage) => {
-    const mine = message.senderId === user.uid;
-    if (!mine && !isAdmin) return;
-    const confirmed = window.confirm('سيتم حذف هذه الرسالة لدى جميع المشاركين. هل تريد المتابعة؟');
+    if (message.senderId !== user.uid) return;
+    const confirmed = window.confirm('سيظهر للآخرين أن الرسالة حُذفت، ولن يبقى محتواها أو مرفقاتها. هل تريد المتابعة؟');
     if (!confirmed) return;
     setContextMessage(null);
     setError('');
     try {
-      await deleteGeneralChatMessage(message.id);
+      await softDeleteGeneralChatMessage(message.id, user.uid);
       if (replyTo?.id === message.id) setReplyTo(null);
+      setNotice('تم حذف رسالتك لدى جميع المشاركين.');
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : 'تعذر حذف الرسالة.');
+    }
+  };
+
+  const hideMessageForMe = async (message: ChatMessage) => {
+    setContextMessage(null);
+    try {
+      await hideGeneralChatMessageForUser(user.uid, message.id);
+      setNotice('تم إخفاء الرسالة من حسابك فقط.');
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : 'تعذر إخفاء الرسالة من حسابك.');
+    }
+  };
+
+  const permanentlyDeleteMessage = async (message: ChatMessage) => {
+    if (!isAdmin) return;
+    const confirmed = window.confirm('سيتم حذف الرسالة نهائياً من المحادثة لجميع المشاركين. لا يمكن التراجع. هل تريد المتابعة؟');
+    if (!confirmed) return;
+    setContextMessage(null);
+    try {
+      await deleteGeneralChatMessage(message.id);
+      setNotice('تم حذف الرسالة نهائياً من المحادثة.');
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : 'تعذر حذف الرسالة نهائياً.');
     }
   };
 
@@ -1540,11 +1563,12 @@ function ChatPage({ user, cloudinarySettings, isDemo, isAdmin, onBack }: {
                 {message.senderPhotoURL ? <img src={message.senderPhotoURL} alt=""/> : senderInitial}
               </div>}
               {!mine && !grouped && <div className="msg-header"><span>{message.senderName}</span>{message.pinned && <Pin size={11}/>}</div>}
-              {message.replyTo && <button type="button" className="reply-block" onClick={() => jumpToMessage(message.replyTo!.id)}>
-                <span className="ru">{message.replyTo.senderName}</span><span className="rt">{message.replyTo.text}</span>
+              {!message.deleted && message.replyTo && <button type="button" className="reply-block" onClick={() => jumpToMessage(message.replyTo!.id)}>
+                <span className="ru">{message.replyTo.senderName}</span><span className="rt">{messages.find((item) => item.id === message.replyTo!.id)?.deleted ? 'هذه الرسالة محذوفة' : message.replyTo.text}</span>
               </button>}
-              {message.text && <div className="t">{message.text}</div>}
-              {message.attachments.length > 0 && <div className="message-gallery" data-image-count={message.attachments.filter((item) => item.mimeType.startsWith('image/')).length}>
+              {message.deleted ? <div className="chat-deleted-message"><Trash2 size={13}/> تم حذف هذه الرسالة</div> : null}
+              {!message.deleted && message.text && <div className="t">{message.text}</div>}
+              {!message.deleted && message.attachments.length > 0 && <div className="message-gallery" data-image-count={message.attachments.filter((item) => item.mimeType.startsWith('image/')).length}>
                 {message.attachments.map((attachment, attachmentIndex) => {
                   const imageFile = attachment.mimeType.startsWith('image/');
                   const videoFile = attachment.mimeType.startsWith('video/');
@@ -1562,7 +1586,7 @@ function ChatPage({ user, cloudinarySettings, isDemo, isAdmin, onBack }: {
                       </a>;
                 })}
               </div>}
-              {message.edited && <small className="chat-message-edited">تم التعديل</small>}
+              {!message.deleted && message.edited && <small className="chat-message-edited">تم التعديل</small>}
               <div className="msg-time">{formatMessageTime(message.createdAt)}</div>
               <div className="msg-actions">
                 <button type="button" onClick={() => beginReply(message)} title="رد على الرسالة"><ArrowDownLeft size={14}/><span>رد</span></button>
@@ -1630,10 +1654,12 @@ function ChatPage({ user, cloudinarySettings, isDemo, isAdmin, onBack }: {
     {contextMessage && <div className="chat-context-overlay" onMouseDown={() => setContextMessage(null)}>
       <div className="chat-context-menu" style={{ left: contextPosition.x, top: contextPosition.y }} onMouseDown={(event) => event.stopPropagation()}>
         <div className="chat-context-heading">إجراءات الرسالة</div>
-        <button type="button" onClick={() => void copyMessage(contextMessage)}><Copy size={16}/> نسخ الرسالة</button>
-        <button type="button" onClick={() => beginReply(contextMessage)}><ArrowDownLeft size={16}/> الرد على الرسالة</button>
-        {contextMessage.senderId === user.uid && editAllowed(contextMessage) && <button type="button" onClick={() => beginEdit(contextMessage)}><Pencil size={16}/> تعديل الرسالة</button>}
-        {(contextMessage.senderId === user.uid || isAdmin) && <button type="button" className="danger" onClick={() => void removeMessage(contextMessage)}><Trash2 size={16}/> حذف الرسالة</button>}
+        {!contextMessage.deleted && <button type="button" onClick={() => void copyMessage(contextMessage)}><Copy size={16}/> نسخ الرسالة</button>}
+        {!contextMessage.deleted && <button type="button" onClick={() => beginReply(contextMessage)}><ArrowDownLeft size={16}/> الرد على الرسالة</button>}
+        {contextMessage.senderId === user.uid && !contextMessage.deleted && editAllowed(contextMessage) && <button type="button" onClick={() => beginEdit(contextMessage)}><Pencil size={16}/> تعديل الرسالة</button>}
+        {contextMessage.senderId === user.uid && !contextMessage.deleted && <button type="button" className="danger" onClick={() => void removeMessage(contextMessage)}><Trash2 size={16}/> حذف لدى الجميع</button>}
+        {contextMessage.senderId !== user.uid && <button type="button" onClick={() => void hideMessageForMe(contextMessage)}><EyeOff size={16}/> إخفاء لدي فقط</button>}
+        {isAdmin && <button type="button" className="danger" onClick={() => void permanentlyDeleteMessage(contextMessage)}><Trash2 size={16}/> حذف نهائي للجميع</button>}
         {isAdmin && <button type="button" onClick={() => void handlePin(contextMessage)}><Pin size={16}/> {contextMessage.pinned ? 'إلغاء التثبيت' : 'تثبيت الرسالة'}</button>}
         {isAdmin && contextMessage.senderId !== user.uid && <button type="button" onClick={() => void handleMute(contextMessage)}><ShieldCheck size={16}/> {contextMuted ? 'إلغاء الكتم' : 'كتم لمدة ساعة'}</button>}
         {isAdmin && contextMessage.senderId !== user.uid && <button type="button" onClick={() => void handleWarning(contextMessage)}><AlertCircle size={16}/> إرسال تحذير إداري</button>}
