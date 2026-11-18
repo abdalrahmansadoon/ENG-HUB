@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import {
-  ArrowLeft, Bell, ChevronDown, ChevronLeft, CircleHelp, Command, Copy, Menu,
+  ArrowLeft, Bell, Check, ChevronDown, ChevronLeft, CircleHelp, Command, Copy, Menu,
   Moon, Search, Settings, ShieldCheck, Sun, X, type LucideIcon,
 } from 'lucide-react';
 import type { AppUser } from '../../types';
