@@ -17,7 +17,7 @@ import { enablePushNotifications, listenForForegroundMessages } from '../lib/mes
 import { isFirebaseConfigured } from '../lib/firebase';
 import { readLocal, writeLocal } from '../lib/storage';
 import { createExamCloud, createLectureCloud, createLecturePartCloud, createLecturerCloud, createSubjectCloud, createTaskCloud, deleteTaskCloud, saveFileMetadataCloud, subscribeExams, subscribeFiles, subscribeLectureParts, subscribeLecturers, subscribeLectures, subscribeSubjects, subscribeTasks, updateTaskStatusCloud } from '../lib/cloudData';
-import { deleteGeneralChatMessage, editGeneralChatMessage, joinGeneralChat, sendGeneralChatMessage, subscribeGeneralChat, toggleGeneralChatPin, toggleGeneralChatReaction, type ChatAttachment, type ChatMessage } from '../lib/chat';
+import { createGeneralChatWarning, deleteGeneralChatMessage, editGeneralChatMessage, getGeneralChatMuteStatus, joinGeneralChat, sendGeneralChatMessage, subscribeGeneralChat, subscribeGeneralChatMuteStatus, toggleGeneralChatMute, toggleGeneralChatPin, toggleGeneralChatReaction, type ChatAttachment, type ChatMessage, type ChatMuteStatus } from '../lib/chat';
 import type { AppNotification, AppUser, Exam, Lecture, LecturePart, Lecturer, LibraryFile, Priority, StudyTask, Subject, TaskStatus } from '../types';
 
 const navGroups = [
@@ -778,6 +778,9 @@ function ChatPage({ user, cloudinarySettings, isDemo, isAdmin }: {
   const [contextMessage, setContextMessage] = useState<ChatMessage | null>(null);
   const [contextPosition, setContextPosition] = useState({ x: 0, y: 0 });
   const [lightbox, setLightbox] = useState<ChatAttachment | null>(null);
+  const [muteState, setMuteState] = useState<ChatMuteStatus>({ muted: false, mutedUntil: null });
+  const [contextMuted, setContextMuted] = useState(false);
+  const [notice, setNotice] = useState('');
   const [filePreviews, setFilePreviews] = useState<Array<{ key: string; url: string }>>([]);
   const fileInput = useRef<HTMLInputElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -816,6 +819,30 @@ function ChatPage({ user, cloudinarySettings, isDemo, isAdmin }: {
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
   }, [messages.length]);
+
+  useEffect(() => {
+    if (isDemo) { setMuteState({ muted: false, mutedUntil: null }); return; }
+    return subscribeGeneralChatMuteStatus(user.uid, setMuteState, (reason) => setError(reason.message));
+  }, [user.uid, isDemo]);
+
+  useEffect(() => {
+    if (!muteState.muted || !muteState.mutedUntil) return;
+    const delay = muteState.mutedUntil.getTime() - Date.now();
+    if (delay <= 0) { setMuteState({ muted: false, mutedUntil: null }); return; }
+    const timer = window.setTimeout(() => setMuteState({ muted: false, mutedUntil: null }), delay + 50);
+    return () => window.clearTimeout(timer);
+  }, [muteState.muted, muteState.mutedUntil]);
+
+  useEffect(() => {
+    if (!contextMessage || !isAdmin || contextMessage.senderId === user.uid) { setContextMuted(false); return; }
+    let cancelled = false;
+    void getGeneralChatMuteStatus(contextMessage.senderId).then((status) => {
+      if (!cancelled) setContextMuted(status.muted);
+    }).catch((reason) => {
+      if (!cancelled) setError(reason instanceof Error ? reason.message : 'تعذر قراءة حالة كتم الطالب.');
+    });
+    return () => { cancelled = true; };
+  }, [contextMessage?.id, contextMessage?.senderId, isAdmin, user.uid]);
 
   useEffect(() => {
     const next = files.map((file, index) => ({
@@ -878,6 +905,10 @@ function ChatPage({ user, cloudinarySettings, isDemo, isAdmin }: {
   const send = async (event?: FormEvent) => {
     event?.preventDefault();
     if (sending) return;
+    if (muteState.muted) {
+      setError('تم كتمك مؤقتاً من المحادثة العامة. يمكنك الإرسال بعد انتهاء مدة الكتم.');
+      return;
+    }
     if (editingMessage) {
       if (!draft.trim()) return;
       setSending(true);
@@ -952,8 +983,33 @@ function ChatPage({ user, cloudinarySettings, isDemo, isAdmin }: {
     setContextMessage(null);
     try {
       await toggleGeneralChatPin(message.id, user.uid, !message.pinned);
+      setNotice(message.pinned ? 'تم إلغاء تثبيت الرسالة.' : 'تم تثبيت الرسالة أعلى المحادثة.');
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : 'تعذر تثبيت الرسالة.');
+    }
+  };
+
+  const handleMute = async (message: ChatMessage) => {
+    if (!isAdmin || message.senderId === user.uid) return;
+    setContextMessage(null);
+    try {
+      const muted = await toggleGeneralChatMute(message.senderId, user.uid, 60);
+      setNotice(muted ? `تم كتم ${message.senderName} لمدة ساعة.` : `تم إلغاء كتم ${message.senderName}.`);
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : 'تعذر تغيير حالة كتم الطالب.');
+    }
+  };
+
+  const handleWarning = async (message: ChatMessage) => {
+    if (!isAdmin || message.senderId === user.uid) return;
+    const reason = window.prompt('اكتب سبب التحذير الذي سيظهر في سجل الإشراف:');
+    if (!reason?.trim()) return;
+    setContextMessage(null);
+    try {
+      await createGeneralChatWarning(message.senderId, user.uid, reason);
+      setNotice(`تم تسجيل تحذير إداري لـ ${message.senderName}.`);
+    } catch (errorReason) {
+      setError(errorReason instanceof Error ? errorReason.message : 'تعذر حفظ التحذير.');
     }
   };
 
@@ -1031,6 +1087,8 @@ function ChatPage({ user, cloudinarySettings, isDemo, isAdmin }: {
           </div>
         </header>
 
+        {notice && <div className="chat-status-note" role="status"><CheckCircle2 size={15}/><span>{notice}</span><button type="button" onClick={() => setNotice('')} aria-label="إغلاق"><X size={14}/></button></div>}
+        {muteState.muted && <div className="chat-muted-banner" role="status"><AlertCircle size={16}/><span>تم كتمك مؤقتاً. يمكنك العودة للإرسال بعد {muteState.mutedUntil?.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }) || 'إلغاء الكتم من الإدارة'}.</span></div>}
         {pinnedMessage && <button type="button" className="chat-pinned-banner" onClick={() => jumpToMessage(pinnedMessage.id)}>
           <span className="chat-pin-icon"><Pin size={15}/></span>
           <span><b>رسالة مثبّتة</b><small>{pinnedMessage.text || pinnedMessage.attachments[0]?.name || 'مرفق'}</small></span>
@@ -1121,8 +1179,8 @@ function ChatPage({ user, cloudinarySettings, isDemo, isAdmin }: {
           {emojiOpen && <div className="chat-emoji-panel">{emojis.concat(['🎉','🔥','✅','🤝','📚','💡']).map((emoji) => <button type="button" key={emoji} onClick={() => appendEmoji(emoji)}>{emoji}</button>)}</div>}
           <div className="chat-composer-actions">
             <div className="chat-composer-tools">
-              <button type="button" className="chat-tool-button" onClick={() => fileInput.current?.click()} aria-label="إرفاق ملفات" title="إرفاق ملفات"><Paperclip size={19}/></button>
-              <button type="button" className={'chat-tool-button ' + (emojiOpen ? 'active' : '')} onClick={() => setEmojiOpen((value) => !value)} aria-label="إضافة رمز تعبيري" title="الرموز التعبيرية"><Smile size={19}/></button>
+              <button type="button" className="chat-tool-button" disabled={muteState.muted || sending} onClick={() => fileInput.current?.click()} aria-label="إرفاق ملفات" title="إرفاق ملفات"><Paperclip size={19}/></button>
+              <button type="button" className={'chat-tool-button ' + (emojiOpen ? 'active' : '')} disabled={muteState.muted || sending} onClick={() => setEmojiOpen((value) => !value)} aria-label="إضافة رمز تعبيري" title="الرموز التعبيرية"><Smile size={19}/></button>
               <input ref={fileInput} type="file" multiple accept="image/*,video/*,.pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.zip,.txt" className="visually-hidden" onChange={(event) => {
                 const picked = Array.from(event.target.files ?? []);
                 setFiles((current) => {
@@ -1133,13 +1191,13 @@ function ChatPage({ user, cloudinarySettings, isDemo, isAdmin }: {
                 if (fileInput.current) fileInput.current.value = '';
               }}/>
             </div>
-            <textarea ref={composerRef} rows={1} maxLength={5000} value={draft} onChange={(event) => setDraft(event.target.value)} placeholder={editingMessage ? 'عدّل نص الرسالة...' : 'اكتب رسالة لزملائك...'} aria-label="نص الرسالة" onKeyDown={(event) => {
+            <textarea ref={composerRef} rows={1} maxLength={5000} value={draft} disabled={muteState.muted || sending} onChange={(event) => setDraft(event.target.value)} placeholder={muteState.muted ? 'الدردشة مقفلة لحسابك مؤقتاً' : editingMessage ? 'عدّل نص الرسالة...' : 'اكتب رسالة لزملائك...'} aria-label="نص الرسالة" onKeyDown={(event) => {
               if (event.key === 'Enter' && !event.shiftKey && !event.isComposing) {
                 event.preventDefault();
                 void send();
               }
             }}/>
-            <button type="submit" className="chat-send-button" disabled={sending || (!draft.trim() && files.length === 0) || (editingMessage !== null && !draft.trim())} aria-label={editingMessage ? 'حفظ التعديل' : 'إرسال الرسالة'}>
+            <button type="submit" className="chat-send-button" disabled={muteState.muted || sending || (!draft.trim() && files.length === 0) || (editingMessage !== null && !draft.trim())} aria-label={editingMessage ? 'حفظ التعديل' : 'إرسال الرسالة'}>
               {sending ? <span className="spinner"/> : editingMessage ? <Check size={19}/> : <Send size={18}/>}
             </button>
           </div>
@@ -1156,6 +1214,8 @@ function ChatPage({ user, cloudinarySettings, isDemo, isAdmin }: {
         {contextMessage.senderId === user.uid && editAllowed(contextMessage) && <button type="button" onClick={() => beginEdit(contextMessage)}><Pencil size={16}/> تعديل الرسالة</button>}
         <button type="button" className="danger" onClick={() => void removeMessage(contextMessage)}><Trash2 size={16}/> {contextMessage.senderId === user.uid ? 'حذف للجميع' : 'حذف الرسالة'}</button>
         {isAdmin && <button type="button" onClick={() => void handlePin(contextMessage)}><Pin size={16}/> {contextMessage.pinned ? 'إلغاء التثبيت' : 'تثبيت الرسالة'}</button>}
+        {isAdmin && contextMessage.senderId !== user.uid && <button type="button" onClick={() => void handleMute(contextMessage)}><ShieldCheck size={16}/> {contextMuted ? 'إلغاء الكتم' : 'كتم لمدة ساعة'}</button>}
+        {isAdmin && contextMessage.senderId !== user.uid && <button type="button" onClick={() => void handleWarning(contextMessage)}><AlertCircle size={16}/> إرسال تحذير إداري</button>}
         <div className="chat-context-reactions">{emojis.map((emoji) => <button type="button" key={emoji} onClick={() => void handleReaction(contextMessage, emoji)}>{emoji}</button>)}</div>
       </div>
     </div>}
