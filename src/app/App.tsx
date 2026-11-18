@@ -303,7 +303,7 @@ function App() {
           onAddLecture={() => setLectureModal(true)}
           onAddPart={() => setLecturePartModal(true)}
         />}
-        {page === 'exams' && <ExamsPage exams={exams} setExams={setExams} canEdit={isAdmin} onAdd={() => setExamModal(true}/>}
+        {page === 'exams' && <ExamsPage exams={exams} setExams={setExams} canEdit={isAdmin} onAdd={() => setExamModal(true)}/>}
         {page === 'files' && <FilesPage files={files} onUpload={addFile} cloudinaryReady={isCloudinaryConfigured(cloudinarySettings)} isDemo={isDemo}/>}
         {page === 'chat' && <ChatPage user={activeUser} cloudinarySettings={cloudinarySettings} isDemo={isDemo} isAdmin={isAdmin} onBack={() => setPage('home')}/>}
         {page === 'planner' && <PlannerPage tasks={tasks}/>}
@@ -320,6 +320,7 @@ function App() {
       {examModal && <ExamModal subjects={subjects} onClose={() => setExamModal(false)} onSave={addExam}/>}
       {toast && <div className="eh-toast"><CheckCircle2 size={17}/>{toast}</div>}
     </AppShell>
+  );
 }
 
 function AuthScreen({ onLogin, onGoogle, themeClass }: { onLogin: (email: string, password: string, name?: string) => Promise<void>; onGoogle: () => Promise<void>; themeClass: 'theme-dark' | 'theme-light' }) {
