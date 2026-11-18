@@ -761,7 +761,7 @@ function Dashboard({ userName, tasks, subjects, exams, lectures, onGo, onNewTask
 
     <section className="eh-home-grid">
       <div className="eh-surface-card eh-progress-card">
-        <div className="eh-card-heading"><div><span className="eh-eyebrow">MY PROGRESS</span><h2>إنجاز المهام</h2><p>نسبة إنجاز المهام المسجلة</p></div><span className="eh-progress-badge">{rate}%</span></div>
+        <div className="eh-card-heading"><div><span className="eh-eyebrow">MY PROGRESS</span><h2>إنجاز المهام</h2><p>نسبة إنجاز المهام المسجلة</p></div><span className="eh-progress-badge" style={{'--progress-degree':rate*3.6+'deg'} as React.CSSProperties}>{rate}%</span></div>
         <div className="eh-progress-line"><span style={{width:rate+'%'}}/></div>
         <div className="eh-progress-meta"><span><i className="eh-dot green"/> مكتملة <b>{completed}</b></span><span><i className="eh-dot purple"/> متبقية <b>{pending}</b></span></div>
         <div className="eh-progress-footer"><span>تقدمك يظهر هنا مع تحديث المهام</span><button type="button" onClick={() => onGo('tasks')}>إدارة المهام <ArrowLeft size={14}/></button></div>
