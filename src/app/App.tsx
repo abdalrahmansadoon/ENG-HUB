@@ -8,7 +8,7 @@ import {
   SlidersHorizontal, Sparkles, Sun, Moon, Target, Timer, TrendingUp, Upload, Users,
   Video, X, Zap, ClipboardList, CalendarClock, BookMarked, ListChecks, ChartNoAxesCombined,
   ImagePlus, Volume2, VolumeX, Maximize, Trash2, Pencil, Monitor, Smartphone,
-  Copy, Pin, Smile, CheckCheck, FileArchive,
+  Copy, Pin, Smile, CheckCheck,
 } from 'lucide-react';
 import { useAuth, registerAccount } from './AuthContext';
 import { defaultCloudinarySettings, isCloudinaryConfigured, saveCloudinarySettings, subscribeCloudinarySettings, type CloudinarySettings } from '../lib/cloudinary';
@@ -1095,7 +1095,7 @@ function ChatPage({ user, cloudinarySettings, isDemo, isAdmin }: {
 
         {error && <div className="chat-error" role="alert"><AlertCircle size={15}/><span>{error}</span><button type="button" onClick={() => setError('')} aria-label="إغلاق التنبيه"><X size={14}/></button></div>}
 
-        <form className="chat-composer-v2" onSubmit={(event) => void send(event)} ref={undefined}>
+        <form className="chat-composer-v2" onSubmit={(event) => void send(event)}>
           {(replyTo || editingMessage) && <div className="chat-composer-mode">
             <div className="chat-mode-symbol">{editingMessage ? <Pencil size={16}/> : <ArrowDownLeft size={16}/>}</div>
             <div><b>{editingMessage ? 'تعديل الرسالة' : 'الرد على ' + replyTo?.senderName}</b><span>{editingMessage ? 'يمكن تعديل الرسالة خلال 15 دقيقة من إرسالها.' : replyTo?.text || replyTo?.attachments[0]?.name || 'مرفق'}</span></div>
