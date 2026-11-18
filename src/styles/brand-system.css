@@ -769,3 +769,60 @@ button,input,textarea,select{font-family:inherit}
 }
 .eh-app .chat-student-tools>div button:hover{background:var(--eh-accent-wash);color:var(--eh-accent)}
 .eh-app .chat-student-tools>div button.danger{color:var(--eh-danger)}
+
+/* ENG HUB refinement: compact content hierarchy and a truly collapsible navigation */
+.eh-app .eh-page-view{padding-top:clamp(16px,2vw,26px)!important}
+.eh-app .eh-page-heading{margin-bottom:19px!important;gap:14px!important}
+.eh-app .eh-page-heading h1{font-size:clamp(23px,2vw,30px)!important;line-height:1.3!important}
+.eh-app .eh-page-heading p{font-size:12px!important;line-height:1.75!important}
+.eh-app .eh-sidebar{transition:width .24s ease,transform .24s ease,padding .24s ease}
+.eh-app .eh-sidebar-toggle{width:36px;height:36px;flex:0 0 36px}
+.eh-app.eh-sidebar-collapsed .eh-sidebar{width:82px!important;padding-inline:13px!important}
+.eh-app.eh-sidebar-collapsed .eh-main{width:calc(100% - 82px)!important;margin-right:82px!important}
+.eh-app.eh-sidebar-collapsed .eh-brand{justify-content:center}
+.eh-app.eh-sidebar-collapsed .eh-brand-copy,.eh-app.eh-sidebar-collapsed .eh-term-card>span:not(.eh-term-symbol),.eh-app.eh-sidebar-collapsed .eh-term-card>svg,.eh-app.eh-sidebar-collapsed .eh-nav-group h2,.eh-app.eh-sidebar-collapsed .eh-nav-link span,.eh-app.eh-sidebar-collapsed .eh-account-copy,.eh-app.eh-sidebar-collapsed .eh-account-mini>svg{display:none!important}
+.eh-app.eh-sidebar-collapsed .eh-term-card{justify-content:center;padding:8px!important}
+.eh-app.eh-sidebar-collapsed .eh-nav-link{justify-content:center;padding:10px!important}
+.eh-app.eh-sidebar-collapsed .eh-account-mini{justify-content:center;padding-inline:0}
+.eh-app .eh-term-switcher{position:relative;margin-bottom:18px}
+.eh-app .eh-term-switcher>summary{list-style:none;cursor:pointer}
+.eh-app .eh-term-switcher>summary::-webkit-details-marker{display:none}
+.eh-app .eh-term-switcher[open]>summary{border-color:var(--eh-accent)}
+.eh-app .eh-term-menu{position:absolute;z-index:160;inset-inline:0;top:calc(100% + 8px);display:grid;gap:7px;padding:13px;border:1px solid var(--eh-stroke-strong);border-radius:13px;background:var(--eh-card-bg);box-shadow:0 16px 40px rgba(8,22,44,.16);font-size:11px}
+.eh-app .eh-term-menu span,.eh-app .eh-term-menu small{color:var(--eh-muted)}
+.eh-app .eh-term-menu strong{color:var(--eh-ink)}
+.eh-app .eh-navigation{scrollbar-width:thin;scrollbar-color:color-mix(in srgb,var(--eh-muted) 45%,transparent) transparent}
+.eh-app .eh-navigation::-webkit-scrollbar{width:5px}
+.eh-app .eh-navigation::-webkit-scrollbar-track{background:transparent}
+.eh-app .eh-navigation::-webkit-scrollbar-thumb{background:color-mix(in srgb,var(--eh-muted) 38%,transparent);border-radius:99px}
+.eh-app .eh-navigation::-webkit-scrollbar-thumb:hover{background:var(--eh-accent)}
+.eh-app .eh-nav-link{position:relative;overflow:hidden}
+.eh-app .eh-nav-link i{width:3px;height:20px;border-radius:5px;background:var(--eh-accent)}
+.eh-app .eh-copy-page-link{display:none!important}
+.eh-app .eh-welcome,.eh-app .welcome-banner{isolation:isolate;overflow:hidden}
+.eh-app .eh-welcome>*,.eh-app .welcome-banner>*{position:relative;z-index:1}
+.eh-app .eh-page-view :where(h1,h2,h3,p,span,b,strong,small){overflow-wrap:anywhere}
+/* Focus mode: chat owns the viewport, with no global shell or dashboard chrome */
+.eh-focus-chat{height:100dvh;min-height:100dvh;overflow:hidden;background:var(--eh-page-bg)}
+.eh-focus-chat .chat-reference-page{height:100dvh;min-height:100dvh;padding:0!important;margin:0!important;background:var(--eh-page-bg)}
+.eh-focus-chat .chat-reference-shell{height:100dvh;min-height:0;max-width:none!important;border:0!important;border-radius:0!important;box-shadow:none!important;display:flex;flex-direction:column}
+.eh-focus-chat .chat-topbar{flex:0 0 auto;min-height:66px;background:var(--eh-card-bg);border-bottom:1px solid var(--eh-stroke)}
+.eh-focus-chat .chat-messages-rebuilt{flex:1 1 auto;min-height:0}
+.eh-focus-chat .chat-composer-shell{flex:0 0 auto;padding-bottom:max(12px,env(safe-area-inset-bottom))}
+.eh-focus-chat .chat-pinned-strip{display:none!important}
+.eh-focus-chat .chat-input-group{border-radius:16px;border:1px solid var(--eh-stroke-strong);background:var(--eh-card-bg)}
+.eh-focus-chat .chat-send-btn{background:var(--eh-accent);color:#fff;border-radius:12px}
+.eh-focus-chat .chat-composer-btn:hover{color:var(--eh-accent);background:var(--eh-accent-wash)}
+@media(max-width:900px){
+ .eh-app.eh-sidebar-collapsed .eh-sidebar{width:264px!important}
+ .eh-app.eh-sidebar-collapsed .eh-main{width:100%!important;margin:0!important}
+ .eh-app .eh-sidebar-toggle{display:none}
+ .eh-focus-chat .chat-topbar{padding-inline:10px}
+ .eh-focus-chat .chat-topbar-search{display:none}
+}
+@media(max-width:600px){
+ .eh-app .eh-page-view{padding:15px 13px 78px!important}
+ .eh-app .eh-page-heading{align-items:flex-start!important;margin-bottom:15px!important}
+ .eh-app .eh-page-heading h1{font-size:23px!important}
+ .eh-focus-chat .chat-topbar{min-height:58px}
+}
