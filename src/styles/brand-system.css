@@ -705,3 +705,50 @@ button,input,textarea,select{font-family:inherit}
 .eh-app .chat-swipe-reply-indicator.is-visible{opacity:1;transform:translateY(-50%) scale(1)}
 .eh-app .chat-msg.sent .chat-swipe-reply-indicator{inset-inline-start:-43px;inset-inline-end:auto}
 .eh-app .chat-msg.received .chat-swipe-reply-indicator{inset-inline-end:-43px;inset-inline-start:auto}
+
+
+/* Authoritative final token values — shared by every ENG HUB page */
+:root{
+  --eh-brand-navy:#10213d;
+  --eh-brand-blue:#426ee8;
+  --eh-brand-teal:#16afa5;
+  --eh-brand-mint:#5ce0d0;
+  --eh-brand-ink:#17345d;
+}
+.eh-app{
+  --eh-accent:#426ee8;
+  --eh-accent-2:#3159cf;
+  --eh-teal:#118f86;
+  --eh-accent-wash:#edf2ff;
+  --eh-teal-wash:#e8f8f5;
+}
+.eh-app.eh-dark{
+  --eh-page-bg:#0b1424;
+  --eh-card-bg:#13223a;
+  --eh-card-soft:#192c47;
+  --eh-stroke:rgba(170,193,224,.13);
+  --eh-stroke-strong:rgba(170,193,224,.23);
+  --eh-ink:#f3f7ff;
+  --eh-sub:#b4c2d8;
+  --eh-muted:#879bb7;
+  --eh-accent:#7f9fff;
+  --eh-accent-2:#5278f2;
+  --eh-teal:#43d1bc;
+  --eh-accent-wash:rgba(82,120,242,.14);
+  --eh-teal-wash:rgba(22,175,165,.13);
+}
+.eh-app.eh-light{
+  --eh-page-bg:#f4f7fc;
+  --eh-card-bg:#ffffff;
+  --eh-card-soft:#f5f8fd;
+  --eh-stroke:rgba(26,53,91,.10);
+  --eh-stroke-strong:rgba(26,53,91,.18);
+  --eh-ink:#1b2e49;
+  --eh-sub:#536b87;
+  --eh-muted:#7186a0;
+  --eh-accent:#426ee8;
+  --eh-accent-2:#3159cf;
+  --eh-teal:#118f86;
+  --eh-accent-wash:#edf2ff;
+  --eh-teal-wash:#e8f8f5;
+}
