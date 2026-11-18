@@ -16,7 +16,7 @@ import { uploadFile } from '../lib/uploads';
 import { enablePushNotifications, listenForForegroundMessages } from '../lib/messaging';
 import { isFirebaseConfigured } from '../lib/firebase';
 import { readLocal, writeLocal } from '../lib/storage';
-import { createExamCloud, createLectureCloud, createLecturePartCloud, createLecturerCloud, createSubjectCloud, createTaskCloud, deleteTaskCloud, saveFileMetadataCloud, subscribeExams, subscribeFiles, subscribeLectureParts, subscribeLecturers, subscribeLectures, subscribeSubjects, subscribeTasks, updateTaskStatusCloud } from '../lib/cloudData';
+import { createExamCloud, createLectureCloud, createLecturePartCloud, createLecturerCloud, createSubjectCloud, createTaskCloud, deleteTaskCloud, saveFileMetadataCloud, subscribeExams, subscribeFiles, subscribeLectureParts, subscribeLecturers, subscribeLectures, subscribeSubjects, subscribeTasks, updateTaskStatusCloud, subscribeAcademicCalendar, saveAcademicCalendar, defaultAcademicCalendar, type AcademicCalendarSettings } from '../lib/cloudData';
 import type { AppNotification, AppUser, Exam, Lecture, LecturePart, Lecturer, LibraryFile, Priority, StudyTask, Subject, TaskStatus } from '../types';
 import { AppShell } from './layout/AppShell';
 import { ChatPage } from './chat/ChatPage';
@@ -72,6 +72,7 @@ function App() {
   const [exams, setExams] = useState<Exam[]>([]);
   const [files, setFiles] = useState<LibraryFile[]>([]);
   const [cloudinarySettings, setCloudinarySettings] = useState<CloudinarySettings>(defaultCloudinarySettings);
+  const [academicCalendar, setAcademicCalendar] = useState<AcademicCalendarSettings>(defaultAcademicCalendar);
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [taskModal, setTaskModal] = useState(false);
   const [subjectModal, setSubjectModal] = useState(false);
@@ -88,6 +89,10 @@ function App() {
   useEffect(() => {
     if (!user || isDemo) { setCloudinarySettings(defaultCloudinarySettings); return; }
     return subscribeCloudinarySettings(setCloudinarySettings, (error) => setToast(`تعذر قراءة إعدادات Cloudinary: ${error.message}`));
+  }, [user?.uid, isDemo]);
+  useEffect(() => {
+    if (!user || isDemo) { setAcademicCalendar(defaultAcademicCalendar); return; }
+    return subscribeAcademicCalendar(setAcademicCalendar, (error) => setToast(`تعذر قراءة إعدادات السنة الدراسية: ${error.message}`));
   }, [user?.uid, isDemo]);
   useEffect(() => writeLocal('notifications', notifications), [notifications]);
   useEffect(() => { document.title = `${pageTitle(page)} | ENG HUB`; }, [page]);
@@ -496,7 +501,7 @@ function App() {
 
   return (
     <AppShell
-      user={activeUser}
+      user={{ ...activeUser, academicYear: academicCalendar.activeYear, term: academicCalendar.activeTerm }}
       page={page}
       pageTitle={page === 'chat' && selectedSubjectId ? `مناقشات ${subjects.find((item) => item.id === selectedSubjectId)?.name ?? 'المادة'}` : pageTitle(page)}
       navGroups={navGroups}
@@ -583,7 +588,7 @@ function App() {
         {page === 'planner' && <PlannerPage tasks={tasks}/>}
         {page === 'analytics' && <AnalyticsPage tasks={tasks} subjects={subjects} lectures={lectures} exams={exams}/>}
         {page === 'notifications' && <NotificationsPage items={notifications} setItems={setNotifications}/>}
-        {page === 'admin' && <AdminPage tasks={tasks} subjects={subjects} lecturers={lecturers} lectures={lectures} exams={exams} files={files} currentUser={activeUser} cloudinarySettings={cloudinarySettings} onNewTask={() => setTaskModal(true)} onAddSubject={() => setSubjectModal(true)} onAddLecturer={() => { setPage('courses'); setSelectedSubjectId(''); setSelectedLecturerId(''); setSelectedLectureId(''); }} onAddLecture={() => setLectureModal(true)} onAddExam={() => setExamModal(true)} onSaved={() => setToast('تم حفظ إعدادات Cloudinary في Firestore')} onError={(message) => setToast(message)}/>}
+        {page === 'admin' && <AdminPage tasks={tasks} subjects={subjects} lecturers={lecturers} lectures={lectures} exams={exams} files={files} currentUser={activeUser} cloudinarySettings={cloudinarySettings} academicCalendar={academicCalendar} onSaveAcademicCalendar={async (settings) => { await saveAcademicCalendar(settings, activeUser.uid); setAcademicCalendar(settings); setToast('تم حفظ السنة والفصل الدراسي الحاليين لجميع الطلاب.'); }} onNewTask={() => setTaskModal(true)} onAddSubject={() => setSubjectModal(true)} onAddLecturer={() => { setPage('courses'); setSelectedSubjectId(''); setSelectedLecturerId(''); setSelectedLectureId(''); }} onAddLecture={() => setLectureModal(true)} onAddExam={() => setExamModal(true)} onSaved={() => setToast('تم حفظ إعدادات Cloudinary في Firestore')} onError={(message) => setToast(message)}/>}
         {page === 'profile' && <ProfilePage user={activeUser} isDemo={isDemo} onToggleRole={toggleDemoRole} onLogout={logout} onDeleteAccount={deleteAccount} onSaveProfile={saveProfile} themePreference={themePreference} onThemeChange={setThemePreference} cloudinarySettings={cloudinarySettings} onToggleTheme={() => setThemePreference(dark ? 'light' : 'dark')} dark={dark}/>}
       </div>
       {taskModal && <TaskModal subjects={subjects} userId={activeUser.uid} onClose={() => setTaskModal(false)} onSave={addTask}/>}
