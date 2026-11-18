@@ -1324,11 +1324,17 @@ function AnalyticsPage({ tasks, subjects, lectures, exams, completedVideos }: { 
       <section className="eh-surface-card">
         <div className="eh-card-heading"><div><span className="eh-eyebrow">SUBJECT PROGRESS</span><h2>التقدم حسب المادة</h2><p>نسب التقدم التي سجلها النظام للمقررات</p></div></div>
         <div className="eh-analytics-subject-list">
-          {subjects.map(subject=><div className="eh-analytics-subject" key={subject.id}>
-            <span className="eh-analytics-subject-mark" style={{'--subject-color':subject.color} as React.CSSProperties}>{subject.icon||'∑'}</span>
-            <span className="eh-analytics-subject-copy"><b>{subject.name}</b><small>{subject.code}</small><i><span style={{width:subject.progress+'%',background:subject.color}}/></i></span>
-            <strong>{subject.progress}%</strong>
-          </div>)}
+          {subjects.map(subject=>{
+            const subjectTasks=tasks.filter(task=>task.subjectId===subject.id || (!task.subjectId && task.subjectName.trim()===subject.name.trim()));
+            const subjectDone=subjectTasks.filter(task=>task.status==='completed').length;
+            const subjectProgress=subjectTasks.length?Math.round(subjectDone/subjectTasks.length*100):0;
+            const subjectLectures=lectures.filter(lecture=>lecture.subjectId===subject.id).length;
+            return <div className="eh-analytics-subject" key={subject.id}>
+              <span className="eh-analytics-subject-mark" style={{'--subject-color':subject.color} as React.CSSProperties}>{subject.icon||'∑'}</span>
+              <span className="eh-analytics-subject-copy"><b>{subject.name}</b><small>{subject.code} · {subjectDone}/{subjectTasks.length} مهام · {subjectLectures} محاضرات</small><i><span style={{width:subjectProgress+'%',background:subject.color}}/></i></span>
+              <strong>{subjectProgress}%</strong>
+            </div>;
+          })}
           {subjects.length===0&&<EmptyState title="لا توجد مواد لتحليلها" body="ستظهر المواد هنا بعد نشرها وإضافة بيانات التقدم."/>}
         </div>
       </section>
