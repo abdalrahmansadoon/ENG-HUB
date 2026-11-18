@@ -1316,8 +1316,8 @@ function ChatPage({ user, cloudinarySettings, isDemo, isAdmin, roomId, roomTitle
   useEffect(() => {
     if (!muteState.muted || !muteState.mutedUntil) return;
     const delay = muteState.mutedUntil.getTime() - Date.now();
-    if (delay <= 0) { setMuteState({ muted: false, mutedUntil: null }); return; }
-    const timer = window.setTimeout(() => setMuteState({ muted: false, mutedUntil: null }), delay + 50);
+    if (delay <= 0) { setMuteState({ muted: false, mutedUntil: null, reason: '' }); return; }
+    const timer = window.setTimeout(() => setMuteState({ muted: false, mutedUntil: null, reason: '' }), delay + 50);
     return () => window.clearTimeout(timer);
   }, [muteState.muted, muteState.mutedUntil]);
 
