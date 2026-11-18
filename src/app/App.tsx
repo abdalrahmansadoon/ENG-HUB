@@ -21,7 +21,7 @@ import type { AppNotification, AppUser, Exam, Lecture, LecturePart, Lecturer, Li
 import { AppShell } from './layout/AppShell';
 import { ChatPage } from './chat/ChatPage';
 import { readEngHubRoute, buildEngHubHash, type SubjectCategory } from '../lib/routes';
-import { subscribeAcademicContent, createAcademicContentNode, deleteAcademicContentNode } from '../lib/academicContent';
+import { subscribeAcademicContent, createAcademicContentNode, updateAcademicContentNode, deleteAcademicContentNode } from '../lib/academicContent';
 import { AcademicContentArea } from './academic/AcademicContentArea';
 import { PublicStudentProfilePage } from './profile/PublicStudentProfilePage';
 import type { AcademicContentNode, CreateAcademicContentInput } from '../types/academicContent';
@@ -377,6 +377,22 @@ function App() {
     setToast('تم حفظ المحتوى داخل المادة.');
   };
 
+  const updateAcademicContent = async (nodeId: string, patch: Partial<CreateAcademicContentInput>) => {
+    if (!selectedSubjectId) throw new Error('اختر المادة قبل تعديل المحتوى.');
+    if (isDemo) {
+      setAcademicContent((items) => items.map((node) => node.id === nodeId ? {
+        ...node,
+        ...patch,
+        title: patch.title?.trim() ?? node.title,
+        linkedNodeIds: patch.linkedNodeIds ? [...new Set(patch.linkedNodeIds)] : node.linkedNodeIds,
+        updatedAt: new Date(),
+      } : node));
+      return;
+    }
+    await updateAcademicContentNode(selectedSubjectId, nodeId, patch);
+    setToast('تم تحديث العنصر وروابطه داخل المادة.');
+  };
+
   const removeAcademicContent = async (node: AcademicContentNode) => {
     if (!selectedSubjectId) return;
     if (isDemo) {
@@ -512,6 +528,7 @@ function App() {
           }}
           onCreate={addAcademicContent}
           onDelete={removeAcademicContent}
+          onUpdate={updateAcademicContent}
           onUpload={uploadAcademicAsset}
         />}
         {(page === 'courses' || page === 'lectures') && (!selectedSubjectId || !selectedSubjectCategory) && <AcademicHubPage
