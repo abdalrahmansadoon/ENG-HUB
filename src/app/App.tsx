@@ -331,7 +331,7 @@ function App() {
           />}
           {page === 'exams' && <ExamsPage exams={exams} setExams={setExams} canEdit={isAdmin} onAdd={() => setExamModal(true)}/>}
           {page === 'files' && <FilesPage files={files} onUpload={addFile} cloudinaryReady={isCloudinaryConfigured(cloudinarySettings)} isDemo={isDemo} />}
-          {page === 'chat' && <ChatPage user={activeUser} cloudinarySettings={cloudinarySettings} isDemo={isDemo} isAdmin={isAdmin}/>}
+          {page === 'chat' && <ChatPage user={activeUser} cloudinarySettings={cloudinarySettings} isDemo={isDemo} isAdmin={isAdmin} onBack={() => setPage('home')}/>}
           {page === 'planner' && <PlannerPage tasks={tasks} />}
           {page === 'analytics' && <AnalyticsPage tasks={tasks} subjects={subjects} lectures={lectures} />}
           {page === 'notifications' && <NotificationsPage items={notifications} setItems={setNotifications} />}
@@ -759,11 +759,12 @@ function FilesPage({ files, onUpload, cloudinaryReady, isDemo }: { files: Librar
   </>;
 }
 
-function ChatPage({ user, cloudinarySettings, isDemo, isAdmin }: {
+function ChatPage({ user, cloudinarySettings, isDemo, isAdmin, onBack }: {
   user: AppUser;
   cloudinarySettings: CloudinarySettings;
   isDemo: boolean;
   isAdmin: boolean;
+  onBack: () => void;
 }) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [draft, setDraft] = useState('');
@@ -786,12 +787,11 @@ function ChatPage({ user, cloudinarySettings, isDemo, isAdmin }: {
   const bottomRef = useRef<HTMLDivElement>(null);
   const composerRef = useRef<HTMLTextAreaElement>(null);
   const pressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const suppressClickUntil = useRef(0);
 
   useEffect(() => {
     if (isDemo) {
       setLoading(false);
-      setError('الدردشة المشتركة تحتاج إلى الاتصال بقاعدة Firebase.');
+      setError('الدردشة المباشرة تحتاج إلى الاتصال بقاعدة Firebase.');
       return;
     }
     let cancelled = false;
@@ -815,10 +815,6 @@ function ChatPage({ user, cloudinarySettings, isDemo, isAdmin }: {
       unsubscribe?.();
     };
   }, [user.uid, user.displayName, user.photoURL, isDemo]);
-
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
-  }, [messages.length]);
 
   useEffect(() => {
     if (isDemo) { setMuteState({ muted: false, mutedUntil: null }); return; }
@@ -854,6 +850,10 @@ function ChatPage({ user, cloudinarySettings, isDemo, isAdmin }: {
   }, [files]);
 
   useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+  }, [messages.length]);
+
+  useEffect(() => {
     const close = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         setContextMessage(null);
@@ -869,10 +869,11 @@ function ChatPage({ user, cloudinarySettings, isDemo, isAdmin }: {
     (message.text + ' ' + message.senderName + ' ' + message.attachments.map((item) => item.name).join(' '))
       .toLowerCase().includes(search.trim().toLowerCase()),
   );
-  const pinnedMessage = messages.find((message) => message.pinned);
+  const pinnedMessages = messages.filter((message) => message.pinned);
   const editAllowed = (message: ChatMessage) => Boolean(
     message.createdAt && message.senderId === user.uid && Date.now() - message.createdAt.getTime() <= 15 * 60 * 1000,
   );
+  const emojis = ['👍', '❤️', '😂', '😮', '🙏', '👏'];
 
   const focusComposer = () => window.setTimeout(() => composerRef.current?.focus(), 40);
   const beginReply = (message: ChatMessage) => {
@@ -923,7 +924,7 @@ function ChatPage({ user, cloudinarySettings, isDemo, isAdmin }: {
       }
       return;
     }
-    if ((!draft.trim() && files.length === 0)) return;
+    if (!draft.trim() && files.length === 0) return;
     setSending(true);
     setError('');
     try {
@@ -957,14 +958,13 @@ function ChatPage({ user, cloudinarySettings, isDemo, isAdmin }: {
   const removeMessage = async (message: ChatMessage) => {
     const mine = message.senderId === user.uid;
     if (!mine && !isAdmin) return;
-    const confirmed = window.confirm(mine
-      ? 'سيتم حذف هذه الرسالة من المحادثة لدى الجميع. هل تريد المتابعة؟'
-      : 'سيتم حذف الرسالة لجميع المشاركين. هل تريد المتابعة؟');
+    const confirmed = window.confirm('سيتم حذف هذه الرسالة لدى جميع المشاركين. هل تريد المتابعة؟');
     if (!confirmed) return;
     setContextMessage(null);
     setError('');
     try {
       await deleteGeneralChatMessage(message.id);
+      if (replyTo?.id === message.id) setReplyTo(null);
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : 'تعذر حذف الرسالة.');
     }
@@ -1024,16 +1024,14 @@ function ChatPage({ user, cloudinarySettings, isDemo, isAdmin }: {
   };
 
   const openContextMenu = (message: ChatMessage, x: number, y: number) => {
-    suppressClickUntil.current = Date.now() + 750;
-    const width = 226;
-    const height = 286;
+    const width = 236;
+    const height = isAdmin ? 385 : 280;
     setContextPosition({
       x: Math.max(10, Math.min(x, window.innerWidth - width - 10)),
       y: Math.max(10, Math.min(y, window.innerHeight - height - 10)),
     });
     setContextMessage(message);
   };
-
   const onMessageContextMenu = (event: MouseEvent<HTMLElement>, message: ChatMessage) => {
     event.preventDefault();
     openContextMenu(message, event.clientX, event.clientY);
@@ -1044,67 +1042,74 @@ function ChatPage({ user, cloudinarySettings, isDemo, isAdmin }: {
     try {
       await navigator.clipboard.writeText(value);
       setContextMessage(null);
+      setNotice('تم نسخ محتوى الرسالة.');
     } catch {
       setError('تعذر نسخ الرسالة. تحقق من صلاحية الحافظة في المتصفح.');
     }
   };
-
   const appendEmoji = (emoji: string) => {
     setDraft((value) => value + emoji);
     setEmojiOpen(false);
     focusComposer();
   };
-
   const jumpToMessage = (messageId: string) => {
     document.getElementById('chat-message-' + messageId)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
   };
-
   const formatMessageTime = (date: Date | null) => date
     ? date.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })
     : 'الآن';
+  const formatDay = (date: Date | null) => {
+    if (!date) return 'اليوم';
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const day = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    const diff = Math.round((today.getTime() - day.getTime()) / 86400000);
+    if (diff === 0) return 'اليوم';
+    if (diff === 1) return 'أمس';
+    return date.toLocaleDateString('ar-EG', { day: 'numeric', month: 'long', year: 'numeric' });
+  };
 
-  const emojis = ['👍', '❤️', '😂', '😮', '🙏', '👏'];
+  return <section className="chat-reference-page">
+    <div className="chat-reference-shell">
+      <header className="chat-topbar">
+        <button type="button" className="chat-topbar-btn" onClick={onBack} aria-label="العودة للرئيسية"><ArrowDownLeft size={18}/></button>
+        <div className="chat-topbar-room">
+          <div className="chat-topbar-avatar"><MessageCircle size={20}/></div>
+          <div><b>المحادثة العامة</b><span><i className="live-dot"/> مجتمع طلاب ENG HUB · رسائل مباشرة</span></div>
+        </div>
+        <div className="chat-topbar-actions">
+          <div className="chat-topbar-search"><Search size={15}/><input placeholder="ابحث داخل المحادثة" value={search} onChange={(event) => setSearch(event.target.value)}/></div>
+          {isAdmin && <button type="button" className="chat-topbar-btn chat-admin-clear" onClick={() => void clearRoom()} title="تفريغ المحادثة"><Trash2 size={16}/></button>}
+        </div>
+      </header>
 
-  return <>
-    <PageHeader eyebrow="STUDY TOGETHER" title="مجتمع ENG HUB" description="تواصل مع زملائك، شارك الملفات والصور، ورد على الرسائل في مساحة واحدة."/>
-    <section className="chat-workspace panel">
-      <aside className="chat-rail">
-        <div className="chat-rail-brand"><div className="chat-room-avatar"><MessageCircle size={22}/></div><div><b>المحادثات</b><span>مساحة طلاب الهندسة</span></div></div>
-        <div className="chat-rail-search"><Search size={16}/><input placeholder="ابحث في الرسائل..." value={search} onChange={(event) => setSearch(event.target.value)}/><kbd>⌕</kbd></div>
-        <button type="button" className="chat-room-item active"><span className="chat-room-icon"><Users size={18}/></span><span className="chat-room-info"><b>المحادثة العامة</b><small>كل طلاب ENG HUB</small></span><i className="live-dot"/></button>
-        <div className="chat-rail-footer"><div className="live-dot"/><span>الاتصال المباشر نشط</span></div>
-      </aside>
+      {notice && <div className="chat-inline-notice" role="status"><CheckCircle2 size={15}/><span>{notice}</span><button type="button" onClick={() => setNotice('')} aria-label="إغلاق"><X size={14}/></button></div>}
+      {muteState.muted && <div className="chat-lock-banner"><ShieldCheck size={16}/><span>تم إيقاف الإرسال مؤقتاً حتى {muteState.mutedUntil?.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }) || 'إلغاء الكتم من الإدارة'}.</span></div>}
 
-      <section className="chat-main">
-        <header className="chat-main-header">
-          <div className="chat-main-heading">
-            <div className="chat-room-avatar small"><MessageCircle size={17}/></div>
-            <div><b>المحادثة العامة</b><span><i className="live-dot"/> غرفة مشتركة · متزامنة مباشرة</span></div>
-          </div>
-          <div className="chat-main-actions">
-            <span className="chat-secure-label"><CheckCircle2 size={14}/> للطلاب المسجلين</span>
-            {isAdmin && <button className="btn btn-danger chat-clear-button" type="button" onClick={() => void clearRoom()}><Trash2 size={14}/> تفريغ المحادثة</button>}
-          </div>
-        </header>
+      <div className="chat-pinned-strip">
+        <div className="chat-pinned-strip-label"><Pin size={15}/><span>المثبتة</span></div>
+        {pinnedMessages.length === 0
+          ? <span className="chat-pinned-strip-empty">لا توجد رسائل مثبتة</span>
+          : <div className="chat-pinned-strip-list">{pinnedMessages.slice(0,3).map((message) => <button type="button" key={message.id} onClick={() => jumpToMessage(message.id)}><b>{message.senderName}</b><span>{message.text || message.attachments[0]?.name || 'مرفق'}</span></button>)}</div>}
+      </div>
 
-        {notice && <div className="chat-status-note" role="status"><CheckCircle2 size={15}/><span>{notice}</span><button type="button" onClick={() => setNotice('')} aria-label="إغلاق"><X size={14}/></button></div>}
-        {muteState.muted && <div className="chat-muted-banner" role="status"><AlertCircle size={16}/><span>تم كتمك مؤقتاً. يمكنك العودة للإرسال بعد {muteState.mutedUntil?.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }) || 'إلغاء الكتم من الإدارة'}.</span></div>}
-        {pinnedMessage && <button type="button" className="chat-pinned-banner" onClick={() => jumpToMessage(pinnedMessage.id)}>
-          <span className="chat-pin-icon"><Pin size={15}/></span>
-          <span><b>رسالة مثبّتة</b><small>{pinnedMessage.text || pinnedMessage.attachments[0]?.name || 'مرفق'}</small></span>
-          <ChevronLeft size={17}/>
-        </button>}
-
-        <div className="chat-messages-live" aria-live="polite">
-          {loading && <div className="chat-loading-state"><span className="spinner"/><b>جارٍ الاتصال بالمحادثة</b><small>نجهّز الرسائل والمرفقات...</small></div>}
-          {!loading && visibleMessages.length === 0 && <div className="chat-empty-state"><div><MessageCircle size={26}/></div><b>{messages.length === 0 ? 'ابدأ أول محادثة' : 'لا توجد نتائج مطابقة'}</b><span>{messages.length === 0 ? 'اكتب رسالة أو شارك ملفاً مع زملائك.' : 'جرّب البحث بكلمة مختلفة.'}</span></div>}
-          {visibleMessages.map((message) => {
-            const mine = message.senderId === user.uid;
-            const senderInitial = message.senderName.trim().slice(0, 1) || '؟';
-            return <article
+      <main className="chat-messages-rebuilt" aria-live="polite">
+        {loading && <div className="chat-reference-state"><span className="spinner"/><b>جارٍ تحميل المحادثة</b><small>يتم الاتصال بغرفة الدردشة المباشرة.</small></div>}
+        {!loading && visibleMessages.length === 0 && <div className="chat-reference-state"><div className="chat-reference-empty-icon"><MessageCircle size={27}/></div><b>{messages.length === 0 ? 'لا توجد رسائل حتى الآن' : 'لا توجد نتائج مطابقة'}</b><small>{messages.length === 0 ? 'ابدأ المحادثة وشارك زملاءك ما يفيدهم.' : 'جرّب البحث باسم أو كلمة مختلفة.'}</small></div>}
+        {visibleMessages.map((message, index) => {
+          const mine = message.senderId === user.uid;
+          const previous = visibleMessages[index - 1];
+          const currentDay = message.createdAt?.toDateString() ?? 'today';
+          const previousDay = previous?.createdAt?.toDateString() ?? 'today';
+          const showDay = !previous || currentDay !== previousDay;
+          const grouped = !mine && previous?.senderId === message.senderId && !showDay;
+          const senderInitial = message.senderName.trim().slice(0, 1) || '؟';
+          const messageText = message.text || message.attachments[0]?.name || 'مرفق';
+          return <React.Fragment key={message.id}>
+            {showDay && <div className="chat-date-divider"><span>{formatDay(message.createdAt)}</span></div>}
+            <article
               id={'chat-message-' + message.id}
-              className={'chat-message-row ' + (mine ? 'mine' : 'theirs') + (message.pinned ? ' is-pinned' : '')}
-              key={message.id}
+              className={'chat-msg ' + (mine ? 'sent' : 'received') + (grouped ? ' chat-msg-grouped' : '') + (message.pinned ? ' chat-msg-pinned' : '')}
               onContextMenu={(event) => onMessageContextMenu(event, message)}
               onPointerDown={(event) => {
                 if (event.pointerType !== 'touch') return;
@@ -1115,104 +1120,104 @@ function ChatPage({ user, cloudinarySettings, isDemo, isAdmin }: {
               onPointerUp={() => { if (pressTimer.current) clearTimeout(pressTimer.current); }}
               onPointerCancel={() => { if (pressTimer.current) clearTimeout(pressTimer.current); }}
             >
-              <div className="chat-message-avatar">
+              {!mine && !grouped && <div className="chat-profile-avatar chat-profile-avatar-outside">
                 {message.senderPhotoURL ? <img src={message.senderPhotoURL} alt=""/> : senderInitial}
+              </div>}
+              {!mine && !grouped && <div className="msg-header"><span>{message.senderName}</span>{message.pinned && <Pin size={11}/>}</div>}
+              {message.replyTo && <button type="button" className="reply-block" onClick={() => jumpToMessage(message.replyTo!.id)}>
+                <span className="ru">{message.replyTo.senderName}</span><span className="rt">{message.replyTo.text}</span>
+              </button>}
+              {message.text && <div className="t">{message.text}</div>}
+              {message.attachments.length > 0 && <div className="message-gallery" data-image-count={message.attachments.filter((item) => item.mimeType.startsWith('image/')).length}>
+                {message.attachments.map((attachment, attachmentIndex) => {
+                  const imageFile = attachment.mimeType.startsWith('image/');
+                  const videoFile = attachment.mimeType.startsWith('video/');
+                  return imageFile
+                    ? <figure className="chat-media-item" key={attachment.url + attachmentIndex}>
+                        <button type="button" className="chat-media-frame" onClick={() => setLightbox(attachment)} aria-label={'عرض ' + attachment.name}>
+                          <img src={attachment.url} alt={attachment.name} loading="lazy" decoding="async"/>
+                        </button>
+                        <figcaption>{attachment.name}</figcaption>
+                      </figure>
+                    : <a className="chat-document-attachment" key={attachment.url + attachmentIndex} href={attachment.url} target="_blank" rel="noreferrer">
+                        {videoFile ? <Video size={20}/> : <FileText size={20}/>}
+                        <span><b>{attachment.name}</b><small>{videoFile ? 'ملف فيديو' : 'ملف مرفق'} · {(attachment.size / 1024 / 1024).toFixed(1)} MB</small></span>
+                        <Download size={15}/>
+                      </a>;
+                })}
+              </div>}
+              {message.edited && <small className="chat-message-edited">تم التعديل</small>}
+              <div className="msg-time">{formatMessageTime(message.createdAt)}</div>
+              <div className="msg-actions">
+                <button type="button" onClick={() => beginReply(message)} title="رد على الرسالة"><ArrowDownLeft size={14}/><span>رد</span></button>
+                {mine && editAllowed(message) && <button type="button" onClick={() => beginEdit(message)} title="تعديل الرسالة"><Pencil size={14}/><span>تعديل</span></button>}
+                {(mine || isAdmin) && <button type="button" onClick={() => void removeMessage(message)} title="حذف الرسالة"><Trash2 size={14}/><span>حذف</span></button>}
+                <button type="button" onClick={(event) => openContextMenu(message,event.currentTarget.getBoundingClientRect().left,event.currentTarget.getBoundingClientRect().bottom)} title="المزيد"><MoreHorizontal size={14}/></button>
               </div>
-              <div className="chat-message-body">
-                <div className="chat-message-meta">
-                  <b>{mine ? 'أنت' : message.senderName}</b>
-                  {message.pinned && <span className="chat-pinned-label"><Pin size={11}/> مثبّتة</span>}
-                  <time>{formatMessageTime(message.createdAt)}</time>
-                </div>
-                <div className="chat-message-bubble">
-                  {message.replyTo && <button type="button" className="chat-reply-quote" onClick={() => jumpToMessage(message.replyTo!.id)}>
-                    <b>{message.replyTo.senderName}</b><span>{message.replyTo.text}</span>
-                  </button>}
-                  {message.text && <p className="chat-message-content">{message.text}</p>}
-                  {message.attachments.length > 0 && <div className="chat-attachment-grid">
-                    {message.attachments.map((attachment, index) => {
-                      const imageFile = attachment.mimeType.startsWith('image/');
-                      const videoFile = attachment.mimeType.startsWith('video/');
-                      return imageFile
-                        ? <button type="button" className="chat-image-tile" key={attachment.url + index} onClick={() => setLightbox(attachment)}>
-                            <img src={attachment.url} alt={attachment.name} loading="lazy"/><span>{attachment.name}</span>
-                          </button>
-                        : videoFile
-                          ? <a className="chat-video-tile" key={attachment.url + index} href={attachment.url} target="_blank" rel="noreferrer"><Video size={21}/><span><b>{attachment.name}</b><small>ملف فيديو · {(attachment.size / 1024 / 1024).toFixed(1)} MB</small></span><Download size={15}/></a>
-                          : <a className="chat-file-tile" key={attachment.url + index} href={attachment.url} target="_blank" rel="noreferrer"><FileText size={21}/><span><b>{attachment.name}</b><small>{(attachment.size / 1024 / 1024).toFixed(1)} MB</small></span><Download size={15}/></a>;
-                    })}
-                  </div>}
-                  {message.edited && <span className="chat-edited-label">تم التعديل</span>}
-                  <div className="chat-message-footer">
-                    <span>{formatMessageTime(message.createdAt)}</span>
-                    {mine && <CheckCheck size={14}/>}
-                  </div>
-                </div>
-                <div className="chat-reactions-row">
-                  {Object.entries(message.reactions ?? {}).map(([emoji, users]) => users.length > 0 && <button type="button" key={emoji} className={'chat-reaction-chip ' + (users.includes(user.uid) ? 'mine' : '')} onClick={() => void handleReaction(message, emoji)}><span>{emoji}</span><small>{users.length}</small></button>)}
-                  <div className="chat-quick-reactions">{emojis.slice(0, 4).map((emoji) => <button type="button" key={emoji} aria-label={'تفاعل ' + emoji} onClick={() => void handleReaction(message, emoji)}>{emoji}</button>)}</div>
-                  <button type="button" className="chat-message-more" aria-label="خيارات الرسالة" onClick={(event) => openContextMenu(message, event.currentTarget.getBoundingClientRect().left, event.currentTarget.getBoundingClientRect().bottom)}><MoreHorizontal size={16}/></button>
-                </div>
-              </div>
-            </article>;
-          })}
-          <div ref={bottomRef}/>
-        </div>
+              {Object.entries(message.reactions ?? {}).some(([, users]) => users.length > 0) && <div className="chat-message-reactions">{Object.entries(message.reactions ?? {}).map(([emoji, users]) => users.length > 0 && <button type="button" key={emoji} className={users.includes(user.uid) ? 'mine' : ''} onClick={() => void handleReaction(message, emoji)}><span>{emoji}</span><small>{users.length}</small></button>)}</div>}
+            </article>
+          </React.Fragment>;
+        })}
+        <div ref={bottomRef}/>
+      </main>
 
-        {error && <div className="chat-error" role="alert"><AlertCircle size={15}/><span>{error}</span><button type="button" onClick={() => setError('')} aria-label="إغلاق التنبيه"><X size={14}/></button></div>}
-
-        <form className="chat-composer-v2" onSubmit={(event) => void send(event)}>
-          {(replyTo || editingMessage) && <div className="chat-composer-mode">
-            <div className="chat-mode-symbol">{editingMessage ? <Pencil size={16}/> : <ArrowDownLeft size={16}/>}</div>
-            <div><b>{editingMessage ? 'تعديل الرسالة' : 'الرد على ' + replyTo?.senderName}</b><span>{editingMessage ? 'يمكن تعديل الرسالة خلال 15 دقيقة من إرسالها.' : replyTo?.text || replyTo?.attachments[0]?.name || 'مرفق'}</span></div>
-            <button type="button" onClick={cancelComposerMode} aria-label="إلغاء"><X size={16}/></button>
-          </div>}
-          {files.length > 0 && <div className="chat-file-preview-list">{files.map((file, index) => {
+      <section className="chat-composer-shell" aria-label="إرسال رسالة">
+        {(replyTo || editingMessage) && <div className="reply-indicator-enhanced active">
+          <div className="reply-indicator-copy">
+            <strong>{editingMessage ? 'تعديل رسالتك' : 'الرد على ' + replyTo?.senderName}</strong>
+            <div>{editingMessage ? 'تعديل الرسالة خلال 15 دقيقة من إرسالها.' : replyTo?.text || replyTo?.attachments[0]?.name || 'مرفق'}</div>
+          </div>
+          <button className="close-reply" type="button" onClick={cancelComposerMode} aria-label="إلغاء"><X size={16}/></button>
+        </div>}
+        {files.length > 0 && <div className="chat-image-preview" id="chatImagePreviewPage">
+          {files.map((file,index) => {
             const key = `${file.name}-${file.size}-${file.lastModified}-${index}`;
             const preview = filePreviews.find((item) => item.key === key);
-            return <div className="chat-file-preview" key={key}>
-              {file.type.startsWith('image/') && preview ? <img src={preview.url} alt=""/> : <span className="chat-file-preview-icon"><File size={18}/></span>}
-              <span><b>{file.name}</b><small>{(file.size / 1024 / 1024).toFixed(1)} MB</small></span>
-              <button type="button" onClick={() => setFiles((items) => items.filter((_, i) => i !== index))} aria-label="إزالة المرفق"><X size={14}/></button>
+            return <div className="chat-preview-item" key={key}>
+              {file.type.startsWith('image/') && preview ? <img src={preview.url} alt=""/> : <span className="chat-preview-file-icon"><FileText size={18}/></span>}
+              <span><b>{file.name}</b><small>{(file.size/1024/1024).toFixed(1)} MB</small></span>
+              <button type="button" onClick={() => setFiles((items) => items.filter((_,i) => i !== index))} aria-label="إزالة المرفق"><X size={14}/></button>
             </div>;
-          })}</div>}
-          {emojiOpen && <div className="chat-emoji-panel">{emojis.concat(['🎉','🔥','✅','🤝','📚','💡']).map((emoji) => <button type="button" key={emoji} onClick={() => appendEmoji(emoji)}>{emoji}</button>)}</div>}
-          <div className="chat-composer-actions">
-            <div className="chat-composer-tools">
-              <button type="button" className="chat-tool-button" disabled={muteState.muted || sending} onClick={() => fileInput.current?.click()} aria-label="إرفاق ملفات" title="إرفاق ملفات"><Paperclip size={19}/></button>
-              <button type="button" className={'chat-tool-button ' + (emojiOpen ? 'active' : '')} disabled={muteState.muted || sending} onClick={() => setEmojiOpen((value) => !value)} aria-label="إضافة رمز تعبيري" title="الرموز التعبيرية"><Smile size={19}/></button>
-              <input ref={fileInput} type="file" multiple accept="image/*,video/*,.pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.zip,.txt" className="visually-hidden" onChange={(event) => {
-                const picked = Array.from(event.target.files ?? []);
-                setFiles((current) => {
-                  const combined = [...current, ...picked];
-                  if (combined.length > 8) setError('يمكن إرفاق 8 ملفات كحد أقصى في الرسالة الواحدة.');
-                  return combined.slice(0, 8);
-                });
-                if (fileInput.current) fileInput.current.value = '';
-              }}/>
-            </div>
-            <textarea ref={composerRef} rows={1} maxLength={5000} value={draft} disabled={muteState.muted || sending} onChange={(event) => setDraft(event.target.value)} placeholder={muteState.muted ? 'الدردشة مقفلة لحسابك مؤقتاً' : editingMessage ? 'عدّل نص الرسالة...' : 'اكتب رسالة لزملائك...'} aria-label="نص الرسالة" onKeyDown={(event) => {
+          })}
+        </div>}
+        {emojiOpen && <div className="chat-reference-emoji-panel">{emojis.concat(['🎉','🔥','✅','🤝','📚','💡','✨','💯']).map((emoji) => <button type="button" key={emoji} onClick={() => appendEmoji(emoji)}>{emoji}</button>)}</div>}
+        <form className="chat-input-group" onSubmit={(event) => void send(event)}>
+          <button type="button" className="chat-composer-btn" onClick={() => setEmojiOpen((value) => !value)} disabled={muteState.muted || sending} aria-label="اختيار رمز تعبيري" title="رموز تعبيرية"><Smile size={20}/></button>
+          <button type="button" className="chat-composer-btn" onClick={() => fileInput.current?.click()} disabled={muteState.muted || sending} aria-label="إرفاق ملف أو صورة" title="إرفاق ملف"><Paperclip size={20}/></button>
+          <input ref={fileInput} type="file" multiple accept="image/*,video/*,.pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.zip,.txt" className="visually-hidden" onChange={(event) => {
+            const picked = Array.from(event.target.files ?? []);
+            setFiles((current) => {
+              const combined = [...current, ...picked];
+              if (combined.length > 8) setError('يمكن إرفاق 8 ملفات كحد أقصى في الرسالة الواحدة.');
+              return combined.slice(0,8);
+            });
+            if (fileInput.current) fileInput.current.value = '';
+          }}/>
+          <div className="chat-input-wrap">
+            <textarea ref={composerRef} rows={1} maxLength={5000} value={draft} disabled={muteState.muted || sending} onChange={(event) => setDraft(event.target.value)} placeholder={muteState.muted ? 'تم إيقاف الإرسال مؤقتاً' : editingMessage ? 'عدّل نص الرسالة...' : 'اكتب رسالتك هنا...'} aria-label="نص الرسالة" onKeyDown={(event) => {
               if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) {
                 event.preventDefault();
                 void send();
               }
             }}/>
-            <button type="submit" className="chat-send-button" disabled={muteState.muted || sending || (!draft.trim() && files.length === 0) || (editingMessage !== null && !draft.trim())} aria-label={editingMessage ? 'حفظ التعديل' : 'إرسال الرسالة'}>
-              {sending ? <span className="spinner"/> : editingMessage ? <Check size={19}/> : <Send size={18}/>}
-            </button>
+            <span className="chat-composer-counter">{draft.length}/5000</span>
           </div>
-          <div className="chat-composer-hint"><span>Enter للإرسال</span><span>Shift + Enter لسطر جديد</span><span>{draft.length}/5000</span></div>
+          <button type="submit" className="chat-send-btn" disabled={muteState.muted || sending || (!draft.trim() && files.length === 0)} aria-label={editingMessage ? 'حفظ التعديل' : 'إرسال'}>
+            {sending ? <span className="spinner"/> : editingMessage ? <Check size={19}/> : <Send size={18}/>}
+          </button>
         </form>
+        {error && <div className="chat-error" role="alert"><AlertCircle size={14}/><span>{error}</span><button type="button" onClick={() => setError('')} aria-label="إغلاق"><X size={14}/></button></div>}
+        <div className="chat-composer-note"><span>Enter للإرسال</span><span>Shift + Enter لسطر جديد</span></div>
       </section>
-    </section>
+    </div>
 
     {contextMessage && <div className="chat-context-overlay" onMouseDown={() => setContextMessage(null)}>
       <div className="chat-context-menu" style={{ left: contextPosition.x, top: contextPosition.y }} onMouseDown={(event) => event.stopPropagation()}>
         <div className="chat-context-heading">إجراءات الرسالة</div>
-        <button type="button" onClick={() => void copyMessage(contextMessage)}><Copy size={16}/> نسخ النص</button>
+        <button type="button" onClick={() => void copyMessage(contextMessage)}><Copy size={16}/> نسخ الرسالة</button>
         <button type="button" onClick={() => beginReply(contextMessage)}><ArrowDownLeft size={16}/> الرد على الرسالة</button>
         {contextMessage.senderId === user.uid && editAllowed(contextMessage) && <button type="button" onClick={() => beginEdit(contextMessage)}><Pencil size={16}/> تعديل الرسالة</button>}
-        <button type="button" className="danger" onClick={() => void removeMessage(contextMessage)}><Trash2 size={16}/> {contextMessage.senderId === user.uid ? 'حذف للجميع' : 'حذف الرسالة'}</button>
+        {(contextMessage.senderId === user.uid || isAdmin) && <button type="button" className="danger" onClick={() => void removeMessage(contextMessage)}><Trash2 size={16}/> حذف الرسالة</button>}
         {isAdmin && <button type="button" onClick={() => void handlePin(contextMessage)}><Pin size={16}/> {contextMessage.pinned ? 'إلغاء التثبيت' : 'تثبيت الرسالة'}</button>}
         {isAdmin && contextMessage.senderId !== user.uid && <button type="button" onClick={() => void handleMute(contextMessage)}><ShieldCheck size={16}/> {contextMuted ? 'إلغاء الكتم' : 'كتم لمدة ساعة'}</button>}
         {isAdmin && contextMessage.senderId !== user.uid && <button type="button" onClick={() => void handleWarning(contextMessage)}><AlertCircle size={16}/> إرسال تحذير إداري</button>}
@@ -1225,7 +1230,7 @@ function ChatPage({ user, cloudinarySettings, isDemo, isAdmin }: {
       <img src={lightbox.url} alt={lightbox.name} onClick={(event) => event.stopPropagation()}/>
       <span>{lightbox.name}</span>
     </div>}
-  </>;
+  </section>;
 }
 
 function PlannerPage({ tasks }: { tasks: StudyTask[] }) {
