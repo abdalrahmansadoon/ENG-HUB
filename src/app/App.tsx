@@ -92,6 +92,7 @@ function App() {
     return subscribeCloudinarySettings(setCloudinarySettings, (error) => setToast(`تعذر قراءة إعدادات Cloudinary: ${error.message}`));
   }, [user?.uid, isDemo]);
   useEffect(() => writeLocal('notifications', notifications), [notifications]);
+  useEffect(() => { document.title = `${pageTitle(page)} | ENG HUB`; }, [page]);
   useEffect(() => {
     const applyLocation = () => {
       const route = readEngHubRoute();
