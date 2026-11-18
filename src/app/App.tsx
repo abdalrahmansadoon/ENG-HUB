@@ -955,6 +955,37 @@ function AcademicHubPage({ subjects, lecturers, lectures, parts, files, exams, t
     </>}
 
     {subject && !lecturer && !subjectCategory && <>
+      <section className="eh-academic-level">
+        <span className="eh-academic-subject-icon large" style={{'--subject-color':subject.color} as React.CSSProperties}>{subject.icon || '∑'}</span>
+        <div className="eh-academic-level-copy">
+          <span className="eh-eyebrow">SUBJECT WORKSPACE · {subject.code}</span>
+          <h2>{subject.name}</h2>
+          <p>{subject.description || 'اختر نوع المحتوى الذي تريد استكشافه داخل هذه المادة.'}</p>
+        </div>
+        <div className="eh-academic-level-count"><b>{subjectLecturers.length}</b><span>مدرسون</span></div>
+        <div className="eh-academic-level-count"><b>{lectures.filter((item) => item.subjectId === subject.id).length}</b><span>محاضرات</span></div>
+      </section>
+      <div className="eh-section-heading">
+        <div><span className="eh-eyebrow">SUBJECT CONTENT</span><h2>محتويات المادة</h2><p>لكل مادة هيكلها الخاص. اختر قسماً للدخول إلى محتوياته ومجلداته.</p></div>
+      </div>
+      <div className="eh-subject-category-grid">
+        {([
+          {id:'lectures' as const,title:'المحاضرات',description:'المدرسون، المحاضرات وأجزاء الفيديو',icon:Video,count:lectures.filter((item)=>item.subjectId===subject.id).length + subjectLecturers.length},
+          {id:'files' as const,title:'الملفات والمراجع',description:'المذكرات والشرائح والملفات المرتبطة بالمادة',icon:FileText,count:contentNodes.filter((item)=>item.category==='files'&&!item.parentId).length + files.filter((item)=>item.subjectName===subject.name).length},
+          {id:'exams' as const,title:'الاختبارات',description:'الاختبارات والتقييمات المرتبطة بالمقرر',icon:ClipboardList,count:contentNodes.filter((item)=>item.category==='exams'&&!item.parentId).length + exams.filter((item)=>item.subjectName===subject.name).length},
+          {id:'assignments' as const,title:'الواجبات والتكليفات',description:'التكليفات والأنشطة المطلوبة للمادة',icon:BookOpenCheck,count:contentNodes.filter((item)=>item.category==='assignments'&&!item.parentId).length + tasks.filter((item)=>item.subjectName===subject.name).length},
+          {id:'resources' as const,title:'المصادر الإضافية',description:'روابط ومراجع ومصادر خارجية مساندة',icon:Link2,count:contentNodes.filter((item)=>item.category==='resources'&&!item.parentId).length},
+          {id:'custom' as const,title:'مجلدات وأقسام مخصصة',description:'أنشئ أي تنظيم إضافي يناسب طبيعة المادة',icon:FolderOpen,count:contentNodes.filter((item)=>item.category==='custom'&&!item.parentId).length},
+          {id:'chat' as const,title:'مناقشات المادة',description:'غرفة نقاش خاصة بطلاب هذا المقرر',icon:MessageCircle,count:'مباشر'},
+        ]).map((item)=>{const Icon=item.icon;return <button type="button" key={item.id} className="eh-subject-category-card" onClick={()=>onSelectCategory(item.id)}>
+          <span className="eh-subject-category-icon"><Icon size={23}/></span>
+          <span className="eh-subject-category-copy"><b>{item.title}</b><small>{item.description}</small></span>
+          <span className="eh-subject-category-count">{item.count}</span><ChevronLeft size={18}/>
+        </button>;})}
+      </div>
+      {canEdit&&<p className="eh-academic-tip">يمكنك إنشاء محاضرات مباشرة أو إضافة مدرسين، وإضافة مجلدات وعناصر مخصصة داخل كل قسم من أقسام المادة.</p>}
+    </>}
+
       <div className="eh-section-heading">
         <div><span className="eh-eyebrow">COURSE CONTENT</span><h2>أقسام المادة</h2><p>اختر نوع المحتوى الذي تريد فتحه داخل مقرر {subject.name}.</p></div>
         <span className="eh-result-count">{contentNodes.length} عنصر</span>
