@@ -639,56 +639,110 @@ function AcademicHubPage({ subjects, lecturers, lectures, parts, selectedSubject
   const lecturerLectures = lectures.filter((item) => item.lecturerId === selectedLecturerId);
   const legacyLectures = lectures.filter((item) => item.subjectId === selectedSubjectId && !item.lecturerId);
   const legacyPart: LecturePart[] = lecture?.videoUrl ? [{
-    id: 'legacy-video', lectureId: lecture.id, title: 'الفيديو الرئيسي', videoUrl: lecture.videoUrl,
-    duration: lecture.duration || '', order: 1, sourceType: 'external', createdAt: '',
+    id:'legacy-video',lectureId:lecture.id,title:'الفيديو الرئيسي',videoUrl:lecture.videoUrl,
+    duration:lecture.duration||'',order:1,sourceType:'external',createdAt:'',
   }] : [];
   const currentParts = parts.length ? parts : legacyPart;
   const stageTitle = lecture ? lecture.title : lecturer ? lecturer.name : subject ? subject.name : 'المواد الدراسية';
-  const stageDescription = lecture ? 'أجزاء المحاضرة ومصادر الفيديو والمواد المرفقة.' : lecturer ? 'المحاضرات المرتبطة بهذا المدرس داخل المادة.' : subject ? 'اختر المدرس لعرض محاضراته ومحتواه.' : 'ابدأ باختيار مادة للانتقال إلى المدرسين والمحاضرات.';
-  const action = canEdit
-    ? lecture ? <button className="btn btn-primary" onClick={onAddPart}><Plus size={16}/> إضافة جزء فيديو</button>
-      : lecturer ? <button className="btn btn-primary" onClick={onAddLecture}><Plus size={16}/> إضافة محاضرة</button>
-      : subject ? <button className="btn btn-primary" onClick={onAddLecturer}><Plus size={16}/> إضافة مدرس</button>
-      : <button className="btn btn-primary" onClick={onAddSubject}><Plus size={16}/> إضافة مادة</button>
-    : undefined;
-  return <>
+  const stageDescription = lecture ? 'اختر جزءاً من المحاضرة لمشاهدة الفيديو.' : lecturer ? 'المحاضرات المنشورة لهذا المدرس.' : subject ? 'اختر المدرس لعرض المحاضرات والمحتوى.' : 'تصفح المواد ثم المدرسين ثم المحاضرات وأجزاء الفيديو.';
+  const action = !canEdit ? undefined : lecture
+    ? <button type="button" className="eh-button primary" onClick={onAddPart}><Plus size={16}/> إضافة جزء</button>
+    : lecturer
+      ? <button type="button" className="eh-button primary" onClick={onAddLecture}><Plus size={16}/> إضافة محاضرة</button>
+      : subject
+        ? <button type="button" className="eh-button primary" onClick={onAddLecturer}><Plus size={16}/> إضافة مدرس</button>
+        : <button type="button" className="eh-button primary" onClick={onAddSubject}><Plus size={16}/> إضافة مادة</button>;
+
+  return <div className="eh-academic-page">
     <PageHeader eyebrow="ACADEMIC LIBRARY" title={stageTitle} description={stageDescription} action={action}/>
-    <div className="academic-breadcrumbs">
-      <button className={!subject ? 'current' : ''} onClick={() => { onSelectSubject(''); onSelectLecturer(''); onSelectLecture(''); }}>المواد</button>
-      {subject && <><ChevronLeft size={14}/><button className={!lecturer ? 'current' : ''} onClick={() => { onSelectLecturer(''); onSelectLecture(''); }}>{subject.name}</button></>}
-      {lecturer && <><ChevronLeft size={14}/><button className={!lecture ? 'current' : ''} onClick={() => { onSelectLecture(''); }}>{lecturer.name}</button></>}
-      {lecture && <><ChevronLeft size={14}/><span className="current">{lecture.title}</span></>}
-      {subject && <button className="academic-back" onClick={onBack}><ArrowLeft size={14}/> رجوع</button>}
-    </div>
+    <nav className="eh-academic-crumbs" aria-label="مسار التصفح">
+      <button type="button" className={!subject?'active':''} onClick={() => { onSelectSubject('');onSelectLecturer('');onSelectLecture(''); }}><BookOpen size={14}/> المواد الدراسية</button>
+      {subject && <><ChevronLeft size={14}/><button type="button" className={!lecturer?'active':''} onClick={() => {onSelectLecturer('');onSelectLecture('');}}>{subject.name}</button></>}
+      {lecturer && <><ChevronLeft size={14}/><button type="button" className={!lecture?'active':''} onClick={() => onSelectLecture('')}>{lecturer.name}</button></>}
+      {lecture && <><ChevronLeft size={14}/><span>{lecture.title}</span></>}
+      {(subject || lecturer || lecture) && <button type="button" className="eh-crumb-back" onClick={onBack}><ArrowLeft size={14}/> رجوع</button>}
+    </nav>
 
     {!subject && <>
-      <div className="course-hero panel academic-hero"><div><div className="eyebrow">CAIRO UNIVERSITY · ENGINEERING</div><h2>مساحتك الأكاديمية</h2><p>تصفح المقررات ثم المدرسين ثم المحاضرات وأجزاء كل محاضرة.</p></div><div className="course-hero-stats"><div><b>{subjects.length}</b><span>مادة</span></div><div><b>{lecturers.length}</b><span>مدرس</span></div><div><b>{lectures.length}</b><span>محاضرة</span></div></div></div>
-      <div className="course-grid academic-card-grid">{subjects.map((item) => <button className="course-card academic-subject-card" key={item.id} onClick={() => onSelectSubject(item.id)}><div className="course-card-top"><div className="course-icon" style={{ background: item.color + '18', color: item.color }}>{item.icon || '∑'}</div><span className="course-code">{item.code}</span></div><h3>{item.name}</h3><p>{item.description || 'المحتوى الدراسي للمقرر'}</p><div className="course-meta"><span><Users size={14}/>{lecturers.filter((x) => x.subjectId === item.id).length} مدرسين</span><span><Video size={14}/>{lectures.filter((x) => x.subjectId === item.id).length} محاضرة</span><ChevronLeft size={15}/></div></button>)}</div>
-      {subjects.length === 0 && <div className="panel courses-empty-panel"><EmptyState title="لا توجد مواد دراسية بعد" body={canEdit ? 'أضف أول مادة دراسية، ثم أضف المدرسين والمحاضرات داخلها.' : 'ستظهر المقررات هنا بعد أن ينشرها مدير المنصة.'}/>{canEdit && <button className="btn btn-primary" onClick={onAddSubject}><Plus size={15}/> إضافة أول مادة</button>}</div>}
+      <section className="eh-academic-hero">
+        <div className="eh-academic-hero-copy"><span className="eh-eyebrow">CAIRO UNIVERSITY · FACULTY OF ENGINEERING</span><h2>مكتبتك الأكاديمية</h2><p>كل مقرر في مكانه، وكل مدرس ومحاضرة ومصدر تعليمي مرتبط به.</p></div>
+        <div className="eh-academic-stats">
+          <div><b>{subjects.length}</b><span>مادة</span></div>
+          <div><b>{lecturers.length}</b><span>مدرس</span></div>
+          <div><b>{lectures.length}</b><span>محاضرة</span></div>
+        </div>
+        <div className="eh-academic-hero-symbol"><GraduationCap size={53}/></div>
+      </section>
+      <div className="eh-section-heading"><div><span className="eh-eyebrow">YOUR COURSES</span><h2>المواد الدراسية</h2><p>اختر مادة لعرض المدرسين التابعين لها</p></div><span className="eh-result-count">{subjects.length} مقررات</span></div>
+      <div className="eh-academic-subject-grid">
+        {subjects.map((item,index) => <button type="button" className="eh-academic-subject-card" key={item.id} onClick={() => onSelectSubject(item.id)}>
+          <div className="eh-academic-card-top"><span className="eh-academic-subject-icon" style={{'--subject-color':item.color} as React.CSSProperties}>{item.icon||'∑'}</span><span className="eh-course-index">{String(index+1).padStart(2,'0')}</span></div>
+          <span className="eh-course-code">{item.code}</span><h3>{item.name}</h3><p>{item.description||'المحتوى التعليمي والمحاضرات الخاصة بهذا المقرر.'}</p>
+          <div className="eh-course-card-footer"><span><Users size={14}/>{lecturers.filter((x)=>x.subjectId===item.id).length} مدرس</span><span><Video size={14}/>{lectures.filter((x)=>x.subjectId===item.id).length} محاضرة</span><ChevronLeft size={16}/></div>
+        </button>)}
+      </div>
+      {subjects.length===0 && <div className="eh-surface-card"><EmptyState title="لا توجد مواد دراسية حتى الآن" body={canEdit?'أنشئ أول مادة، ثم أضف المدرسين والمحاضرات وأجزاء الفيديو.':'ستظهر المواد هنا عند نشرها من لوحة الإدارة.'}/>{canEdit&&<div className="eh-empty-action"><button type="button" className="eh-button primary" onClick={onAddSubject}><Plus size={16}/> إضافة أول مادة</button></div>}</div>}
     </>}
 
     {subject && !lecturer && <>
-      <div className="academic-level-banner panel"><div className="academic-level-icon" style={{color:subject.color,background:subject.color+'18'}}>{subject.icon || '∑'}</div><div><span className="eyebrow">SUBJECT</span><h2>{subject.name}</h2><p>{subject.description || 'قائمة المدرسين والمحاضرات المرتبطة بالمقرر.'}</p></div><div className="academic-level-meta"><b>{subjectLecturers.length}</b><span>مدرسين</span></div></div>
-      <div className="section-title-row"><div><div className="eyebrow">LECTURERS</div><h2>المدرسون</h2></div></div>
-      <div className="lecturer-grid">{subjectLecturers.map((item) => <button className="lecturer-card" key={item.id} onClick={() => onSelectLecturer(item.id)}><div className="lecturer-avatar">{item.photoURL ? <img src={item.photoURL} alt=""/> : <GraduationCap size={23}/>}</div><div className="lecturer-card-copy"><b>{item.name}</b><span>{item.bio || item.description || 'مدرس في هذا المقرر'}</span></div><ChevronLeft size={17}/></button>)}</div>
-      {subjectLecturers.length === 0 && <div className="panel"><EmptyState title="لم تتم إضافة مدرسين لهذه المادة" body={canEdit ? 'أضف مدرساً أو معيداً أولاً، ثم اربط به المحاضرات.' : 'سيظهر المدرسون هنا عند إضافتهم إلى المقرر.'}/></div>}
-      {legacyLectures.length > 0 && <div className="panel legacy-lectures-panel"><div className="panel-head"><div><h3>محاضرات محفوظة من الإصدار السابق</h3><span>يمكن فتحها دون فقد روابط الفيديو القديمة</span></div></div>{legacyLectures.map((item) => <button className="academic-list-row" key={item.id} onClick={() => onSelectLecture(item.id)}><span className="admin-task-symbol"><Video size={16}/></span><span><b>{item.title}</b><small>{item.lecturerName || item.instructor || 'بدون مدرس'}</small></span><ChevronLeft size={16}/></button>)}</div>}
+      <section className="eh-academic-level">
+        <span className="eh-academic-subject-icon large" style={{'--subject-color':subject.color} as React.CSSProperties}>{subject.icon||'∑'}</span>
+        <div className="eh-academic-level-copy"><span className="eh-eyebrow">SUBJECT DETAILS · {subject.code}</span><h2>{subject.name}</h2><p>{subject.description||'اختر أحد المدرسين لعرض محاضراته.'}</p></div>
+        <div className="eh-academic-level-count"><b>{subjectLecturers.length}</b><span>مدرس</span></div>
+        <div className="eh-academic-level-count"><b>{lectures.filter((x)=>x.subjectId===subject.id).length}</b><span>محاضرة</span></div>
+      </section>
+      <div className="eh-section-heading"><div><span className="eh-eyebrow">LECTURERS</span><h2>المدرسون والمعيدون</h2><p>اختر المدرس للانتقال إلى قائمة محاضراته</p></div></div>
+      <div className="eh-lecturer-grid">
+        {subjectLecturers.map((item,index)=><button type="button" className="eh-lecturer-card" key={item.id} onClick={()=>onSelectLecturer(item.id)}>
+          <span className="eh-lecturer-avatar">{item.photoURL?<img src={item.photoURL} alt=""/>:<GraduationCap size={24}/>}</span>
+          <span className="eh-lecturer-copy"><b>{item.name}</b><small>{item.bio||item.description||'مدرس في '+subject.name}</small><em>{lectures.filter((x)=>x.lecturerId===item.id).length} محاضرة</em></span>
+          <span className="eh-lecturer-index">{String(index+1).padStart(2,'0')}</span><ChevronLeft size={17}/>
+        </button>)}
+      </div>
+      {subjectLecturers.length===0 && <div className="eh-surface-card"><EmptyState title="لم تتم إضافة مدرسين" body={canEdit?'أضف المدرسين والمعيدين إلى المادة أولاً.':'سيظهر المدرسون هنا عندما تتم إضافتهم.'}/></div>}
+      {legacyLectures.length>0 && <section className="eh-surface-card eh-legacy-block"><div className="eh-card-heading"><div><span className="eh-eyebrow">LEGACY CONTENT</span><h2>محاضرات محفوظة سابقاً</h2><p>تم الاحتفاظ بالمحاضرات القديمة حتى لا تفقد روابط الفيديو.</p></div></div>{legacyLectures.map((item)=><button type="button" className="eh-legacy-lecture" key={item.id} onClick={()=>onSelectLecture(item.id)}><span><Video size={17}/></span><b>{item.title}</b><small>{item.lecturerName||item.instructor||'بدون مدرس'}</small><ChevronLeft size={16}/></button>)}</section>}
     </>}
 
     {lecturer && !lecture && <>
-      <div className="academic-level-banner panel"><div className="academic-level-icon"><GraduationCap size={23}/></div><div><span className="eyebrow">{subject?.name || lecturer.subjectName}</span><h2>{lecturer.name}</h2><p>{lecturer.bio || lecturer.description || 'محاضرات هذا المدرس ومواده التعليمية.'}</p></div><div className="academic-level-meta"><b>{lecturerLectures.length}</b><span>محاضرة</span></div></div>
-      <div className="lecture-grid">{lecturerLectures.map((item,index) => <button type="button" className="lecture-card lecture-card-button" key={item.id} onClick={() => onSelectLecture(item.id)}><div className={'lecture-cover cover-' + (index % 4)}><div className="cover-grid"/><span className="lecture-subject-tag">LECTURE {item.lectureNumber || index + 1}</span><span className="play-button"><BookOpen size={22}/></span><span className="cover-duration"><Layers3 size={12}/>{item.partsCount ?? item.parts ?? 0} أجزاء</span></div><div className="lecture-card-body"><div className="lecture-meta"><span>{item.date}</span><span>{item.duration}</span></div><h3>{item.title}</h3><div className="lecture-progress-head"><span>افتح محتويات المحاضرة</span><ChevronLeft size={15}/></div></div></button>)}</div>
-      {lecturerLectures.length === 0 && <div className="panel"><EmptyState title="لا توجد محاضرات لهذا المدرس" body={canEdit ? 'أضف المحاضرة الأولى، ثم أضف أجزاء الفيديو داخلها.' : 'ستظهر المحاضرات هنا بعد نشرها.'}/></div>}
+      <section className="eh-academic-level">
+        <span className="eh-lecturer-avatar large">{lecturer.photoURL?<img src={lecturer.photoURL} alt=""/>:<GraduationCap size={25}/>}</span>
+        <div className="eh-academic-level-copy"><span className="eh-eyebrow">{subject?.name||lecturer.subjectName}</span><h2>{lecturer.name}</h2><p>{lecturer.bio||lecturer.description||'جميع المحاضرات المنشورة لهذا المدرس.'}</p></div>
+        <div className="eh-academic-level-count"><b>{lecturerLectures.length}</b><span>محاضرة</span></div>
+      </section>
+      <div className="eh-section-heading"><div><span className="eh-eyebrow">LECTURE LIBRARY</span><h2>محاضرات المدرس</h2><p>اختر المحاضرة لعرض أجزائها ومشغل الفيديو</p></div></div>
+      <div className="eh-lecture-grid">
+        {lecturerLectures.map((item,index)=><button type="button" className="eh-lecture-card" key={item.id} onClick={()=>onSelectLecture(item.id)}>
+          <span className={'eh-lecture-art art-'+(index%4)}><span className="eh-lecture-number">LECTURE {item.lectureNumber||index+1}</span><span className="eh-lecture-play"><Play size={22} fill="currentColor"/></span><span className="eh-lecture-part-count"><Layers3 size={13}/>{item.partsCount??item.parts??0} أجزاء</span></span>
+          <span className="eh-lecture-card-copy"><small>{item.date} · {item.duration||'مدة غير محددة'}</small><b>{item.title}</b><span>عرض محتويات المحاضرة <ArrowLeft size={14}/></span></span>
+        </button>)}
+      </div>
+      {lecturerLectures.length===0&&<div className="eh-surface-card"><EmptyState title="لا توجد محاضرات بعد" body={canEdit?'أنشئ أول محاضرة لهذا المدرس، ثم أضف روابط الفيديو كأجزاء مستقلة.':'ستظهر المحاضرات هنا بعد نشرها.'}/></div>}
     </>}
 
     {lecture && <>
-      <div className="academic-level-banner panel"><div className="academic-level-icon"><Video size={23}/></div><div><span className="eyebrow">{lecture.subjectName} · {lecture.lecturerName || lecture.instructor || lecturer?.name || 'محاضرة'}</span><h2>{lecture.title}</h2><p>{lecture.description || 'اختر جزءاً لتشغيل الفيديو ومتابعة المحاضرة.'}</p></div><div className="academic-level-meta"><b>{currentParts.length}</b><span>أجزاء</span></div></div>
-      <div className="parts-list">{currentParts.map((part,index) => <article className="part-row" key={part.id}><div className="part-number">{String(index+1).padStart(2,'0')}</div><div className="part-row-main"><b>{part.title}</b><span>{part.duration || 'مدة غير محددة'} · {part.sourceType === 'youtube' ? 'YouTube' : part.sourceType === 'vimeo' ? 'Vimeo' : part.sourceType === 'direct' ? 'فيديو مباشر' : 'رابط خارجي'}</span></div><button type="button" className="btn btn-primary btn-small" onClick={() => setPlayingPart(part)}><Play size={14} fill="currentColor"/> تشغيل الجزء</button></article>)}</div>
-      {currentParts.length === 0 && <div className="panel"><EmptyState title="لم تتم إضافة أجزاء لهذه المحاضرة" body={canEdit ? 'أضف جزءاً واحداً أو أكثر، ويمكنك وضع رابط فيديو مختلف لكل جزء.' : 'سيظهر محتوى المحاضرة هنا بعد إضافة أجزائها.'}/></div>}
+      <section className="eh-academic-level lecture-level">
+        <span className="eh-lecture-level-icon"><Video size={24}/></span>
+        <div className="eh-academic-level-copy"><span className="eh-eyebrow">{lecture.subjectName} · {lecture.lecturerName||lecturer?.name||'محاضرة'}</span><h2>{lecture.title}</h2><p>{lecture.description||'قائمة الأجزاء المسجلة لهذه المحاضرة.'}</p></div>
+        <div className="eh-academic-level-count"><b>{currentParts.length}</b><span>أجزاء فيديو</span></div>
+      </section>
+      <div className="eh-section-heading"><div><span className="eh-eyebrow">VIDEO CHAPTERS</span><h2>أجزاء المحاضرة</h2><p>اختر الجزء المطلوب لتشغيل الفيديو</p></div></div>
+      <div className="eh-parts-list">
+        {currentParts.map((part,index)=><article className="eh-part-card" key={part.id}>
+          <span className="eh-part-number">{String(index+1).padStart(2,'0')}</span>
+          <span className="eh-part-main"><b>{part.title}</b><small>{part.duration||'المدة غير محددة'} · {part.sourceType==='youtube'?'YouTube':part.sourceType==='vimeo'?'Vimeo':part.sourceType==='direct'?'فيديو مباشر':'رابط خارجي'}</small></span>
+          <button type="button" className="eh-button primary" onClick={()=>setPlayingPart(part)}><Play size={15} fill="currentColor"/> تشغيل</button>
+        </article>)}
+        {currentParts.length===0&&<div className="eh-surface-card"><EmptyState title="لم تتم إضافة أجزاء للمحاضرة" body={canEdit?'أضف جزء فيديو واحداً أو أكثر لهذه المحاضرة.':'سيظهر المحتوى هنا عندما يضيفه المدرس أو مدير المنصة.'}/></div>}
+      </div>
     </>}
 
-    {playingPart && <div className="video-modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setPlayingPart(null); }}><section className="video-modal-card" role="dialog" aria-modal="true" aria-label={playingPart.title}><header className="video-modal-header"><div><b>{playingPart.title}</b><span>{lecture?.title || ''}</span></div><button type="button" className="icon-button" onClick={() => setPlayingPart(null)} aria-label="إغلاق المشغل"><X size={20}/></button></header><VideoPlayer source={playingPart.videoUrl} title={playingPart.title}/></section></div>}
-  </>;
+    {playingPart && <div className="video-modal-backdrop" role="presentation" onMouseDown={(event)=>{if(event.target===event.currentTarget)setPlayingPart(null);}}>
+      <section className="video-modal-card" role="dialog" aria-modal="true" aria-label={playingPart.title}>
+        <header className="video-modal-header"><div><b>{playingPart.title}</b><span>{lecture?.title||''}</span></div><button type="button" className="icon-button" onClick={()=>setPlayingPart(null)} aria-label="إغلاق المشغل"><X size={20}/></button></header>
+        <VideoPlayer source={playingPart.videoUrl} title={playingPart.title}/>
+      </section>
+    </div>}
+  </div>;
 }
 
 function VideoPlayer({ source, title }: { source: string; title: string }) {
