@@ -188,7 +188,16 @@ service cloud.firestore {
         allow create: if activeUser()
           && exists(/databases/$(database)/documents/conversations/$(conversationId)/members/$(request.auth.uid))
           && request.resource.data.senderId == request.auth.uid;
-        allow update: if isModerator() || (activeUser() && resource.data.senderId == request.auth.uid && request.resource.data.senderId == resource.data.senderId && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['text', 'editedAt', 'reactions', 'attachments']));
+        allow update: if isModerator()
+          || (activeUser()
+            && exists(/databases/$(database)/documents/conversations/$(conversationId)/members/$(request.auth.uid))
+            && resource.data.senderId == request.auth.uid
+            && request.resource.data.senderId == resource.data.senderId
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['text', 'edited', 'editedAt'])
+            && request.time < resource.data.createdAt + duration.value(15, 'm'))
+          || (activeUser()
+            && exists(/databases/$(database)/documents/conversations/$(conversationId)/members/$(request.auth.uid))
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['reactions']));
         allow delete: if isModerator() || (activeUser() && resource.data.senderId == request.auth.uid);
       }
     }
