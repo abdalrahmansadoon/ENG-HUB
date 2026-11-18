@@ -17,7 +17,7 @@ import { enablePushNotifications, listenForForegroundMessages } from '../lib/mes
 import { isFirebaseConfigured } from '../lib/firebase';
 import { readLocal, writeLocal } from '../lib/storage';
 import { createExamCloud, createLectureCloud, createLecturePartCloud, createLecturerCloud, createSubjectCloud, createTaskCloud, deleteTaskCloud, saveFileMetadataCloud, subscribeExams, subscribeFiles, subscribeLectureParts, subscribeLecturers, subscribeLectures, subscribeSubjects, subscribeTasks, updateTaskStatusCloud } from '../lib/cloudData';
-import { createGeneralChatWarning, deleteGeneralChatMessage, editGeneralChatMessage, getGeneralChatMuteStatus, hideGeneralChatMessageForUser, joinGeneralChat, sendGeneralChatMessage, softDeleteGeneralChatMessage, subscribeGeneralChat, subscribeGeneralChatMuteStatus, toggleGeneralChatMute, toggleGeneralChatPin, toggleGeneralChatReaction, type ChatAttachment, type ChatMessage, type ChatMuteStatus } from '../lib/chat';
+import { adminSoftDeleteGeneralChatMessage, createGeneralChatWarning, deleteGeneralChatMessage, editGeneralChatMessage, getGeneralChatMuteStatus, hideGeneralChatMessageForUser, joinGeneralChat, sendGeneralChatMessage, softDeleteGeneralChatMessage, subscribeGeneralChat, subscribeGeneralChatMuteStatus, toggleGeneralChatMute, toggleGeneralChatPin, toggleGeneralChatReaction, type ChatAttachment, type ChatMessage, type ChatMuteStatus } from '../lib/chat';
 import type { AppNotification, AppUser, Exam, Lecture, LecturePart, Lecturer, LibraryFile, Priority, StudyTask, Subject, TaskStatus } from '../types';
 import { AppShell } from './layout/AppShell';
 import { readEngHubRoute, buildEngHubHash, type SubjectCategory } from '../lib/routes';
@@ -1398,6 +1398,18 @@ function ChatPage({ user, cloudinarySettings, isDemo, isAdmin, onBack, onOpenPro
     }
   };
 
+  const adminDeleteMessage = async (message: ChatMessage) => {
+    if (!isAdmin || message.deleted) return;
+    if (!window.confirm('سيتم حذف محتوى الرسالة لدى جميع المشاركين مع الاحتفاظ بعلامة توضح أنها حُذفت. هل تريد المتابعة؟')) return;
+    setContextMessage(null);
+    try {
+      await adminSoftDeleteGeneralChatMessage(message.id, user.uid);
+      setNotice('تم حذف الرسالة لدى جميع المشاركين.');
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : 'تعذر حذف الرسالة.');
+    }
+  };
+
   const permanentlyDeleteMessage = async (message: ChatMessage) => {
     if (!isAdmin) return;
     const confirmed = window.confirm('سيتم حذف الرسالة نهائياً من المحادثة لجميع المشاركين. لا يمكن التراجع. هل تريد المتابعة؟');
@@ -1745,8 +1757,9 @@ function ChatPage({ user, cloudinarySettings, isDemo, isAdmin, onBack, onOpenPro
         {!contextMessage.deleted && <button type="button" onClick={() => beginReply(contextMessage)}><ArrowDownLeft size={16}/> الرد على الرسالة</button>}
         {contextMessage.senderId === user.uid && !contextMessage.deleted && editAllowed(contextMessage) && <button type="button" onClick={() => beginEdit(contextMessage)}><Pencil size={16}/> تعديل الرسالة</button>}
         {contextMessage.senderId === user.uid && !contextMessage.deleted && <button type="button" className="danger" onClick={() => void removeMessage(contextMessage)}><Trash2 size={16}/> حذف لدى الجميع</button>}
-        {contextMessage.senderId !== user.uid && <button type="button" onClick={() => void hideMessageForMe(contextMessage)}><EyeOff size={16}/> إخفاء لدي فقط</button>}
-        {isAdmin && <button type="button" className="danger" onClick={() => void permanentlyDeleteMessage(contextMessage)}><Trash2 size={16}/> حذف نهائي للجميع</button>}
+        {!contextMessage.deleted && <button type="button" onClick={() => void hideMessageForMe(contextMessage)}><EyeOff size={16}/> إخفاء لدي فقط</button>}
+        {isAdmin && contextMessage.senderId !== user.uid && !contextMessage.deleted && <button type="button" className="danger" onClick={() => void adminDeleteMessage(contextMessage)}><Trash2 size={16}/> حذف الرسالة للطلاب</button>}
+        {isAdmin && contextMessage.deleted && <button type="button" className="danger" onClick={() => void permanentlyDeleteMessage(contextMessage)}><Trash2 size={16}/> حذف نهائي للجميع</button>}
         {isAdmin && <button type="button" onClick={() => void handlePin(contextMessage)}><Pin size={16}/> {contextMessage.pinned ? 'إلغاء التثبيت' : 'تثبيت الرسالة'}</button>}
         {isAdmin && contextMessage.senderId !== user.uid && <button type="button" onClick={() => void handleMute(contextMessage)}><ShieldCheck size={16}/> {contextMuted ? 'إلغاء الكتم' : 'كتم لمدة ساعة'}</button>}
         {isAdmin && contextMessage.senderId !== user.uid && <button type="button" onClick={() => void handleWarning(contextMessage)}><AlertCircle size={16}/> إرسال تحذير إداري</button>}
