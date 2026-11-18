@@ -50,7 +50,7 @@ export function AcademicContentArea({
   const [busy, setBusy] = useState(false);
   const activeNode = nodes.find((node) => node.id === activeNodeId) ?? null;
   const children = useMemo(
-    () => nodes.filter((node) => node.parentId === (activeNodeId || null) && node.category === category)
+    () => nodes.filter((node) => node.parentId === (activeNodeId || null) && (activeNodeId ? true : node.category === category))
       .filter((node) => (node.title + ' ' + node.description).toLowerCase().includes(search.trim().toLowerCase())),
     [nodes, activeNodeId, category, search],
   );
