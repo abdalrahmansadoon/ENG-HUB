@@ -21,7 +21,7 @@ import type { AppNotification, AppUser, Exam, Lecture, LecturePart, Lecturer, Li
 import { AppShell } from './layout/AppShell';
 import { ChatPage } from './chat/ChatPage';
 import { readEngHubRoute, buildEngHubHash, type SubjectCategory } from '../lib/routes';
-import { subscribeAcademicContent, createAcademicContentNode, updateAcademicContentNode, deleteAcademicContentNode } from '../lib/academicContent';
+import { subscribeAcademicContent, createAcademicContentNode, updateAcademicContentNode, deleteAcademicContentNode, subscribeCompletedAcademicContent } from '../lib/academicContent';
 import { AcademicContentArea } from './academic/AcademicContentArea';
 import { PublicStudentProfilePage } from './profile/PublicStudentProfilePage';
 import type { AcademicContentCategory, AcademicContentNode, CreateAcademicContentInput } from '../types/academicContent';
@@ -73,6 +73,7 @@ function App() {
   const [files, setFiles] = useState<LibraryFile[]>([]);
   const [cloudinarySettings, setCloudinarySettings] = useState<CloudinarySettings>(defaultCloudinarySettings);
   const [academicCalendar, setAcademicCalendar] = useState<AcademicCalendarSettings>(defaultAcademicCalendar);
+  const [completedVideoIds, setCompletedVideoIds] = useState<Set<string>>(new Set());
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [taskModal, setTaskModal] = useState(false);
   const [subjectModal, setSubjectModal] = useState(false);
@@ -94,6 +95,10 @@ function App() {
     if (!user || isDemo) { setAcademicCalendar(defaultAcademicCalendar); return; }
     return subscribeAcademicCalendar(setAcademicCalendar, (error) => setToast(`تعذر قراءة إعدادات السنة الدراسية: ${error.message}`));
   }, [user?.uid, isDemo]);
+  useEffect(() => {
+    if (!user || isDemo) { setCompletedVideoIds(new Set()); return; }
+    return subscribeCompletedAcademicContent(activeUser.uid, setCompletedVideoIds, (error) => setToast(`تعذر مزامنة تقدم الفيديوهات: ${error.message}`));
+  }, [user?.uid, isDemo, activeUser.uid]);
   useEffect(() => writeLocal('notifications', notifications), [notifications]);
   useEffect(() => { document.title = `${pageTitle(page)} | ENG HUB`; }, [page]);
   useEffect(() => {
@@ -587,7 +592,7 @@ function App() {
         />}
         {page === 'student-profile' && <PublicStudentProfilePage uid={publicProfileUid} currentUid={activeUser.uid} onBack={() => setPage('chat')}/>}
         {page === 'planner' && <PlannerPage tasks={tasks} userId={activeUser.uid}/>}
-        {page === 'analytics' && <AnalyticsPage tasks={tasks} subjects={subjects} lectures={lectures} exams={exams}/>}
+        {page === 'analytics' && <AnalyticsPage tasks={tasks} subjects={subjects} lectures={lectures} exams={exams} completedVideos={completedVideoIds.size}/>}
         {page === 'notifications' && <NotificationsPage items={notifications} setItems={setNotifications}/>}
         {page === 'admin' && <AdminPage tasks={tasks} subjects={subjects} lecturers={lecturers} lectures={lectures} exams={exams} files={files} currentUser={activeUser} cloudinarySettings={cloudinarySettings} academicCalendar={academicCalendar} onSaveAcademicCalendar={async (settings) => { await saveAcademicCalendar(settings, activeUser.uid); setAcademicCalendar(settings); setToast('تم حفظ السنة والفصل الدراسي الحاليين لجميع الطلاب.'); }} onNewTask={() => setTaskModal(true)} onAddSubject={() => setSubjectModal(true)} onAddLecturer={() => { setPage('courses'); setSelectedSubjectId(''); setSelectedLecturerId(''); setSelectedLectureId(''); }} onAddLecture={() => setLectureModal(true)} onAddExam={() => setExamModal(true)} onSaved={() => setToast('تم حفظ إعدادات Cloudinary في Firestore')} onError={(message) => setToast(message)}/>}
         {page === 'profile' && <ProfilePage user={activeUser} isDemo={isDemo} onToggleRole={toggleDemoRole} onLogout={logout} onDeleteAccount={deleteAccount} onSaveProfile={saveProfile} themePreference={themePreference} onThemeChange={setThemePreference} cloudinarySettings={cloudinarySettings} onToggleTheme={() => setThemePreference(dark ? 'light' : 'dark')} dark={dark}/>}
@@ -1289,7 +1294,7 @@ function PlannerPage({ tasks, userId }: { tasks: StudyTask[]; userId: string }) 
   </div>;
 }
 
-function AnalyticsPage({ tasks, subjects, lectures, exams }: { tasks: StudyTask[]; subjects: Subject[]; lectures: Lecture[]; exams: Exam[] }) {
+function AnalyticsPage({ tasks, subjects, lectures, exams, completedVideos }: { tasks: StudyTask[]; subjects: Subject[]; lectures: Lecture[]; exams: Exam[]; completedVideos: number }) {
   const completed=tasks.filter(task=>task.status==='completed').length;
   const inProgress=tasks.filter(task=>task.status==='in-progress').length;
   const notStarted=tasks.filter(task=>task.status==='not-started').length;
@@ -1342,6 +1347,7 @@ function AnalyticsPage({ tasks, subjects, lectures, exams }: { tasks: StudyTask[
           <div><span><BookOpen size={17}/></span><b>{subjects.length}</b><small>مادة منشورة</small></div>
           <div><span><Video size={17}/></span><b>{lectures.length}</b><small>محاضرة منشورة</small></div>
           <div><span><CheckCircle2 size={17}/></span><b>{doneLectures}</b><small>محاضرة مكتملة</small></div>
+          <div><span><Play size={17}/></span><b>{completedVideos}</b><small>فيديو مكتمل</small></div>
         </div>
         <div className="eh-analytics-disclaimer"><Info size={15}/> لا نحسب ساعات مذاكرة تقديرية؛ ستظهر الساعات فقط عند توفر سجل جلسات فعلي.</div>
       </section>
