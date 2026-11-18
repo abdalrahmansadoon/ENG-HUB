@@ -1352,7 +1352,6 @@ function AnalyticsPage({ tasks, subjects, lectures, exams, completedVideos }: { 
           <div><span><BookOpen size={17}/></span><b>{subjects.length}</b><small>مادة منشورة</small></div>
           <div><span><Video size={17}/></span><b>{lectures.length}</b><small>محاضرة منشورة</small></div>
           <div><span><CheckCircle2 size={17}/></span><b>{completedVideos}</b><small>فيديو مكتمل</small></div>
-          <div><span><Play size={17}/></span><b>{completedVideos}</b><small>فيديو مكتمل</small></div>
         </div>
         <div className="eh-analytics-disclaimer"><Info size={15}/> لا نحسب ساعات مذاكرة تقديرية؛ ستظهر الساعات فقط عند توفر سجل جلسات فعلي.</div>
       </section>
