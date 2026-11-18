@@ -1300,7 +1300,6 @@ function AnalyticsPage({ tasks, subjects, lectures, exams, completedVideos }: { 
   const notStarted=tasks.filter(task=>task.status==='not-started').length;
   const completion=tasks.length?Math.round(completed/tasks.length*100):0;
   const late=tasks.filter(task=>task.status!=='completed'&&new Date(task.dueAt).getTime()<Date.now()).length;
-  const doneLectures=lectures.filter(lecture=>lecture.progress===100).length;
   const completedExams=exams.filter(exam=>exam.status==='completed').length;
   const upcomingExams=exams.filter(exam=>exam.status==='upcoming').length;
   const availableExams=exams.filter(exam=>exam.status==='available').length;
@@ -1352,7 +1351,7 @@ function AnalyticsPage({ tasks, subjects, lectures, exams, completedVideos }: { 
         <div className="eh-content-insights">
           <div><span><BookOpen size={17}/></span><b>{subjects.length}</b><small>مادة منشورة</small></div>
           <div><span><Video size={17}/></span><b>{lectures.length}</b><small>محاضرة منشورة</small></div>
-          <div><span><CheckCircle2 size={17}/></span><b>{doneLectures}</b><small>محاضرة مكتملة</small></div>
+          <div><span><CheckCircle2 size={17}/></span><b>{completedVideos}</b><small>فيديو مكتمل</small></div>
           <div><span><Play size={17}/></span><b>{completedVideos}</b><small>فيديو مكتمل</small></div>
         </div>
         <div className="eh-analytics-disclaimer"><Info size={15}/> لا نحسب ساعات مذاكرة تقديرية؛ ستظهر الساعات فقط عند توفر سجل جلسات فعلي.</div>
