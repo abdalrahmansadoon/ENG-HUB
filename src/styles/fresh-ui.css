@@ -2851,3 +2851,23 @@ body { font-family:"IBM Plex Sans Arabic","Cairo",system-ui,sans-serif; }
   .eh-app .eh-content-kind-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
   .eh-app .eh-custom-kind-fields { padding:11px; }
 }
+
+
+/* Nested academic navigation and custom attachment presentation */
+.eh-app .eh-content-ancestor { display:inline-flex;align-items:center;gap:8px;min-width:0; }
+.eh-app .eh-content-ancestor button { max-width:min(34vw,220px);overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
+.eh-app .eh-content-breadcrumb>span.active { color:var(--text);font-weight:850;overflow-wrap:anywhere; }
+.eh-app .eh-custom-image-link {
+  display:inline-flex;max-width:min(100%,760px);margin:14px auto;overflow:hidden;
+  border:1px solid var(--border);border-radius:14px;background:var(--surface2);
+}
+.eh-app .eh-custom-image-link img { display:block;max-width:100%;max-height:560px;object-fit:contain; }
+.eh-app .eh-custom-audio { margin:14px 0;padding:13px;border:1px solid var(--border);border-radius:13px;background:var(--surface2); }
+.eh-app .eh-custom-audio audio { display:block;width:100%;max-width:100%; }
+.eh-app .eh-content-item-icon.kind-custom { background:var(--surface2);border:1px solid var(--border); }
+.eh-app .eh-content-item-icon.kind-custom .eh-custom-kind-symbol { display:block;max-width:100%;overflow:hidden;text-overflow:clip; }
+@media(max-width:620px) {
+  .eh-app .eh-content-ancestor { gap:5px; }
+  .eh-app .eh-content-ancestor button { max-width:26vw;font-size:10px; }
+  .eh-app .eh-content-breadcrumb { gap:6px; }
+}
