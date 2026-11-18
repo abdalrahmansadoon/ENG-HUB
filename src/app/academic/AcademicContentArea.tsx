@@ -5,9 +5,9 @@ import {
   Link2, Lock, MoreHorizontal, Pencil, Play, Plus, Search, ShieldCheck, Sparkles, Trash2, Video, X,
 } from 'lucide-react';
 import type { Subject } from '../../types';
+import { isAcademicContentContainer } from '../../types/academicContent';
 import type {
   AcademicContentCategory, AcademicContentKind, AcademicContentNode, CreateAcademicContentInput,
-  isAcademicContentContainer,
 } from '../../types/academicContent';
 
 const categories: Array<{ id: AcademicContentCategory; title: string; description: string; icon: typeof BookOpen }> = [
@@ -216,12 +216,17 @@ function AcademicContentModal({ category, parent, initialNode, nodes, onClose, o
   const [mimeType, setMimeType] = useState(initialNode?.mimeType ?? '');
   const needsUrl = ['video','file','exam','assignment','link'].includes(kind);
   const availableLinks = nodes.filter((node) => node.id !== (initialNode?.id ?? parent?.id) && !isAcademicContentContainer(node) && node.publicationStatus === 'published');
-  const customTypePresets = [...new Map(nodes
-    .filter((node) => node.kind === 'custom' && node.customTypeName)
-    .map((node) => [node.customTypeName!, {
-      name: node.customTypeName!, icon: node.customTypeIcon || '✳', color: node.customTypeColor || '#4169e1',
-      canContainChildren: node.canContainChildren === true,
-    }])).values()];
+  const customTypePresets = Array.from(nodes.reduce((presets, node) => {
+    if (node.kind === 'custom' && node.customTypeName && !presets.has(node.customTypeName)) {
+      presets.set(node.customTypeName, {
+        name: node.customTypeName,
+        icon: node.customTypeIcon || '✳',
+        color: node.customTypeColor || '#4169e1',
+        canContainChildren: node.canContainChildren === true,
+      });
+    }
+    return presets;
+  }, new Map<string, { name: string; icon: string; color: string; canContainChildren: boolean }>()).values());
   const submit = async (event: FormEvent) => {
     event.preventDefault(); setError('');
     if (title.trim().length < 2) { setError('اكتب عنواناً واضحاً.'); return; }
