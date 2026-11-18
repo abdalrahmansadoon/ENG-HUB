@@ -51,6 +51,13 @@ export interface ChatRoomInfo {
   type: 'global' | 'course';
   courseId?: string;
 }
+export interface ChatAnnouncement {
+  id: string;
+  text: string;
+  createdBy: string;
+  createdAt: Date | null;
+  updatedAt: Date | null;
+}
 export const GENERAL_CHAT_ID = 'general';
 const EDIT_WINDOW_MS = 15 * 60 * 1000;
 const ALLOWED_REACTIONS = ['👍', '❤️', '😂', '😮', '🙏', '👏'];
@@ -390,4 +397,83 @@ export async function createGeneralChatWarning(userId: string, adminId: string, 
   await addDoc(collection(requireDb(), 'conversations', normalizeRoomId(roomId), 'warnings'), {
     userId, reason: text.slice(0, 500), createdBy: adminId, createdAt: serverTimestamp(),
   });
+}
+
+
+/* Announcements are moderated room-wide content, separate from ordinary messages. */
+export function subscribeChatAnnouncements(
+  roomId: string,
+  onData: (items: ChatAnnouncement[]) => void,
+  onError: (error: Error) => void,
+): Unsubscribe {
+  const announcementsQuery = query(
+    collection(requireDb(), 'conversations', normalizeRoomId(roomId), 'announcements'),
+    orderBy('createdAt', 'desc'),
+    limit(30),
+  );
+  return onSnapshot(announcementsQuery, (snapshot) => {
+    onData(snapshot.docs.map((entry) => {
+      const data = entry.data();
+      return {
+        id: entry.id,
+        text: String(data.text ?? ''),
+        createdBy: String(data.createdBy ?? ''),
+        createdAt: timestampToDate(data.createdAt),
+        updatedAt: timestampToDate(data.updatedAt),
+      };
+    }));
+  }, onError);
+}
+
+export async function createChatAnnouncement(roomId: string, adminId: string, text: string) {
+  const message = text.trim();
+  if (message.length < 4) throw new Error('اكتب تعميماً واضحاً من أربعة أحرف على الأقل.');
+  if (message.length > 2500) throw new Error('التعميم طويل جداً. الحد الأقصى 2500 حرف.');
+  await addDoc(collection(requireDb(), 'conversations', normalizeRoomId(roomId), 'announcements'), {
+    text: message,
+    createdBy: adminId,
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  });
+}
+
+export async function updateChatAnnouncement(roomId: string, announcementId: string, text: string) {
+  const message = text.trim();
+  if (message.length < 4) throw new Error('اكتب تعميماً واضحاً من أربعة أحرف على الأقل.');
+  if (message.length > 2500) throw new Error('التعميم طويل جداً. الحد الأقصى 2500 حرف.');
+  await updateDoc(doc(requireDb(), 'conversations', normalizeRoomId(roomId), 'announcements', announcementId), {
+    text: message,
+    updatedAt: serverTimestamp(),
+  });
+}
+
+export async function deleteChatAnnouncement(roomId: string, announcementId: string) {
+  await deleteDoc(doc(requireDb(), 'conversations', normalizeRoomId(roomId), 'announcements', announcementId));
+}
+
+/* Each user can keep a different image background in every room. */
+const chatBackgroundRef = (userId: string, roomId: string) =>
+  doc(requireDb(), 'users', userId, 'chatBackgrounds', normalizeRoomId(roomId));
+
+export function subscribeChatBackground(
+  userId: string,
+  roomId: string,
+  onUrl: (url: string) => void,
+  onError: (error: Error) => void,
+): Unsubscribe {
+  return onSnapshot(chatBackgroundRef(userId, roomId), (snapshot) => {
+    const url = snapshot.exists() && typeof snapshot.data().url === 'string' ? snapshot.data().url : '';
+    onUrl(url);
+  }, onError);
+}
+
+export async function saveChatBackground(userId: string, roomId: string, url: string) {
+  await setDoc(chatBackgroundRef(userId, roomId), {
+    url,
+    updatedAt: serverTimestamp(),
+  }, { merge: true });
+}
+
+export async function clearChatBackground(userId: string, roomId: string) {
+  await deleteDoc(chatBackgroundRef(userId, roomId));
 }
