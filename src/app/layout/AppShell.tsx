@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import {
-  ArrowLeft, Bell, ChevronDown, ChevronLeft, CircleHelp, Command, LogOut, Menu,
+  ArrowLeft, Bell, ChevronDown, ChevronLeft, CircleHelp, Command, Menu,
   Moon, Search, Settings, ShieldCheck, Sun, X, type LucideIcon,
 } from 'lucide-react';
 import type { AppUser } from '../../types';
@@ -129,7 +129,7 @@ export function AppShell({
               </div>
               {search.trim() && <div className="eh-search-results">
                 {searchResults.length ? searchResults.map((item) => (
-                  <button type="button" key={item.page + item.id} onClick={() => onNavigate(item.page)}>
+                  <button type="button" key={item.page + item.id} onClick={() => { onSearch(''); onNavigate(item.page); }}>
                     <span><b>{item.title}</b><small>{item.sub}</small></span><ArrowLeft size={15}/>
                   </button>
                 )) : <div className="eh-search-empty">لا توجد نتائج مطابقة</div>}
