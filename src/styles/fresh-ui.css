@@ -1336,3 +1336,29 @@ img { max-width:100%; }
   .profile-onboarding-card { max-height:none;padding:22px 16px;border-radius:18px; }
   .profile-onboarding-card .onboarding-avatar { width:70px;height:70px;flex-basis:70px; }
 }
+
+/* Full-screen media viewer: navigation, zoom controls and thumbnails */
+.eh-app .chat-image-lightbox { overflow:hidden;gap:0;padding:0; }
+.eh-app .chat-lightbox-topbar {
+  position:absolute;z-index:2;top:0;inset-inline:0;min-height:66px;
+  display:flex;align-items:center;justify-content:space-between;gap:14px;padding:10px 20px;
+  border-bottom:1px solid rgba(255,255,255,.12);background:rgba(8,11,24,.72);backdrop-filter:blur(16px);
+}
+.eh-app .chat-lightbox-topbar>div:first-child { min-width:0;display:flex;flex-direction:column;gap:3px; }
+.eh-app .chat-lightbox-topbar b { color:#fff;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
+.eh-app .chat-lightbox-topbar small { color:rgba(255,255,255,.62);font:10px Inter,sans-serif; }
+.eh-app .chat-lightbox-tools { display:flex;align-items:center;gap:5px; }
+.eh-app .chat-lightbox-tools button { width:36px;height:36px;display:grid;place-items:center;border:1px solid rgba(255,255,255,.13);border-radius:9px;background:rgba(255,255,255,.07);color:#fff; }
+.eh-app .chat-lightbox-tools button:hover { background:rgba(255,255,255,.17); }
+.eh-app .chat-lightbox-tools>span { min-width:42px;color:rgba(255,255,255,.8);font:10px Inter,sans-serif;text-align:center; }
+.eh-app .chat-lightbox-stage { position:absolute;inset:75px 60px 90px;display:flex;align-items:center;justify-content:center;overflow:hidden; }
+.eh-app .chat-lightbox-stage>img { max-width:100%;max-height:100%;object-fit:contain;transform-origin:center;transition:transform .16s ease;user-select:none;cursor:grab; }
+.eh-app .chat-lightbox-stage>img:active { cursor:grabbing; }
+.eh-app .chat-lightbox-stage button { position:absolute;z-index:2;top:50%;width:45px;height:45px;display:grid;place-items:center;border:1px solid rgba(255,255,255,.18);border-radius:50%;background:rgba(255,255,255,.1);color:#fff;transform:translateY(-50%); }
+.eh-app .chat-lightbox-stage button:hover { background:rgba(255,255,255,.23); }
+.eh-app .chat-lightbox-prev { right:0; }
+.eh-app .chat-lightbox-next { left:0; }
+.eh-app .chat-lightbox-thumbs { position:absolute;inset-inline:0;bottom:0;min-height:75px;display:flex;align-items:center;justify-content:center;gap:8px;padding:9px 15px;background:rgba(8,11,24,.76);backdrop-filter:blur(16px);overflow-x:auto; }
+.eh-app .chat-lightbox-thumbs button { width:54px;height:52px;flex:0 0 54px;padding:2px;border:1px solid rgba(255,255,255,.15);border-radius:8px;background:transparent;opacity:.58;overflow:hidden; }
+.eh-app .chat-lightbox-thumbs button.active { opacity:1;border:2px solid #a99aff; }
+.eh-app .chat-lightbox-thumbs img { display:block;width:100%;height:100%;object-fit:cover;border-radius:5px; }
