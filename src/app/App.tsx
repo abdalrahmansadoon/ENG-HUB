@@ -1411,70 +1411,125 @@ function ChatPage({ user, cloudinarySettings, isDemo, isAdmin, onBack }: {
 }
 
 function PlannerPage({ tasks }: { tasks: StudyTask[] }) {
-  const [seconds, setSeconds] = useState(25 * 60);
-  const [running, setRunning] = useState(false);
-  const [mode, setMode] = useState<'focus' | 'break'>('focus');
-  useEffect(() => {
-    if (!running) return;
-    const timer = window.setInterval(() => setSeconds((value) => {
-      if (value <= 1) { setRunning(false); return 0; }
-      return value - 1;
-    }), 1000);
-    return () => window.clearInterval(timer);
-  }, [running]);
-  const switchMode = (next: 'focus' | 'break') => {
-    setMode(next);
-    setSeconds(next === 'focus' ? 25 * 60 : 5 * 60);
-    setRunning(false);
-  };
-  const timeLabel = String(Math.floor(seconds / 60)).padStart(2, '0') + ':' + String(seconds % 60).padStart(2, '0');
-  const upcoming = tasks.filter((task) => task.status !== 'completed').sort((a, b) => new Date(a.dueAt).getTime() - new Date(b.dueAt).getTime());
-  return <>
-    <PageHeader eyebrow="PLAN YOUR DAY" title="مخطط المذاكرة" description="استخدم المؤقت لتنظيم وقت التركيز، وتابع مواعيد مهامك الفعلية."/>
-    <div className="planner-grid">
-      <section className="panel pomodoro-panel">
-        <div className="panel-head"><div><h3>مؤقت التركيز</h3><span>تقنية بومودورو — ركز ثم استرح</span></div><div className="pomodoro-spark"><Sparkles size={17}/></div></div>
-        <div className="pomodoro-tabs"><button className={mode === 'focus' ? 'active' : ''} onClick={() => switchMode('focus')}>وقت التركيز</button><button className={mode === 'break' ? 'active' : ''} onClick={() => switchMode('break')}>استراحة قصيرة</button></div>
-        <div className="timer-ring"><div className="timer-inner"><span>{mode === 'focus' ? 'FOCUS SESSION' : 'SHORT BREAK'}</span><b>{timeLabel}</b><small>{running ? 'المؤقت يعمل' : 'جاهز للبدء'}</small></div></div>
-        <button className="btn btn-primary timer-action" onClick={() => { if (seconds === 0) setSeconds(mode === 'focus' ? 25 * 60 : 5 * 60); setRunning(!running); }}>{running ? 'إيقاف مؤقت' : seconds === 0 ? 'ابدأ من جديد' : 'ابدأ التركيز'} <Play size={15}/></button>
+  const [seconds,setSeconds]=useState(25*60);
+  const [running,setRunning]=useState(false);
+  const [mode,setMode]=useState<'focus'|'break'>('focus');
+  const [completedSessions,setCompletedSessions]=useState(0);
+  useEffect(()=>{
+    if(!running)return;
+    const timer=window.setInterval(()=>setSeconds(value=>{
+      if(value<=1){setRunning(false);if(mode==='focus')setCompletedSessions(count=>count+1);return 0;}
+      return value-1;
+    }),1000);
+    return ()=>window.clearInterval(timer);
+  },[running,mode]);
+  const switchMode=(next:'focus'|'break')=>{setMode(next);setSeconds(next==='focus'?25*60:5*60);setRunning(false);};
+  const reset=()=>{setRunning(false);setSeconds(mode==='focus'?25*60:5*60);};
+  const timeLabel=String(Math.floor(seconds/60)).padStart(2,'0')+':'+String(seconds%60).padStart(2,'0');
+  const upcoming=[...tasks].filter(task=>task.status!=='completed').sort((a,b)=>new Date(a.dueAt).getTime()-new Date(b.dueAt).getTime());
+  const today=new Date();
+  const todayTasks=upcoming.filter(task=>new Date(task.dueAt).toDateString()===today.toDateString());
+  const progress=(mode==='focus'?25*60:5*60)-seconds;
+  const percent=Math.max(0,Math.min(100,Math.round(progress/(mode==='focus'?25*60:5*60)*100)));
+  return <div className="eh-planner-page">
+    <PageHeader eyebrow="STUDY PLANNER" title="مخطط المذاكرة" description="قسّم وقتك، ركّز على مهمة واحدة، وتابع المواعيد القادمة."/>
+    <section className="eh-planner-summary">
+      <div><span className="eh-eyebrow">TODAY</span><h2>{today.toLocaleDateString('ar-EG',{weekday:'long',day:'numeric',month:'long'})}</h2><p>لديك {todayTasks.length} مهمة بموعد انتهاء اليوم.</p></div>
+      <div className="eh-planner-summary-count"><b>{completedSessions}</b><span>جلسات تركيز مكتملة في هذه الجلسة</span></div>
+    </section>
+    <div className="eh-planner-grid">
+      <section className="eh-surface-card eh-focus-card">
+        <div className="eh-card-heading"><div><span className="eh-eyebrow">FOCUS MODE</span><h2>مؤقت التركيز</h2><p>تقنية بومودورو — 25 دقيقة تركيز ثم استراحة قصيرة</p></div><span className="eh-focus-icon"><Timer size={20}/></span></div>
+        <div className="eh-focus-tabs"><button type="button" className={mode==='focus'?'active':''} onClick={()=>switchMode('focus')}>جلسة تركيز · 25 دقيقة</button><button type="button" className={mode==='break'?'active':''} onClick={()=>switchMode('break')}>استراحة · 5 دقائق</button></div>
+        <div className="eh-focus-clock" style={{'--focus-progress':percent*3.6+'deg'} as React.CSSProperties}>
+          <div><small>{mode==='focus'?'FOCUS SESSION':'SHORT BREAK'}</small><b>{timeLabel}</b><span>{running?'أنت في جلسة تركيز':'جاهز عندما تكون مستعداً'}</span></div>
+        </div>
+        <div className="eh-focus-controls">
+          <button type="button" className="eh-button primary" onClick={()=>{if(seconds===0)setSeconds(mode==='focus'?25*60:5*60);setRunning(value=>!value);}}>{running?<Pause size={16}/>:<Play size={16} fill="currentColor"/>}{running?'إيقاف مؤقت':seconds===0?'ابدأ من جديد':'ابدأ التركيز'}</button>
+          <button type="button" className="eh-button" onClick={reset}><RotateCcw size={16}/> إعادة ضبط</button>
+        </div>
+        <div className="eh-focus-note"><Sparkles size={14}/> أبعد المشتتات وابدأ بمهمة واحدة فقط.</div>
       </section>
-      <section className="panel today-plan">
-        <div className="panel-head"><div><h3>المهام المرتبطة بموعد</h3><span>{new Date().toLocaleDateString('ar-EG', { weekday: 'long', day: 'numeric', month: 'long' })}</span></div><button className="icon-button"><CalendarDays size={17}/></button></div>
-        {upcoming.length ? <div className="timeline">{upcoming.slice(0, 8).map((task) => <div className="timeline-row" key={task.id}><time>{new Date(task.dueAt).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })}</time><i/><div><b>{task.title}</b><span>{task.subjectName} · {new Date(task.dueAt).toLocaleDateString('ar-EG')}</span></div><span className={'priority-badge priority-' + task.priority}>{priorityText[task.priority]}</span></div>)}</div> : <EmptyState title="لا توجد مهام في خطتك بعد" body="ستظهر هنا المهام المنشورة التي لم تنتهِ بعد."/>}
+      <section className="eh-surface-card eh-planner-agenda">
+        <div className="eh-card-heading"><div><span className="eh-eyebrow">UPCOMING TASKS</span><h2>جدول مهامك</h2><p>مرتبة حسب موعد الانتهاء</p></div><span className="eh-agenda-count">{upcoming.length} مهام</span></div>
+        <div className="eh-planner-timeline">
+          {upcoming.slice(0,10).map((task,index)=><article className="eh-planner-task" key={task.id}>
+            <div className="eh-planner-task-date"><b>{new Date(task.dueAt).toLocaleDateString('ar-EG',{day:'numeric'})}</b><small>{new Date(task.dueAt).toLocaleDateString('ar-EG',{month:'short'})}</small></div>
+            <span className="eh-planner-task-mark"/>
+            <div className="eh-planner-task-copy"><b>{task.title}</b><small>{task.subjectName||'مهمة عامة'} · {task.startAt?'بداية '+new Date(task.startAt).toLocaleTimeString('ar-EG',{hour:'2-digit',minute:'2-digit'}):'موعد تسليم'} </small></div>
+            <span className={'eh-planner-priority '+task.priority}>{priorityText[task.priority]}</span>
+          </article>)}
+          {upcoming.length===0&&<EmptyState title="لا توجد مهام مجدولة" body="عندما تُسند إليك مهام ستظهر مواعيدها هنا."/>}
+        </div>
       </section>
     </div>
-  </>;
+  </div>;
 }
 
 function AnalyticsPage({ tasks, subjects, lectures }: { tasks: StudyTask[]; subjects: Subject[]; lectures: Lecture[] }) {
-  const completed = tasks.filter((task) => task.status === 'completed').length;
-  const completion = tasks.length ? Math.round(completed / tasks.length * 100) : 0;
-  const inProgress = tasks.filter((task) => task.status === 'in-progress').length;
-  const notStarted = tasks.filter((task) => task.status === 'not-started').length;
-  return <>
-    <PageHeader eyebrow="YOUR PERFORMANCE" title="إحصائياتك الدراسية" description="تعرض هذه الصفحة أرقاماً مستندة إلى نشاطك المسجل فقط."/>
-    <div className="analytics-summary">
-      <div className="analytics-score"><div className="score-ring"><div><b>{completion}%</b><span>إنجاز المهام</span></div></div><div><div className="eyebrow">YOUR PRODUCTIVITY</div><h2>ملخص تقدمك</h2><p>{tasks.length ? 'يتم حساب النسبة من المهام المسجلة في حسابك.' : 'ستظهر المؤشرات عند إضافة المهام والمحتوى الدراسي.'}</p></div></div>
-      <div className="analytics-kpis">
-        <div><span>ساعات المذاكرة</span><b>—</b><i>لا توجد جلسات مسجلة</i></div>
-        <div><span>محاضرات مكتملة</span><b>{lectures.filter((lecture) => lecture.progress === 100).length}</b><i>من أصل {lectures.length}</i></div>
-        <div><span>المهام المكتملة</span><b>{completed}</b><i>من أصل {tasks.length}</i></div>
+  const completed=tasks.filter(task=>task.status==='completed').length;
+  const inProgress=tasks.filter(task=>task.status==='in-progress').length;
+  const notStarted=tasks.filter(task=>task.status==='not-started').length;
+  const completion=tasks.length?Math.round(completed/tasks.length*100):0;
+  const late=tasks.filter(task=>task.status!=='completed'&&new Date(task.dueAt).getTime()<Date.now()).length;
+  const doneLectures=lectures.filter(lecture=>lecture.progress===100).length;
+  return <div className="eh-analytics-page">
+    <PageHeader eyebrow="STUDY INSIGHTS" title="إحصائياتي" description="قراءة واضحة لتقدمك الأكاديمي من البيانات المسجلة في حسابك."/>
+    <section className="eh-analytics-hero">
+      <div className="eh-analytics-overall">
+        <span className="eh-eyebrow">OVERALL TASK COMPLETION</span><h2>تقدمك الدراسي</h2><p>{tasks.length?'تُحسب النسبة من المهام المسجلة فعلياً.':'ستظهر مؤشراتك بمجرد تسجيل المهام ومتابعة حالتها.'}</p>
+        <div className="eh-analytics-progress"><span style={{width:completion+'%'}}/></div>
+        <div className="eh-analytics-progress-label"><b>{completion}%</b><small>{completed} من {tasks.length} مهمة مكتملة</small></div>
       </div>
-    </div>
-    <div className="analytics-grid">
-      <section className="panel"><div className="panel-head"><div><h3>تقدمك حسب المادة</h3><span>نسبة استكمال المحتوى المنشور</span></div></div>
-        <div className="analytics-subjects">{subjects.map((subject) => <div key={subject.id}><span className="analytics-subject-name"><i style={{ background: subject.color }}/>{subject.name}</span><div className="progress-track"><div style={{ width: subject.progress + '%', background: subject.color }}/></div><b>{subject.progress}%</b></div>)}
-        {subjects.length === 0 && <EmptyState title="لا توجد مواد لتحليلها" body="ستظهر إحصائيات المواد بعد إضافتها من لوحة الإدارة."/>}</div>
+      <div className="eh-analytics-ring" style={{'--analytics-degree':completion*3.6+'deg'} as React.CSSProperties}><div><b>{completion}%</b><span>نسبة الإنجاز</span></div></div>
+    </section>
+    <section className="eh-analytics-kpis">
+      <div><span className="eh-kpi-icon green"><CheckCircle2 size={19}/></span><small>مهام مكتملة</small><b>{completed}</b><em>من إجمالي {tasks.length}</em></div>
+      <div><span className="eh-kpi-icon blue"><Activity size={19}/></span><small>قيد التنفيذ</small><b>{inProgress}</b><em>مهام تعمل عليها</em></div>
+      <div><span className="eh-kpi-icon purple"><Clock3 size={19}/></span><small>لم تبدأ</small><b>{notStarted}</b><em>بانتظار البدء</em></div>
+      <div><span className="eh-kpi-icon amber"><AlertCircle size={19}/></span><small>متأخرة</small><b>{late}</b><em>تجاوزت موعد الانتهاء</em></div>
+    </section>
+    <div className="eh-analytics-grid">
+      <section className="eh-surface-card">
+        <div className="eh-card-heading"><div><span className="eh-eyebrow">SUBJECT PROGRESS</span><h2>التقدم حسب المادة</h2><p>نسب التقدم التي سجلها النظام للمقررات</p></div></div>
+        <div className="eh-analytics-subject-list">
+          {subjects.map(subject=><div className="eh-analytics-subject" key={subject.id}>
+            <span className="eh-analytics-subject-mark" style={{'--subject-color':subject.color} as React.CSSProperties}>{subject.icon||'∑'}</span>
+            <span className="eh-analytics-subject-copy"><b>{subject.name}</b><small>{subject.code}</small><i><span style={{width:subject.progress+'%',background:subject.color}}/></i></span>
+            <strong>{subject.progress}%</strong>
+          </div>)}
+          {subjects.length===0&&<EmptyState title="لا توجد مواد لتحليلها" body="ستظهر المواد هنا بعد نشرها وإضافة بيانات التقدم."/>}
+        </div>
       </section>
-      <section className="panel"><div className="panel-head"><div><h3>إنجاز المهام</h3><span>توزيع الحالات الحالية</span></div></div>
-        {tasks.length ? <div className="task-donut-wrap"><div className="task-donut"><div><b>{tasks.length}</b><span>مهمة</span></div></div><div className="donut-legend"><span><i className="legend-green"/> مكتملة <b>{completed}</b></span><span><i className="legend-purple"/> قيد التنفيذ <b>{inProgress}</b></span><span><i className="legend-gray"/> لم تبدأ <b>{notStarted}</b></span></div></div> : <EmptyState title="لا توجد مهام لتحليلها" body="ستظهر الإحصائيات بعد نشر المهام وتحديث حالتها."/>}
+      <section className="eh-surface-card">
+        <div className="eh-card-heading"><div><span className="eh-eyebrow">LEARNING CONTENT</span><h2>المحتوى الدراسي</h2><p>المحاضرات والمقررات المتاحة</p></div></div>
+        <div className="eh-content-insights">
+          <div><span><BookOpen size={17}/></span><b>{subjects.length}</b><small>مادة منشورة</small></div>
+          <div><span><Video size={17}/></span><b>{lectures.length}</b><small>محاضرة منشورة</small></div>
+          <div><span><CheckCircle2 size={17}/></span><b>{doneLectures}</b><small>محاضرة مكتملة</small></div>
+        </div>
+        <div className="eh-analytics-disclaimer"><Info size={15}/> لا نحسب ساعات مذاكرة تقديرية؛ ستظهر الساعات فقط عند توفر سجل جلسات فعلي.</div>
       </section>
     </div>
-  </>;
+  </div>;
 }
 
 function NotificationsPage({ items, setItems }: { items: AppNotification[]; setItems: (fn: (items: AppNotification[]) => AppNotification[]) => void }) {
-  return <><PageHeader eyebrow="UPDATES" title="الإشعارات" description="آخر التحديثات والتنبيهات الخاصة بموادك ومهامك." action={<button className="btn btn-outline" onClick={() => setItems((all) => all.map((item) => ({ ...item, read: true })))}><Check size={15}/> تحديد الكل كمقروء</button>}/><div className="panel notifications-panel">{items.map((item) => { const Icon = iconForKind[item.kind]; return <div className={`notification-row ${item.read ? '' : 'unread'}`} key={item.id}><div className={`notification-kind kind-${item.kind}`}><Icon size={18}/></div><div><b>{item.title}</b><p>{item.body}</p><span>{item.time}</span></div><div className="notification-actions">{!item.read && <i/>}<button className="icon-button" onClick={() => setItems((all) => all.map((n) => n.id === item.id ? { ...n, read: !n.read } : n))}>{item.read ? <Check size={15}/> : <MoreHorizontal size={18}/>}</button></div></div>; })}{items.length === 0 && <EmptyState title="لا توجد إشعارات" body="ستظهر هنا التحديثات الجديدة."/>}</div></>;
+  const [filter,setFilter]=useState<'all'|'unread'>('all');
+  const visible=items.filter(item=>filter==='all'||!item.read);
+  const unread=items.filter(item=>!item.read).length;
+  return <div className="eh-notifications-page">
+    <PageHeader eyebrow="NOTIFICATION CENTER" title="الإشعارات" description="كل التحديثات والتنبيهات المتعلقة بمساحتك الدراسية." action={unread>0?<button type="button" className="eh-button" onClick={()=>setItems(all=>all.map(item=>({...item,read:true})))}><CheckCheck size={16}/> تحديد الكل كمقروء</button>:null}/>
+    <section className="eh-surface-card eh-notifications-board">
+      <div className="eh-notifications-toolbar"><div><span className="eh-eyebrow">YOUR UPDATES</span><h2>مركز التنبيهات</h2><p>لديك {unread} إشعارات غير مقروءة</p></div><div className="eh-notifications-tabs"><button type="button" className={filter==='all'?'active':''} onClick={()=>setFilter('all')}>الكل <small>{items.length}</small></button><button type="button" className={filter==='unread'?'active':''} onClick={()=>setFilter('unread')}>غير مقروء <small>{unread}</small></button></div></div>
+      {visible.map(item=>{const Icon=iconForKind[item.kind];return <article className={'eh-notification-item '+(!item.read?'unread':'')} key={item.id}>
+        <span className={'eh-notification-icon '+item.kind}><Icon size={19}/></span>
+        <div className="eh-notification-copy"><b>{item.title}</b><p>{item.body}</p><small>{item.time}</small></div>
+        <button type="button" className="eh-notification-toggle" onClick={()=>setItems(all=>all.map(current=>current.id===item.id?{...current,read:!current.read}:current))} aria-label={item.read?'تحديد كغير مقروء':'تحديد كمقروء'}>{item.read?<Check size={16}/>:<span/>}</button>
+      </article>;})}
+      {visible.length===0&&<EmptyState title={filter==='unread'?'لا توجد تنبيهات غير مقروءة':'لا توجد إشعارات حتى الآن'} body={filter==='unread'?'لقد راجعت جميع الإشعارات.':'ستظهر هنا الإشعارات المتعلقة بمهامك ومحاضراتك.'}/>}
+    </section>
+  </div>;
 }
 
 function AdminPage({ tasks, subjects, lecturers, lectures, exams, files, currentUser, cloudinarySettings, onNewTask, onAddSubject, onAddLecturer, onAddLecture, onAddExam, onSaved, onError }: {
