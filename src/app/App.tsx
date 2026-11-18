@@ -3,7 +3,7 @@ import {
   Activity, AlarmClock, AlertCircle, ArrowDownLeft, ArrowLeft, ArrowUpLeft, Bell, BookOpen,
   BookOpenCheck, CalendarDays, Check, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight,
   CircleHelp, Clock3, CloudUpload, Code2, Command, Download, File, FileImage, FileText,
-  Filter, FolderOpen, GraduationCap, Grid2X2, Headphones, Home, Layers3, LogOut, Menu,
+  Filter, FolderOpen, GraduationCap, Grid2X2, Headphones, Home, Layers3, Lock, LogOut, Menu,
   MessageCircle, MoreHorizontal, Paperclip, Pause, Play, Plus, Search, Send, Settings, ShieldCheck,
   SlidersHorizontal, Sparkles, Sun, Moon, Target, Timer, TrendingUp, Upload, Users,
   Video, X, Zap, ClipboardList, CalendarClock, BookMarked, ListChecks, ChartNoAxesCombined,
