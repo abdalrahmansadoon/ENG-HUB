@@ -105,7 +105,7 @@ export async function updateAcademicContentNode(
   nodeId: string,
   patch: Partial<Pick<AcademicContentNode, 'kind' | 'title' | 'description' | 'url' | 'mimeType' | 'duration' | 'parentId' | 'category' | 'linkedNodeIds' | 'customTypeName' | 'customTypeIcon' | 'customTypeColor' | 'canContainChildren' | 'publicationStatus' | 'sortOrder'>>,
 ) {
-  const allowed: Record<string, unknown> = { ...patch, updatedAt: serverTimestamp() };
+  const allowed: Record<string, any> = { ...patch, updatedAt: serverTimestamp() };
   if (typeof patch.title === 'string') allowed.title = patch.title.trim();
   if (Array.isArray(patch.linkedNodeIds)) allowed.linkedNodeIds = [...new Set(patch.linkedNodeIds)];
   await updateDoc(doc(requireDb(), 'subjects', subjectId, 'contentNodes', nodeId), allowed);
