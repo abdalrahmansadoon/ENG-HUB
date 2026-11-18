@@ -21,7 +21,7 @@ export interface ChatMessage {
   edited?: boolean;
   editedAt?: Date | null;
   attachments: ChatAttachment[];
-  replyTo?: { id: string; text: string; senderName: string } | null;
+  replyTo?: { id: string; text: string; senderName: string; thumb?: string } | null;
   reactions?: Record<string, string[]>;
 }
 
