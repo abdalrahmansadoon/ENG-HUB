@@ -87,6 +87,9 @@ function chatSettingsRef(roomId?: string) {
 function slowModeCooldownRef(userId: string, roomId?: string) {
   return doc(requireDb(), 'users', userId, 'chatSlowModeCooldowns', normalizeRoomId(roomId));
 }
+function chatReadStateRef(userId: string, roomId?: string) {
+  return doc(requireDb(), 'users', userId, 'chatReadStates', normalizeRoomId(roomId));
+}
 function timestampToDate(value: unknown): Date | null {
   if (!value) return null;
   if (value instanceof Date) return value;
@@ -94,6 +97,26 @@ function timestampToDate(value: unknown): Date | null {
     return (value as { toDate: () => Date }).toDate();
   }
   return null;
+}
+
+/* Cross-device last-read cursor for unread message markers in each room. */
+export function subscribeChatReadState(
+  userId: string,
+  roomId: string,
+  onReadAt: (date: Date | null) => void,
+  onError: (error: Error) => void,
+): Unsubscribe {
+  return onSnapshot(chatReadStateRef(userId, roomId), (snapshot) => {
+    onReadAt(snapshot.exists() ? timestampToDate(snapshot.data().lastReadAt) : null);
+  }, onError);
+}
+
+export async function markChatRoomRead(userId: string, roomId: string) {
+  if (!userId) return;
+  await setDoc(chatReadStateRef(userId, roomId), {
+    lastReadAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  }, { merge: true });
 }
 
 /* Membership is created in the room subcollection. A course room is keyed by course_<subjectId>. */
