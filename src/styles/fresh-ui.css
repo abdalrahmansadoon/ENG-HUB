@@ -2887,3 +2887,19 @@ body { font-family:"IBM Plex Sans Arabic","Cairo",system-ui,sans-serif; }
 .eh-app .eh-priority-task .eh-planner-task-copy{flex:1;min-width:0}
 .eh-app .eh-priority-task .eh-planner-task-copy b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text);font-size:11px}
 .eh-app .eh-priority-task .eh-planner-task-copy small{display:block;color:var(--muted);font-size:9px;margin-top:4px}
+
+.eh-app .eh-calendar-admin{padding:20px!important}
+.eh-app .eh-calendar-current{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px;margin:18px 0}
+.eh-app .eh-calendar-current label{display:grid;gap:7px;color:var(--text);font-size:11px;font-weight:800}
+.eh-app .eh-calendar-current select,.eh-app .eh-calendar-add input{width:100%;min-height:42px;padding:0 12px;border:1px solid var(--border);border-radius:10px;background:var(--surface2);color:var(--text)}
+.eh-app .eh-calendar-columns{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.eh-app .eh-calendar-columns>div{min-width:0;padding:14px;border:1px solid var(--border);border-radius:13px;background:var(--surface)}
+.eh-app .eh-calendar-columns h4{margin:0 0 12px;color:var(--text);font-size:12px}
+.eh-app .eh-calendar-add{display:flex;gap:7px;margin-bottom:10px}
+.eh-app .eh-calendar-add input{min-width:0;flex:1}
+.eh-app .eh-calendar-item{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 2px;border-top:1px solid var(--border);font-size:11px;color:var(--text)}
+.eh-app .eh-calendar-item b{color:var(--green);font-size:10px}
+.eh-app .eh-calendar-item button{border:0;background:transparent;color:var(--danger);font-size:10px}
+.eh-app .eh-calendar-save{display:flex;justify-content:flex-end;margin-top:16px}
+.eh-app .eh-calendar-note{display:flex;align-items:flex-start;gap:7px;margin-top:13px;color:var(--muted);font-size:10px;line-height:1.8}
+@media(max-width:650px){.eh-app .eh-calendar-current,.eh-app .eh-calendar-columns{grid-template-columns:1fr}.eh-app .eh-calendar-admin{padding:14px!important}}
