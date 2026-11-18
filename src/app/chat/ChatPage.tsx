@@ -864,10 +864,10 @@ export function ChatPage({ user, cloudinarySettings, isDemo, isAdmin, roomId, ro
               }}
             >
               <div className="chat-swipe-reply-indicator" aria-hidden="true"><ArrowDownLeft size={16}/></div>
-              {!mine && !grouped && <button type="button" className="chat-profile-avatar chat-profile-avatar-outside chat-profile-open" onClick={() => onOpenProfile(message.senderId)} aria-label={`فتح ملف ${message.senderName}`} title="عرض الملف الشخصي">
+              {!grouped && <button type="button" className="chat-profile-avatar chat-profile-avatar-outside chat-profile-open" onClick={() => onOpenProfile(message.senderId)} aria-label={`فتح ملف ${message.senderName}`} title="عرض الملف الشخصي">
                 {message.senderPhotoURL ? <img src={message.senderPhotoURL} alt=""/> : senderInitial}
               </button>}
-              {!mine && !grouped && <div className="msg-header"><button type="button" className="chat-profile-name-link" onClick={() => onOpenProfile(message.senderId)}>{message.senderName}</button>{message.pinned && <Pin size={11}/>}</div>}
+              {!grouped && <div className="msg-header"><button type="button" className="chat-profile-name-link" onClick={() => onOpenProfile(message.senderId)} title={`عرض ملف ${message.senderName}`}>{message.senderName}{mine ? ' · أنت' : ''}</button>{message.pinned && <Pin size={11}/>}</div>}
               {!message.deleted && message.replyTo && <button type="button" className="reply-block" onClick={() => jumpToMessage(message.replyTo!.id)}>
                 <span className="ru">{message.replyTo.senderName}</span><span className="rt">{messages.find((item) => item.id === message.replyTo!.id)?.deleted ? 'هذه الرسالة محذوفة' : message.replyTo.text}</span>
               </button>}
