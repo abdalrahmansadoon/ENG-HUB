@@ -1605,7 +1605,7 @@ function ChatPage({ user, cloudinarySettings, isDemo, isAdmin, roomId, roomTitle
     if (!isAdmin || !warningTarget) return;
     setModerationBusy(true);
     try {
-      await createGeneralChatWarning(warningTarget.senderId, user.uid, reason, roomId);
+      await createGeneralChatWarning(warningTarget.senderId, user.uid, reason, roomId, warningTarget.id);
       setNotice(`تم تسجيل تحذير إداري لـ ${warningTarget.senderName}.`);
       setWarningTarget(null);
     } catch (errorReason) {
@@ -1616,7 +1616,7 @@ function ChatPage({ user, cloudinarySettings, isDemo, isAdmin, roomId, roomTitle
   };
 
   const clearRoom = async () => {
-    if (!isAdmin || !window.confirm('سيتم حذف جميع رسائل المحادثة العامة نهائياً. هل تريد المتابعة؟')) return;
+    if (!isAdmin || !window.confirm(`سيتم حذف جميع رسائل ${roomTitle} نهائياً. هل تريد المتابعة؟`)) return;
     try {
       const { deleteGeneralChatRoomMessages } = await import('../lib/chat');
       await deleteGeneralChatRoomMessages(roomId);
@@ -1752,7 +1752,7 @@ function ChatPage({ user, cloudinarySettings, isDemo, isAdmin, roomId, roomTitle
       {notice && <div className="chat-inline-notice" role="status"><CheckCircle2 size={15}/><span>{notice}</span><button type="button" onClick={() => setNotice('')} aria-label="إغلاق"><X size={14}/></button></div>}
       {lockState.locked && <div className="chat-lock-banner"><Lock size={16}/><span><b>المحادثة مقفلة مؤقتاً.</b> {lockState.reason || 'تم إيقاف إرسال الطلاب بقرار من الإدارة.'} {lockState.endAt ? `موعد الفتح: ${lockState.endAt.toLocaleString('ar-EG', { dateStyle: 'short', timeStyle: 'short' })}` : 'سيتم فتحها يدوياً من الإدارة.'}</span>{isAdmin && <small>المدير يستطيع الإرسال</small>}</div>}
       {muteState.muted && <div className="chat-lock-banner"><ShieldCheck size={16}/><span>تم إيقاف الإرسال لحسابك {muteState.mutedUntil ? `حتى ${muteState.mutedUntil.toLocaleString('ar-EG', { dateStyle: 'short', timeStyle: 'short' })}` : 'حتى إلغاء الكتم من الإدارة'}.</span></div>}
-      {warnings.length > 0 && <div className="chat-warning-strip"><ShieldCheck size={15}/><span><b>تنبيه من إدارة المحادثة:</b> {warnings[0].reason}</span><small>{warnings[0].createdAt?.toLocaleDateString('ar-EG') || ''}</small></div>}
+      {warnings.length > 0 && <div className="chat-warning-strip"><ShieldCheck size={15}/><span><b>تنبيه من إدارة المحادثة:</b> {warnings[0].reason}</span><small>{warnings[0].createdAt?.toLocaleDateString('ar-EG') || ''}</small>{warnings[0].messageId && messages.some((item) => item.id === warnings[0].messageId) && <button type="button" onClick={() => jumpToMessage(warnings[0].messageId!)}>الانتقال للرسالة</button>}</div>}
 
       {announcements.length > 0 && <section className="chat-announcement-stack" aria-label="التعاميم الإدارية">
         {announcements.slice(0,5).map((item) => <article className="chat-announcement-card" key={item.id}>
