@@ -8,7 +8,7 @@ import {
   SlidersHorizontal, Sparkles, Sun, Moon, Target, Timer, TrendingUp, Upload, Users,
   Video, X, Zap, ClipboardList, CalendarClock, BookMarked, ListChecks, ChartNoAxesCombined,
   ImagePlus, Volume2, VolumeX, Maximize, Trash2, Pencil, Monitor, Smartphone,
-  Copy, Pin, Smile, CheckCheck, Flag,
+  Copy, Pin, Smile, CheckCheck, Flag, Minus,
 } from 'lucide-react';
 import { useAuth, registerAccount } from './AuthContext';
 import { defaultCloudinarySettings, isCloudinaryConfigured, saveCloudinarySettings, subscribeCloudinarySettings, type CloudinarySettings } from '../lib/cloudinary';
