@@ -23,6 +23,8 @@ import { AppShell } from './layout/AppShell';
 import { readEngHubRoute, buildEngHubHash, type SubjectCategory } from '../lib/routes';
 import { subscribeAcademicContent, createAcademicContentNode, deleteAcademicContentNode } from '../lib/academicContent';
 import { AcademicContentArea } from './academic/AcademicContentArea';
+import { ChatLockModal } from './chat/ChatLockModal';
+import { ChatMuteModal } from './chat/ChatMuteModal';
 import type { AcademicContentNode, CreateAcademicContentInput } from '../types/academicContent';
 
 const navGroups = [
