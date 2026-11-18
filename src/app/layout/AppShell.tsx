@@ -69,7 +69,7 @@ export function AppShell({
     return () => window.removeEventListener('keydown', handleShortcuts);
   }, [onCloseMobileNav, onSearch]);
 
-  const mobileItems = ['home', 'courses', 'tasks', 'chat', 'profile']
+  const mobileItems = ['home', 'courses', 'tasks', 'focus', 'chat']
     .map((id) => rootNav.find((item) => item.id === id) ?? (id === 'profile' ? { id, label: 'حسابي', icon: Settings } : null))
     .filter(Boolean) as AppNavItem[];
 
