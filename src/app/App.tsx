@@ -20,6 +20,10 @@ import { createExamCloud, createLectureCloud, createLecturePartCloud, createLect
 import { createGeneralChatWarning, deleteGeneralChatMessage, editGeneralChatMessage, getGeneralChatMuteStatus, joinGeneralChat, sendGeneralChatMessage, subscribeGeneralChat, subscribeGeneralChatMuteStatus, toggleGeneralChatMute, toggleGeneralChatPin, toggleGeneralChatReaction, type ChatAttachment, type ChatMessage, type ChatMuteStatus } from '../lib/chat';
 import type { AppNotification, AppUser, Exam, Lecture, LecturePart, Lecturer, LibraryFile, Priority, StudyTask, Subject, TaskStatus } from '../types';
 import { AppShell } from './layout/AppShell';
+import { readEngHubRoute, buildEngHubHash, type SubjectCategory } from '../lib/routes';
+import { subscribeAcademicContent, createAcademicContentNode, deleteAcademicContentNode } from '../lib/academicContent';
+import { AcademicContentArea } from './academic/AcademicContentArea';
+import type { AcademicContentNode, CreateAcademicContentInput } from '../types/academicContent';
 
 const navGroups = [
   { title: 'مساحة الدراسة', items: [
@@ -47,7 +51,8 @@ const iconForKind = { task: ClipboardList, lecture: Video, exam: BookOpenCheck, 
 function App() {
   const { user, isDemo, loading, profileComplete, completeProfile, saveProfile, deleteAccount, logout, toggleDemoRole, login, loginWithGoogle } = useAuth();
   const activeUser = user ?? { uid: '', displayName: 'طالب هندسة', email: '', photoURL: null, role: 'student' as const, academicYear: 'السنة الإعدادية', term: 'الترم الأول' };
-  const [page, setPage] = useState('home');
+  const initialRoute = readEngHubRoute();
+  const [page, setPage] = useState(initialRoute.page);
   const [mobileNav, setMobileNav] = useState(false);
   const [search, setSearch] = useState('');
   const [themePreference, setThemePreference] = useState<'system' | 'light' | 'dark'>(() => readLocal<'system' | 'light' | 'dark'>('themePreference', 'system'));
@@ -57,9 +62,12 @@ function App() {
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [lectures, setCloudLectures] = useState<Lecture[]>([]);
   const [lecturers, setLecturers] = useState<Lecturer[]>([]);
-  const [selectedSubjectId, setSelectedSubjectId] = useState('');
-  const [selectedLecturerId, setSelectedLecturerId] = useState('');
-  const [selectedLectureId, setSelectedLectureId] = useState('');
+  const [selectedSubjectId, setSelectedSubjectId] = useState(initialRoute.subjectId);
+  const [selectedSubjectCategory, setSelectedSubjectCategory] = useState<SubjectCategory | ''>(initialRoute.category);
+  const [selectedContentNodeId, setSelectedContentNodeId] = useState(initialRoute.contentNodeId);
+  const [selectedLecturerId, setSelectedLecturerId] = useState(initialRoute.lecturerId);
+  const [selectedLectureId, setSelectedLectureId] = useState(initialRoute.lectureId);
+  const [academicContent, setAcademicContent] = useState<AcademicContentNode[]>([]);
   const [lectureParts, setLectureParts] = useState<LecturePart[]>([]);
   const [exams, setExams] = useState<Exam[]>([]);
   const [files, setFiles] = useState<LibraryFile[]>([]);
@@ -82,6 +90,49 @@ function App() {
     return subscribeCloudinarySettings(setCloudinarySettings, (error) => setToast(`تعذر قراءة إعدادات Cloudinary: ${error.message}`));
   }, [user?.uid, isDemo]);
   useEffect(() => writeLocal('notifications', notifications), [notifications]);
+  useEffect(() => {
+    const applyLocation = () => {
+      const route = readEngHubRoute();
+      setPage(route.page);
+      setSelectedSubjectId(route.subjectId);
+      setSelectedSubjectCategory(route.category);
+      setSelectedContentNodeId(route.contentNodeId);
+      setSelectedLecturerId(route.lecturerId);
+      setSelectedLectureId(route.lectureId);
+      setMobileNav(false);
+    };
+    window.addEventListener('popstate', applyLocation);
+    window.addEventListener('hashchange', applyLocation);
+    return () => {
+      window.removeEventListener('popstate', applyLocation);
+      window.removeEventListener('hashchange', applyLocation);
+    };
+  }, []);
+
+  useEffect(() => {
+    const nextHash = buildEngHubHash({
+      page,
+      subjectId: selectedSubjectId,
+      category: selectedSubjectCategory,
+      lecturerId: selectedLecturerId,
+      lectureId: selectedLectureId,
+      contentNodeId: selectedContentNodeId,
+    });
+    if (window.location.hash !== nextHash) {
+      window.history.pushState({ engHubRoute: true }, '', `${window.location.pathname}${window.location.search}${nextHash}`);
+    }
+  }, [page, selectedSubjectId, selectedSubjectCategory, selectedLecturerId, selectedLectureId, selectedContentNodeId]);
+
+  useEffect(() => {
+    if (!user || isDemo || !selectedSubjectId) {
+      setAcademicContent([]);
+      return;
+    }
+    return subscribeAcademicContent(selectedSubjectId, isAdmin, setAcademicContent, (error) => {
+      setToast(`تعذر تحميل بنية المادة: ${error.message}`);
+    });
+  }, [user?.uid, isDemo, selectedSubjectId, isAdmin]);
+
   useEffect(() => writeLocal('themePreference', themePreference), [themePreference]);
   useEffect(() => {
     const media = window.matchMedia?.('(prefers-color-scheme: dark)');
@@ -220,6 +271,61 @@ function App() {
     }
   };
 
+
+  const addAcademicContent = async (input: CreateAcademicContentInput) => {
+    if (!selectedSubjectId) throw new Error('اختر المادة قبل إضافة المحتوى.');
+    if (isDemo) {
+      const next: AcademicContentNode = {
+        id: crypto.randomUUID(), subjectId: selectedSubjectId, parentId: input.parentId ?? null,
+        kind: input.kind, category: input.category, title: input.title.trim(), description: input.description ?? '',
+        url: input.url, mimeType: input.mimeType, duration: input.duration, linkedNodeIds: input.linkedNodeIds ?? [],
+        publicationStatus: input.publicationStatus ?? 'published', sortOrder: input.sortOrder ?? Date.now(),
+        createdBy: activeUser.uid, createdAt: new Date(), updatedAt: new Date(),
+      };
+      setAcademicContent((items) => [...items, next]);
+      return;
+    }
+    await createAcademicContentNode(selectedSubjectId, activeUser.uid, input);
+    setToast('تم حفظ المحتوى داخل المادة.');
+  };
+
+  const removeAcademicContent = async (node: AcademicContentNode) => {
+    if (!selectedSubjectId) return;
+    if (isDemo) {
+      const removeIds = new Set<string>([node.id]);
+      let changed = true;
+      while (changed) {
+        changed = false;
+        for (const item of academicContent) {
+          if (item.parentId && removeIds.has(item.parentId) && !removeIds.has(item.id)) {
+            removeIds.add(item.id); changed = true;
+          }
+        }
+      }
+      setAcademicContent((items) => items.filter((item) => !removeIds.has(item.id)));
+      setSelectedContentNodeId('');
+      return;
+    }
+    const deleted = await deleteAcademicContentNode(selectedSubjectId, node.id);
+    setSelectedContentNodeId('');
+    setToast(`تم حذف العنصر و${Math.max(0, deleted - 1)} من العناصر التابعة له.`);
+  };
+
+  const uploadAcademicAsset = async (file: File) => {
+    if (isDemo || !isCloudinaryConfigured(cloudinarySettings)) {
+      throw new Error('رفع الملفات يحتاج إلى ربط Cloudinary في لوحة الإدارة.');
+    }
+    const url = await uploadFile(file, cloudinarySettings);
+    return { url, mimeType: file.type || 'application/octet-stream' };
+  };
+
+  const changeAcademicRoute = (category: SubjectCategory, nodeId?: string) => {
+    setSelectedSubjectCategory(category);
+    setSelectedContentNodeId(nodeId || '');
+    setSelectedLecturerId('');
+    setSelectedLectureId('');
+  };
+
   const addExam = async (data: { title: string; subjectName: string; date: string; duration: string; questions: number }) => {
     setExamModal(false);
     try {
@@ -290,14 +396,32 @@ function App() {
       <div className={`eh-page-view ${page === 'chat' ? 'eh-chat-page' : ''}`}>
         {page === 'home' && <Dashboard userName={activeUser.displayName} tasks={tasks} subjects={subjects} exams={exams} lectures={lectures} onGo={setPage} onNewTask={() => setTaskModal(true)} onStatus={changeTaskStatus} canCreateTask={isAdmin}/>}
         {page === 'tasks' && <TasksPage tasks={tasks} onNew={() => setTaskModal(true)} onStatus={changeTaskStatus} onDelete={(id) => void removeTask(id)} canEdit={isAdmin}/>}
-        {(page === 'courses' || page === 'lectures') && <AcademicHubPage
+        {(page === 'courses' || page === 'lectures') && selectedSubjectId && selectedSubjectCategory && selectedSubjectCategory !== 'lectures' && subjects.find((item) => item.id === selectedSubjectId) && <AcademicContentArea
+          subject={subjects.find((item) => item.id === selectedSubjectId)!}
+          nodes={academicContent}
+          category={selectedSubjectCategory}
+          activeNodeId={selectedContentNodeId}
+          isAdmin={isAdmin}
+          onNavigate={(category, nodeId) => changeAcademicRoute(category, nodeId)}
+          onCreate={addAcademicContent}
+          onDelete={removeAcademicContent}
+          onUpload={uploadAcademicAsset}
+        />}
+        {(page === 'courses' || page === 'lectures') && (!selectedSubjectId || !selectedSubjectCategory || selectedSubjectCategory === 'lectures') && <AcademicHubPage
           subjects={subjects} lecturers={lecturers} lectures={lectures} parts={lectureParts}
           selectedSubjectId={selectedSubjectId} selectedLecturerId={selectedLecturerId} selectedLectureId={selectedLectureId}
+          subjectCategory={selectedSubjectCategory}
           canEdit={isAdmin}
-          onSelectSubject={(id) => { setSelectedSubjectId(id); setSelectedLecturerId(''); setSelectedLectureId(''); }}
-          onSelectLecturer={(id) => { setSelectedLecturerId(id); setSelectedLectureId(''); }}
+          onSelectSubject={(id) => { setSelectedSubjectId(id); setSelectedSubjectCategory(''); setSelectedContentNodeId(''); setSelectedLecturerId(''); setSelectedLectureId(''); }}
+          onSelectCategory={(category) => changeAcademicRoute(category)}
+          onSelectLecturer={(id) => { setSelectedSubjectCategory('lectures'); setSelectedLecturerId(id); setSelectedLectureId(''); }}
           onSelectLecture={setSelectedLectureId}
-          onBack={() => { if (selectedLectureId) setSelectedLectureId(''); else if (selectedLecturerId) setSelectedLecturerId(''); else setSelectedSubjectId(''); }}
+          onBack={() => {
+            if (selectedLectureId) setSelectedLectureId('');
+            else if (selectedLecturerId) setSelectedLecturerId('');
+            else if (selectedSubjectCategory) { setSelectedSubjectCategory(''); setSelectedContentNodeId(''); }
+            else setSelectedSubjectId('');
+          }}
           onAddSubject={() => setSubjectModal(true)}
           onAddLecturer={() => setLecturerModal(true)}
           onAddLecture={() => setLectureModal(true)}
