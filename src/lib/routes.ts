@@ -37,6 +37,10 @@ export function readEngHubRoute(hash = window.location.hash): EngHubRoute {
       if (category === 'chat') base.page = 'chat';
     }
     if (parts[4] === 'node') base.contentNodeId = parts[5] || '';
+    if (parts[4] === 'lecture') {
+      base.lectureId = parts[5] || '';
+      if (parts[6] === 'node') base.contentNodeId = parts[7] || '';
+    }
   }
   return base;
 }
@@ -48,6 +52,9 @@ export function buildEngHubHash(route: EngHubRoute): string {
   if (!route.subjectId) return '#/courses';
   const root = '#/courses/' + encode(route.subjectId);
   if (!route.category) return root;
+  if (route.category === 'lectures' && route.contentNodeId && route.lectureId) {
+    return root + '/category/lectures/lecture/' + encode(route.lectureId) + '/node/' + encode(route.contentNodeId);
+  }
   if (route.category === 'lectures' && route.contentNodeId) {
     return root + '/category/lectures/node/' + encode(route.contentNodeId);
   }
