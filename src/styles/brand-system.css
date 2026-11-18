@@ -420,7 +420,7 @@ button,input,textarea,select{font-family:inherit}
   .eh-app .eh-search:focus-within{position:absolute;inset-inline:58px 104px;top:11px;width:auto;max-width:none;z-index:70;background:var(--eh-card-bg)}
   .eh-app .eh-search input{min-width:0}
   .eh-app .eh-search kbd{display:none}
-  .eh-app .eh-copy-page-link{display:none}
+  .eh-app .eh-copy-page-link{display:grid!important;width:34px;height:34px;flex:0 0 34px}
   .eh-app .eh-page-view.eh-chat-page{height:calc(100dvh - 62px - 66px - env(safe-area-inset-bottom));min-height:300px;padding:5px 5px 3px}
   .eh-app .chat-reference-shell{border-radius:10px}
   .eh-app .chat-topbar{min-height:61px;padding:7px 9px;gap:7px}
@@ -445,4 +445,54 @@ button,input,textarea,select{font-family:inherit}
 }
 @media(prefers-reduced-motion:reduce){
   .eh-app *,.eh-app *::before,.eh-app *::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
+}
+
+/* Brand and interaction details added in the product foundation pass */
+.eh-app .eh-public-profile-page{max-width:1100px;margin:0 auto;padding:4px 0 30px}
+.eh-app .eh-public-profile-page>.eh-button{margin-bottom:18px}
+.eh-app .eh-public-profile-card{overflow:hidden;border:1px solid var(--eh-stroke);border-radius:22px;background:var(--eh-card-bg);box-shadow:0 18px 48px rgba(15,35,66,.07)}
+.eh-app .eh-public-profile-cover{height:180px;background:linear-gradient(112deg,#142746 0%,#244c78 58%,#1c756f 100%)}
+.eh-app .eh-public-profile-content{position:relative;padding:0 clamp(20px,4vw,44px) 34px}
+.eh-app .eh-public-profile-avatar{width:104px;height:104px;margin-top:-52px;margin-bottom:15px;border:5px solid var(--eh-card-bg);border-radius:50%;overflow:hidden;background:var(--eh-accent-wash);display:grid;place-items:center;color:var(--eh-accent);font-size:30px;font-weight:800}
+.eh-app .eh-public-profile-avatar img{width:100%;height:100%;object-fit:cover;display:block}
+.eh-app .eh-public-profile-content h1{font-size:clamp(25px,3vw,35px);font-weight:800;color:var(--eh-ink);margin:5px 0}
+.eh-app .eh-public-profile-username{font-size:11px;color:var(--eh-muted)}
+.eh-app .eh-public-profile-bio{max-width:680px;color:var(--eh-sub);line-height:2;font-size:13px;margin:14px 0}
+.eh-app .eh-public-profile-facts{display:flex;align-items:center;flex-wrap:wrap;gap:10px;margin-top:17px}
+.eh-app .eh-public-profile-facts span{display:inline-flex;align-items:center;gap:7px;min-height:37px;padding:0 12px;border:1px solid var(--eh-stroke);border-radius:10px;background:var(--eh-card-soft);font-size:11px;color:var(--eh-sub)}
+.eh-app .eh-public-profile-facts svg{color:var(--eh-accent)}
+.eh-app .eh-public-profile-state{min-height:260px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:25px;border:1px dashed var(--eh-stroke-strong);border-radius:18px;background:var(--eh-card-bg);text-align:center;color:var(--eh-sub)}
+.eh-app .eh-public-profile-state b{font-size:15px;color:var(--eh-ink)}
+.eh-app .eh-public-profile-state p{font-size:12px;color:var(--eh-sub);max-width:480px;line-height:1.8}
+.eh-app .eh-public-profile-state-icon{width:54px;height:54px;display:grid;place-items:center;border-radius:16px;background:var(--eh-card-soft);color:var(--eh-muted)}
+.eh-app .chat-profile-open{padding:0;border:1px solid var(--eh-stroke-strong);cursor:pointer}
+.eh-app .chat-profile-name-link{padding:0;border:0;background:transparent;color:inherit;font:inherit;font-weight:800;cursor:pointer}
+.eh-app .chat-profile-name-link:hover{color:var(--eh-accent);text-decoration:underline}
+.eh-app .chat-warning-strip{display:flex;align-items:center;gap:9px;min-height:42px;padding:8px 16px;border-bottom:1px solid var(--eh-stroke);background:var(--eh-warning-wash);color:var(--eh-warning);font-size:11px}
+.eh-app .chat-warning-strip span{flex:1;min-width:0}
+.eh-app .chat-warning-strip small{color:var(--eh-muted);font-size:9px;white-space:nowrap}
+.eh-app .chat-deleted-message{display:inline-flex;align-items:center;gap:6px;color:var(--eh-muted);font-size:11px;font-style:italic}
+.eh-app .eh-chat-settings-modal{width:min(610px,calc(100vw - 24px))}
+.eh-app .eh-chat-setting-toggle{display:flex;align-items:center;justify-content:space-between;gap:15px;padding:13px;border:1px solid var(--eh-stroke);border-radius:12px;background:var(--eh-card-soft)}
+.eh-app .eh-chat-setting-toggle span{display:flex;flex-direction:column;gap:3px}
+.eh-app .eh-chat-setting-toggle b{font-size:12px;color:var(--eh-ink)}
+.eh-app .eh-chat-setting-toggle small{font-size:10px;color:var(--eh-sub);line-height:1.6}
+.eh-app .eh-chat-setting-toggle input{width:20px;height:20px;flex:0 0 20px}
+.eh-app .eh-chat-lock-note{display:flex;align-items:flex-start;gap:9px;padding:11px 13px;border:1px solid color-mix(in srgb,var(--eh-accent) 22%,var(--eh-stroke));border-radius:11px;background:var(--eh-accent-wash);color:var(--eh-sub);font-size:10px;line-height:1.8}
+.eh-app .eh-chat-lock-note svg{flex:0 0 auto;color:var(--eh-accent);margin-top:2px}
+.eh-app .eh-profile-privacy{margin-top:5px}
+.eh-app .eh-content-category{transition:background .18s ease,border-color .18s ease,transform .18s ease}
+.eh-app .eh-content-category:hover{border-color:var(--eh-accent);transform:translateY(-1px)}
+.eh-app .eh-content-item-admin button:hover{background:var(--eh-danger-wash)}
+.eh-app .chat-context-menu{z-index:180}
+.eh-app .chat-context-overlay{z-index:170}
+@media(max-width:680px){
+  .eh-app .eh-copy-page-link{width:31px;height:31px;flex-basis:31px}
+  .eh-app .eh-topbar-actions{gap:4px}
+  .eh-app .eh-top-avatar{width:32px;height:32px;flex-basis:32px}
+  .eh-app .eh-public-profile-cover{height:132px}
+  .eh-app .eh-public-profile-content{padding-inline:18px}
+  .eh-app .eh-public-profile-avatar{width:84px;height:84px;margin-top:-42px}
+  .eh-app .chat-warning-strip{align-items:flex-start}
+  .eh-app .chat-warning-strip small{display:none}
 }
