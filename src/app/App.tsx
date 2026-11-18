@@ -1,6 +1,6 @@
 import { Fragment, useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode, type MouseEvent } from 'react';
 import {
-  Activity, AlarmClock, AlertCircle, ArrowDownLeft, ArrowLeft, ArrowUpLeft, Bell, BookOpen,
+  Activity, AlarmClock, AlertCircle, ArrowDownLeft, ArrowLeft, ArrowUpLeft, Bell, BookOpen, EyeOff,
   BookOpenCheck, CalendarDays, Check, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight,
   CircleHelp, Clock3, CloudUpload, Code2, Command, Download, File, FileImage, FileText,
   Filter, FolderOpen, GraduationCap, Grid2X2, Headphones, Home, Layers3, Lock, LogOut, Menu,
