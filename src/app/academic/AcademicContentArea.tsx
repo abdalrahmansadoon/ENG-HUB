@@ -130,6 +130,8 @@ export function AcademicContentArea({
       {(activeNode.kind === 'link' || activeNode.kind === 'exam' || activeNode.kind === 'assignment') && activeNode.url && <a className="eh-related-content-link" href={activeNode.url} target="_blank" rel="noreferrer"><ExternalLink size={17}/><span><b>{activeNode.kind === 'exam' ? 'فتح الاختبار' : activeNode.kind === 'assignment' ? 'فتح التكليف' : 'فتح الرابط'}</b><small>{activeNode.url}</small></span><ChevronLeft size={15}/></a>}
       {activeNode.kind === 'note' && <div className="eh-content-note">{activeNode.description || activeNode.title}</div>}
       {activeNode.kind === 'folder' && <p className="eh-content-note">افتح العناصر الموجودة داخل هذا المجلد من القائمة أعلاه.</p>}
+      {['exam','assignment'].includes(activeNode.kind) && !activeNode.url && <div className="eh-content-note">{activeNode.description || 'تفاصيل هذا العنصر متاحة في صفحة المحتوى المرتبط.'}</div>}
+      {activeNode.kind === 'file' && !activeNode.url && <div className="eh-content-note">لم يعد رابط الملف متاحاً. تواصل مع مدير المادة لإعادة رفعه.</div>}
       {activeNode.kind === 'lecture' && <p className="eh-content-note">هذه مساحة للمحاضرة. أضف تحتها أي عدد من الفيديوهات والملفات والاختبارات أو المجلدات الفرعية.</p>
       {activeNode.kind === 'lecturer' && <p className="eh-content-note">أضف محاضرات هذا المدرس داخل هذا القسم، أو أضف أي مجلدات ومصادر مرتبطة به.</p>}}
 
