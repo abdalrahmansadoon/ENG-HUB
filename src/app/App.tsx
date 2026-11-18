@@ -709,7 +709,7 @@ function ProfileCompletionScreen({ user, cloudinarySettings, onComplete, themeCl
 }
 
 function pageTitle(page: string) {
-  const titles: Record<string, string> = { 'student-profile': 'الملف الشخصي للطالب', home: 'الرئيسية', tasks: 'المهام', courses: 'المواد الدراسية', lectures: 'المحاضرات', exams: 'الاختبارات', files: 'مكتبة الملفات', chat: 'المحادثات', planner: 'مخطط المذاكرة', analytics: 'إحصائياتي', notifications: 'الإشعارات', admin: 'لوحة الإدارة', profile: 'الملف الشخصي' };
+  const titles: Record<string, string> = { 'student-profile': 'الملف الشخصي للطالب', home: 'الرئيسية', tasks: 'المهام', courses: 'المواد الدراسية', lectures: 'المحاضرات', exams: 'الاختبارات', files: 'مكتبة الملفات', chat: 'المحادثات', planner: 'مخطط المذاكرة', focus: 'مساحة التركيز', analytics: 'إحصائياتي', notifications: 'الإشعارات', admin: 'لوحة الإدارة', profile: 'الملف الشخصي' };
   return titles[page] ?? page;
 }
 
