@@ -504,6 +504,13 @@ function App() {
           activeNodeId={selectedContentNodeId || selectedLectureId || selectedLecturerId}
           isAdmin={isAdmin}
           onNavigate={(category, nodeId) => changeAcademicRoute(category, nodeId)}
+          onBackToSubject={() => {
+            setSelectedSubjectCategory('');
+            setSelectedContentNodeId('');
+            setSelectedLecturerId('');
+            setSelectedLectureId('');
+            setPage('courses');
+          }}
           onCreate={addAcademicContent}
           onDelete={removeAcademicContent}
           onUpload={uploadAcademicAsset}
