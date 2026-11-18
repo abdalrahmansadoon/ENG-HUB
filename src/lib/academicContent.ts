@@ -1,6 +1,6 @@
 import {
   addDoc, collection, doc, onSnapshot, query, serverTimestamp,
-  updateDoc, where, writeBatch, type Unsubscribe,
+  updateDoc, where, writeBatch, setDoc, doc, collection, onSnapshot, serverTimestamp, type Unsubscribe,
 } from 'firebase/firestore';
 import { db } from './firebase';
 import type { AcademicContentNode, CreateAcademicContentInput } from '../types/academicContent';
@@ -144,4 +144,20 @@ export async function deleteAcademicContentNode(subjectId: string, nodeId: strin
 
 export async function saveAcademicContentLinks(subjectId: string, nodeId: string, linkedNodeIds: string[]) {
   await updateAcademicContentNode(subjectId, nodeId, { linkedNodeIds });
+}
+
+export function subscribeCompletedAcademicContent(uid: string, onData: (ids: Set<string>) => void, onError: (error: Error) => void): Unsubscribe | undefined {
+  if (!db || !uid) return;
+  return onSnapshot(collection(db, 'users', uid, 'completedContent'), (snapshot) => {
+    onData(new Set(snapshot.docs.map((entry) => entry.id)));
+  }, onError);
+}
+export async function setAcademicContentCompleted(uid: string, nodeId: string, completed: boolean) {
+  const firestore = requireDb();
+  const ref = doc(firestore, 'users', uid, 'completedContent', nodeId);
+  if (completed) await setDoc(ref, { nodeId, completedAt: serverTimestamp(), updatedAt: serverTimestamp() });
+  else {
+    const { deleteDoc } = await import('firebase/firestore');
+    await deleteDoc(ref);
+  }
 }
