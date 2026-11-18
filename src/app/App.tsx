@@ -422,7 +422,10 @@ function pageTitle(page: string) {
 }
 
 function PageHeader({ eyebrow, title, description, action }: { eyebrow?: string; title: string; description?: string; action?: ReactNode }) {
-  return <div className="page-heading"><div>{eyebrow && <div className="eyebrow">{eyebrow}</div>}<h1>{title}</h1>{description && <p>{description}</p>}</div>{action}</div>;
+  return <header className="eh-page-heading">
+    <div>{eyebrow && <div className="eh-eyebrow">{eyebrow}</div>}<h1>{title}</h1>{description && <p>{description}</p>}</div>
+    {action && <div className="eh-page-heading-action">{action}</div>}
+  </header>;
 }
 
 function Dashboard({ userName, tasks, subjects, exams, lectures, onGo, onNewTask, onStatus, canCreateTask }: {
@@ -430,94 +433,176 @@ function Dashboard({ userName, tasks, subjects, exams, lectures, onGo, onNewTask
   onGo: (page: string) => void; onNewTask: () => void; onStatus: (id: string, status: TaskStatus) => void; canCreateTask: boolean;
 }) {
   const completed = tasks.filter((task) => task.status === 'completed').length;
-  const todo = tasks.filter((task) => task.status !== 'completed' && task.status !== 'under-review').length;
+  const pending = tasks.filter((task) => task.status !== 'completed' && task.status !== 'under-review').length;
   const currentExams = exams.filter((exam) => exam.status !== 'completed').length;
-  const upcomingTasks = tasks.filter((task) => task.status !== 'completed').slice(0, 4);
-  const deadlines = [
-    ...tasks.filter((task) => task.status !== 'completed').map((task) => ({ id: 'task-' + task.id, title: task.title, sub: task.subjectName, date: new Date(task.dueAt), kind: 'مهمة' })),
-    ...exams.filter((exam) => exam.status !== 'completed').map((exam) => ({ id: 'exam-' + exam.id, title: exam.title, sub: exam.subjectName, date: new Date(exam.date), kind: 'اختبار' })),
-  ].filter((item) => !Number.isNaN(item.date.getTime())).sort((a, b) => a.date.getTime() - b.date.getTime()).slice(0, 4);
-
-  return <>
-    <section className="welcome-banner">
-      <div className="welcome-content">
-        <div className="welcome-kicker"><Sparkles size={14}/> مساحة دراستك في مكان واحد</div>
-        <h1>أهلاً بعودتك، {userName} <span>👋</span></h1>
-        <p>كل ما تضيفه إلى مساحتك الدراسية سيظهر هنا تلقائياً.</p>
-        <div className="welcome-actions">
-          {canCreateTask && <button className="btn btn-primary" onClick={onNewTask}><Plus size={16}/> أضف مهمة جديدة</button>}
-          <button className="btn btn-glass" onClick={() => onGo('planner')}><CalendarDays size={16}/> مخطط المذاكرة</button>
+  const upcomingTasks = [...tasks].filter((task) => task.status !== 'completed')
+    .sort((a,b) => new Date(a.dueAt).getTime() - new Date(b.dueAt).getTime()).slice(0,4);
+  const upcoming = [
+    ...tasks.filter((task) => task.status !== 'completed').map((task) => ({id:'task-'+task.id,title:task.title,subject:task.subjectName,date:new Date(task.dueAt),kind:'مهمة'})),
+    ...exams.filter((exam) => exam.status !== 'completed').map((exam) => ({id:'exam-'+exam.title,title:exam.title,subject:exam.subjectName,date:new Date(exam.date),kind:'اختبار'})),
+  ].filter((item) => !Number.isNaN(item.date.getTime())).sort((a,b)=>a.date.getTime()-b.date.getTime()).slice(0,4);
+  const rate = tasks.length ? Math.round((completed / tasks.length) * 100) : 0;
+  const today = new Date().toLocaleDateString('ar-EG',{weekday:'long',day:'numeric',month:'long'});
+  return <div className="eh-home">
+    <section className="eh-welcome">
+      <div className="eh-welcome-copy">
+        <span className="eh-welcome-kicker"><Sparkles size={15}/> مساحة دراستك · {today}</span>
+        <h1>أهلاً بعودتك، <strong>{userName}</strong></h1>
+        <p>مساحتك الأكاديمية جاهزة. تابع مهامك ومحاضراتك ونظّم وقت دراستك من مكان واحد.</p>
+        <div className="eh-welcome-actions">
+          {canCreateTask && <button type="button" className="eh-button primary" onClick={onNewTask}><Plus size={17}/> إضافة مهمة</button>}
+          <button type="button" className="eh-button glass" onClick={() => onGo('planner')}><CalendarDays size={17}/> مخطط المذاكرة</button>
+          <button type="button" className="eh-button glass" onClick={() => onGo('chat')}><MessageCircle size={17}/> اذهب إلى الدردشة</button>
         </div>
       </div>
-      <div className="welcome-art"><div className="orbit orbit-one"/><div className="orbit orbit-two"/><div className="art-core"><GraduationCap size={43}/></div></div>
-      <div className="banner-noise"/>
+      <div className="eh-welcome-visual" aria-hidden="true">
+        <div className="eh-visual-orbit orbit-a"/><div className="eh-visual-orbit orbit-b"/>
+        <div className="eh-visual-core"><GraduationCap size={48}/></div>
+        <div className="eh-visual-chip"><BookOpenCheck size={15}/> Study smarter</div>
+      </div>
     </section>
 
-    <div className="section-title-row"><div><div className="eyebrow">نظرة سريعة</div><h2>ملخص مساحتك الدراسية</h2></div><span className="muted-label">الأرقام من بيانات حسابك الفعلية</span></div>
-    <div className="stats-grid">
-      <StatCard label="المهام المتبقية" value={todo.toString()} meta="مهام غير مكتملة" icon={<ListChecks size={19}/>} tone="violet"/>
-      <StatCard label="المهام المكتملة" value={completed.toString()} meta="مهام أنجزتها" icon={<CheckCircle2 size={19}/>} tone="green"/>
-      <StatCard label="المحاضرات" value={lectures.length.toString()} meta="محاضرات منشورة" icon={<Video size={19}/>} tone="blue"/>
-      <StatCard label="الاختبارات القادمة" value={currentExams.toString()} meta="اختبارات لم تنتهِ بعد" icon={<AlarmClock size={19}/>} tone="amber"/>
+    <div className="eh-section-heading">
+      <div><span className="eh-eyebrow">نظرة عامة</span><h2>ملخص دراستك</h2><p>مؤشرات محسوبة من بياناتك الفعلية</p></div>
+      <button type="button" className="eh-text-button" onClick={() => onGo('analytics')}>عرض التحليلات <ArrowLeft size={15}/></button>
     </div>
 
-    <div className="dashboard-grid">
-      <section className="panel tasks-panel">
-        <div className="panel-head"><div><h3>مهامك</h3><span>المهام المنشورة أو المسندة إليك</span></div><button className="text-link" onClick={() => onGo('tasks')}>كل المهام <ArrowLeft size={15}/></button></div>
-        <div className="task-list">{upcomingTasks.map((task) => <TaskRow key={task.id} task={task} onStatus={onStatus}/>)}</div>
-        {upcomingTasks.length === 0 && <EmptyState title="لا توجد مهام بعد" body="ستظهر هنا المهام التي يضيفها مدير المنصة."/>}
-      </section>
-      <section className="panel progress-panel">
-        <div className="panel-head"><div><h3>المواد الدراسية</h3><span>المواد التي ينشرها مدير المنصة</span></div><button className="icon-button" onClick={() => onGo('courses')}><MoreHorizontal size={19}/></button></div>
-        <div className="subject-progress-list">{subjects.slice(0, 5).map((subject) => <div className="subject-progress" key={subject.id}><div className="subject-mini-icon" style={{ background: subject.color + '18', color: subject.color }}>{subject.icon}</div><div className="subject-progress-main"><div><b>{subject.name}</b><span>{subject.progress}%</span></div><div className="progress-track"><div style={{ width: subject.progress + '%', background: subject.color }}/></div></div></div>)}</div>
-        {subjects.length === 0 && <EmptyState title="لم تتم إضافة مواد بعد" body="ستظهر المواد هنا بعد نشرها من لوحة الإدارة."/>}
-        <button className="panel-footer-link" onClick={() => onGo('courses')}>عرض المواد <ArrowLeft size={14}/></button>
-      </section>
-    </div>
+    <section className="eh-stat-grid">
+      <StatCard label="المهام المتبقية" value={pending.toString()} detail="تحتاج إلى متابعة" icon={<ListChecks size={20}/>} tone="purple"/>
+      <StatCard label="المهام المكتملة" value={completed.toString()} detail={tasks.length ? `من أصل ${tasks.length} مهمة` : 'لا توجد مهام بعد'} icon={<CheckCircle2 size={20}/>} tone="green"/>
+      <StatCard label="المحاضرات المنشورة" value={lectures.length.toString()} detail="في مكتبتك الأكاديمية" icon={<Play size={20}/>} tone="blue"/>
+      <StatCard label="الاختبارات القادمة" value={currentExams.toString()} detail="اختبارات لم تنته بعد" icon={<ClipboardList size={20}/>} tone="amber"/>
+    </section>
 
-    <div className="lower-grid">
-      <section className="panel schedule-panel"><div className="panel-head"><div><h3>نشاط المذاكرة</h3><span>سجل جلسات المذاكرة الفعلية</span></div></div><EmptyState title="لا توجد جلسات مسجلة بعد" body="عند توفر سجل جلسات المذاكرة ستظهر إحصائيات النشاط هنا."/></section>
-      <section className="panel deadline-panel"><div className="panel-head"><div><h3>المواعيد القادمة</h3><span>المواعيد من مهامك واختباراتك</span></div><button className="icon-button" onClick={() => onGo('planner')}><CalendarDays size={17}/></button></div>
-        {deadlines.map((item) => <div className="deadline-item" key={item.id}><div className="date-tile"><b>{item.date.toLocaleDateString('ar-EG', { day: 'numeric' })}</b><span>{item.date.toLocaleDateString('ar-EG', { month: 'short' })}</span></div><div className="deadline-copy"><b>{item.title}</b><span>{item.sub} · {item.kind}</span></div><span className="deadline-pill">{item.date.toLocaleDateString('ar-EG', { weekday: 'short' })}</span></div>)}
-        {deadlines.length === 0 && <EmptyState title="لا توجد مواعيد قادمة" body="ستظهر هنا مواعيد المهام والاختبارات المنشورة."/>}
-      </section>
+    <section className="eh-home-grid">
+      <div className="eh-surface-card eh-progress-card">
+        <div className="eh-card-heading"><div><span className="eh-eyebrow">MY PROGRESS</span><h2>إنجاز المهام</h2><p>نسبة إنجاز المهام المسجلة</p></div><span className="eh-progress-badge">{rate}%</span></div>
+        <div className="eh-progress-line"><span style={{width:rate+'%'}}/></div>
+        <div className="eh-progress-meta"><span><i className="eh-dot green"/> مكتملة <b>{completed}</b></span><span><i className="eh-dot purple"/> متبقية <b>{pending}</b></span></div>
+        <div className="eh-progress-footer"><span>تقدمك يظهر هنا مع تحديث المهام</span><button type="button" onClick={() => onGo('tasks')}>إدارة المهام <ArrowLeft size={14}/></button></div>
+      </div>
+
+      <div className="eh-surface-card eh-subject-overview">
+        <div className="eh-card-heading"><div><span className="eh-eyebrow">ACADEMIC LIBRARY</span><h2>المواد الدراسية</h2><p>{subjects.length} مواد متاحة لك</p></div><button type="button" className="eh-round-link" onClick={() => onGo('courses')} aria-label="عرض المواد"><ArrowLeft size={17}/></button></div>
+        {subjects.slice(0,4).map((subject) => <button type="button" className="eh-subject-line" key={subject.id} onClick={() => onGo('courses')}>
+          <span className="eh-subject-symbol" style={{'--subject-color':subject.color} as React.CSSProperties}>{subject.icon || '∑'}</span>
+          <span><b>{subject.name}</b><small>{subject.code}</small></span>
+          <span className="eh-subject-line-meta">{lectures.filter((item)=>item.subjectId===subject.id).length} محاضرة</span>
+          <ChevronLeft size={16}/>
+        </button>)}
+        {subjects.length === 0 && <EmptyState title="لا توجد مواد منشورة" body="عندما يضيف مدير المنصة المقررات ستظهر هنا."/>}
+      </div>
+    </section>
+
+    <section className="eh-home-grid eh-home-grid-bottom">
+      <div className="eh-surface-card eh-task-preview">
+        <div className="eh-card-heading"><div><span className="eh-eyebrow">UP NEXT</span><h2>المهام التي تحتاج انتباهك</h2><p>مرتبة حسب أقرب موعد انتهاء</p></div><button type="button" className="eh-text-button" onClick={() => onGo('tasks')}>كل المهام <ArrowLeft size={15}/></button></div>
+        <div className="eh-task-list">
+          {upcomingTasks.map((task) => <TaskRow key={task.id} task={task} onStatus={onStatus}/>)}
+          {upcomingTasks.length===0 && <EmptyState title="أنت على ما يرام" body="لا توجد مهام مفتوحة حالياً."/>}
+        </div>
+      </div>
+      <div className="eh-surface-card eh-agenda-card">
+        <div className="eh-card-heading"><div><span className="eh-eyebrow">UPCOMING</span><h2>المواعيد القادمة</h2><p>المهام والاختبارات</p></div><button type="button" className="eh-round-link" onClick={() => onGo('planner')} aria-label="فتح المخطط"><CalendarDays size={17}/></button></div>
+        <div className="eh-agenda-list">
+          {upcoming.map((item) => <div className="eh-agenda-item" key={item.id}>
+            <div className="eh-agenda-date"><b>{item.date.toLocaleDateString('ar-EG',{day:'numeric'})}</b><small>{item.date.toLocaleDateString('ar-EG',{month:'short'})}</small></div>
+            <div><b>{item.title}</b><small>{item.subject} · {item.kind}</small></div>
+            <span>{item.date.toLocaleDateString('ar-EG',{weekday:'short'})}</span>
+          </div>)}
+          {upcoming.length===0 && <EmptyState title="لا توجد مواعيد قادمة" body="ستظهر مواعيد المهام والاختبارات هنا."/>}
+        </div>
+      </div>
+    </section>
+
+    <div className="eh-quick-access">
+      <button type="button" onClick={() => onGo('courses')}><span className="qa-icon purple"><BookOpen size={18}/></span><span><b>المواد الدراسية</b><small>المقررات والمدرسون</small></span><ArrowLeft size={16}/></button>
+      <button type="button" onClick={() => onGo('files')}><span className="qa-icon blue"><FolderOpen size={18}/></span><span><b>مكتبة الملفات</b><small>المذكرات والمرفقات</small></span><ArrowLeft size={16}/></button>
+      <button type="button" onClick={() => onGo('exams')}><span className="qa-icon amber"><ClipboardList size={18}/></span><span><b>الاختبارات</b><small>مواعيد واختباراتك</small></span><ArrowLeft size={16}/></button>
     </div>
-    <div className="bottom-note"><Sparkles size={15}/><span>ستتحدث هذه المساحة تلقائياً عند إضافة محتوى جديد.</span><span className="note-decoration">ENG HUB · STUDY SMARTER</span></div>
-  </>;
+  </div>;
 }
 
-function StatCard({ label, value, meta, icon, tone, trend }: { label: string; value: string; meta: string; icon: ReactNode; tone: string; trend?: string }) {
-  return <div className="stat-card"><div className="stat-top"><span>{label}</span><div className={`stat-icon ${tone}`}>{icon}</div></div><div className="stat-value">{value}</div><div className="stat-meta">{meta}</div>{trend ? <div className="stat-trend">{trend}</div> : null}</div>;
+function StatCard({ label, value, detail, icon, tone }: { label: string; value: string; detail: string; icon: ReactNode; tone: string }) {
+  return <article className={`eh-stat-card tone-${tone}`}>
+    <div className="eh-stat-top"><span>{label}</span><span className="eh-stat-icon">{icon}</span></div>
+    <strong>{value}</strong><small>{detail}</small>
+  </article>;
 }
 
 function EmptyState({ title, body }: { title: string; body: string }) {
-  return <div className="empty-state"><div className="empty-icon"><Layers3 size={22}/></div><b>{title}</b><span>{body}</span></div>;
+  return <div className="eh-empty-state"><span><Layers3 size={22}/></span><b>{title}</b><p>{body}</p></div>;
 }
 
 function TaskRow({ task, onStatus }: { task: StudyTask; onStatus: (id: string, status: TaskStatus) => void }) {
   const due = new Date(task.dueAt);
   const completed = task.status === 'completed';
-  return <div className="task-row"><div className={`task-subject-dot dot-${task.subjectId}`}/><div className="task-row-copy"><b>{task.title}</b><span>{task.subjectName} <i>•</i> ينتهي {due.toLocaleDateString('ar-EG', { day: 'numeric', month: 'short' })}</span></div><span className={`priority-badge priority-${task.priority}`}>{priorityText[task.priority]}</span><button type="button" className={`task-complete-toggle ${completed ? 'completed' : ''}`} onClick={() => onStatus(task.id, completed ? 'in-progress' : 'completed')} aria-pressed={completed}><CheckCircle2 size={15}/><span>{completed ? 'مكتملة' : 'إكمال المهمة'}</span></button></div>;
+  const start = task.startAt ? new Date(task.startAt) : null;
+  return <article className={`eh-task-row ${completed?'is-completed':''}`}>
+    <button type="button" className={`eh-task-complete ${completed?'checked':''}`} onClick={() => onStatus(task.id,completed?'in-progress':'completed')} aria-label={completed?'إلغاء إكمال المهمة':'تحديد المهمة كمكتملة'} aria-pressed={completed}>{completed?<Check size={15}/>:null}</button>
+    <div className="eh-task-row-main"><b>{task.title}</b><span>{task.subjectName || 'مهمة عامة'}{start ? ` · تبدأ ${start.toLocaleDateString('ar-EG',{day:'numeric',month:'short'})}` : ''}</span></div>
+    <div className="eh-task-row-date"><small>موعد الانتهاء</small><b>{due.toLocaleDateString('ar-EG',{day:'numeric',month:'short'})}</b></div>
+  </article>;
 }
 
 function TasksPage({ tasks, onNew, onStatus, onDelete, canEdit }: {
-  tasks: StudyTask[];
-  onNew: () => void;
-  onStatus: (id: string, status: TaskStatus) => void;
-  onDelete: (id: string) => void;
-  canEdit: boolean;
+  tasks: StudyTask[]; onNew: () => void; onStatus: (id: string, status: TaskStatus) => void;
+  onDelete: (id: string) => void; canEdit: boolean;
 }) {
-  const [filter, setFilter] = useState('all');
-  const [query, setQuery] = useState('');
-  const filtered = tasks.filter((task) => (filter === 'all' || (filter === 'pending' ? task.status !== 'completed' : task.status === filter)) && (task.title + ' ' + task.subjectName).toLowerCase().includes(query.toLowerCase()));
-  return <>
-    <PageHeader eyebrow="TASK MANAGEMENT" title="إدارة المهام" description="المهام التي نشرها مدير المنصة أو أضفتها إلى خطتك." action={canEdit ? <button className="btn btn-primary" onClick={onNew}><Plus size={16}/> إنشاء مهمة</button> : undefined}/>
-    <div className="task-overview-strip"><div><b>{tasks.length}</b><span>إجمالي المهام</span></div><div><b>{tasks.filter((t) => t.status === 'completed').length}</b><span>مكتملة</span></div><div><b>{tasks.filter((t) => t.status === 'in-progress').length}</b><span>قيد التنفيذ</span></div><div><b>{tasks.filter((t) => t.status === 'under-review').length}</b><span>قيد المراجعة</span></div><div><b>{tasks.filter((t) => new Date(t.dueAt) < new Date() && t.status !== 'completed').length}</b><span>متأخرة</span></div></div>
-    <div className="panel table-panel"><div className="table-toolbar"><div className="filter-tabs">{[{ id: 'all', label: 'الكل' }, { id: 'pending', label: 'غير مكتملة' }, { id: 'completed', label: 'مكتملة' }, { id: 'under-review', label: 'قيد المراجعة' }].map((tab) => <button key={tab.id} className={filter === tab.id ? 'filter-tab active' : 'filter-tab'} onClick={() => setFilter(tab.id)}>{tab.label}</button>)}</div><div className="table-tools"><div className="inline-search"><Search size={15}/><input placeholder="ابحث في المهام" value={query} onChange={(e) => setQuery(e.target.value)}/></div></div></div>
-      <div className="tasks-table"><div className="table-head"><span>المهمة</span><span>المادة</span><span>الأولوية</span><span>البداية / الانتهاء</span><span>الحالة</span><span/></div>{filtered.map((task) => <div className="table-row" key={task.id}><div className="table-task"><button type="button" className={'task-check ' + (task.status === 'completed' ? 'is-complete' : '')} onClick={() => onStatus(task.id, task.status === 'completed' ? 'in-progress' : 'completed')} aria-label={task.status === 'completed' ? 'إلغاء إكمال المهمة' : 'تحديد المهمة كمكتملة'} aria-pressed={task.status === 'completed'}><Check size={14}/></button><div><b>{task.title}</b><span>أُضيفت {new Date(task.createdAt).toLocaleDateString('ar-EG')}</span></div></div><span className="table-secondary">{task.subjectName}</span><span><i className={'priority-dot priority-dot-' + task.priority}/>{priorityText[task.priority]}</span><span className="table-secondary task-dates-cell"><small>تبدأ: {task.startAt ? new Date(task.startAt).toLocaleDateString('ar-EG', { day: 'numeric', month: 'short' }) : '—'}</small><small>تنتهي: {new Date(task.dueAt).toLocaleDateString('ar-EG', { day: 'numeric', month: 'short' })}</small></span><span><span className={'status-chip status-' + task.status}>{statusText[task.status]}</span></span><TaskActionsMenu task={task} onStatus={onStatus} onDelete={onDelete} canEdit={canEdit}/></div>)}{filtered.length === 0 && <EmptyState title={tasks.length === 0 ? 'لا توجد مهام بعد' : 'لا توجد نتائج'} body={tasks.length === 0 ? 'ستظهر هنا المهام التي ينشرها مدير المنصة.' : 'جرّب تغيير عبارة البحث أو الفلتر.'}/>}</div>
-      <div className="table-footer"><span>عرض {filtered.length} من {tasks.length} مهمة</span><div><button className="pagination-button" disabled><ChevronRight size={14}/></button><button className="pagination-button active">1</button><button className="pagination-button" disabled><ChevronLeft size={14}/></button></div></div>
+  const [filter,setFilter]=useState<'all'|'pending'|'completed'|'in-progress'>('all');
+  const [query,setQuery]=useState('');
+  const counts = {
+    all:tasks.length,
+    pending:tasks.filter((task)=>!['completed','under-review'].includes(task.status)).length,
+    completed:tasks.filter((task)=>task.status==='completed').length,
+    'in-progress':tasks.filter((task)=>task.status==='in-progress').length,
+  };
+  const filtered = tasks.filter((task) => {
+    const stateMatch = filter==='all' || (filter==='pending' ? !['completed','under-review'].includes(task.status) : task.status===filter);
+    const textMatch = `${task.title} ${task.subjectName} ${task.description}`.toLowerCase().includes(query.toLowerCase());
+    return stateMatch && textMatch;
+  }).sort((a,b)=>new Date(a.dueAt).getTime()-new Date(b.dueAt).getTime());
+  return <div className="eh-tasks-page">
+    <PageHeader eyebrow="TASK CENTER" title="المهام" description="نظّم أولوياتك وتابع تقدمك ومواعيد التسليم." action={canEdit?<button type="button" className="eh-button primary" onClick={onNew}><Plus size={17}/> إنشاء مهمة</button>:null}/>
+    <div className="eh-task-metrics">
+      <div><span>كل المهام</span><b>{counts.all}</b><small>إجمالي المسند إليك</small></div>
+      <div><span>بانتظار التنفيذ</span><b>{counts.pending}</b><small>تحتاج إلى بدء أو متابعة</small></div>
+      <div><span>قيد التنفيذ</span><b>{counts['in-progress']}</b><small>تعمل عليها الآن</small></div>
+      <div><span>مكتملة</span><b>{counts.completed}</b><small>أنجزتها بنجاح</small></div>
     </div>
-  </>;
+    <section className="eh-surface-card eh-task-manager">
+      <div className="eh-task-toolbar">
+        <div className="eh-task-filters">
+          {([{id:'all',label:'الكل'},{id:'pending',label:'بانتظار التنفيذ'},{id:'in-progress',label:'قيد التنفيذ'},{id:'completed',label:'مكتملة'}] as const).map((item)=><button key={item.id} type="button" className={filter===item.id?'active':''} onClick={()=>setFilter(item.id)}>{item.label}<small>{counts[item.id]}</small></button>)}
+        </div>
+        <label className="eh-inline-search"><Search size={16}/><input value={query} onChange={(event)=>setQuery(event.target.value)} placeholder="ابحث عن مهمة..."/></label>
+      </div>
+      <div className="eh-task-board">
+        {filtered.map((task)=> {
+          const completed=task.status==='completed';
+          const overdue=!completed&&new Date(task.dueAt).getTime()<Date.now();
+          return <article className={`eh-task-card ${completed?'is-completed':''}`} key={task.id}>
+            <button type="button" className={`eh-task-complete ${completed?'checked':''}`} onClick={()=>onStatus(task.id,completed?'in-progress':'completed')} aria-label={completed?'إلغاء الإكمال':'إكمال المهمة'} aria-pressed={completed}>{completed?<Check size={15}/>:null}</button>
+            <div className="eh-task-card-body">
+              <div className="eh-task-card-title"><h3>{task.title}</h3><span className={`eh-status-tag ${completed?'complete':overdue?'overdue':task.status==='in-progress'?'progress':'pending'}`}>{completed?'مكتملة':overdue?'متأخرة':statusText[task.status]}</span></div>
+              {task.description && <p>{task.description}</p>}
+              <div className="eh-task-card-meta">
+                <span><BookOpen size={13}/>{task.subjectName||'مهمة عامة'}</span>
+                <span><FlagIcon priority={task.priority}/>{priorityText[task.priority]}</span>
+                <span><CalendarClock size={13}/>{task.startAt?new Date(task.startAt).toLocaleDateString('ar-EG',{day:'numeric',month:'short'}):'بداية غير محددة'} — {new Date(task.dueAt).toLocaleDateString('ar-EG',{day:'numeric',month:'short'})}</span>
+              </div>
+            </div>
+            <TaskActionsMenu task={task} onStatus={onStatus} onDelete={onDelete} canEdit={canEdit}/>
+          </article>;
+        })}
+        {filtered.length===0&&<EmptyState title={tasks.length===0?'لم تُسند إليك مهام بعد':'لا توجد نتائج مطابقة'} body={tasks.length===0?'ستظهر المهام هنا عندما ينشرها مدير المنصة.':'جرّب تغيير البحث أو حالة المهمة.'}/>}
+      </div>
+    </section>
+  </div>;
+}
+
+function FlagIcon({ priority }: { priority: Priority }) {
+  return <Flag size={13} className={`eh-priority-icon priority-${priority}`}/>;
 }
 
 function TaskActionsMenu({ task, onStatus, onDelete, canEdit }: {
