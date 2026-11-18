@@ -44,6 +44,7 @@ export interface ChatWarning {
   reason: string;
   createdAt: Date | null;
   createdBy: string;
+  messageId?: string;
 }
 export interface ChatRoomInfo {
   id: string;
@@ -385,17 +386,18 @@ export function subscribeGeneralChatWarnings(
       return {
         id: entry.id, userId: String(data.userId ?? ''), reason: String(data.reason ?? ''),
         createdAt: timestampToDate(data.createdAt), createdBy: String(data.createdBy ?? ''),
+        messageId: typeof data.messageId === 'string' ? data.messageId : undefined,
       } as ChatWarning;
     }).sort((a, b) => (b.createdAt?.getTime() ?? 0) - (a.createdAt?.getTime() ?? 0));
     onWarnings(warnings);
   }, onError);
 }
 
-export async function createGeneralChatWarning(userId: string, adminId: string, reason: string, roomId = GENERAL_CHAT_ID) {
+export async function createGeneralChatWarning(userId: string, adminId: string, reason: string, roomId = GENERAL_CHAT_ID, messageId?: string) {
   const text = reason.trim();
   if (!text) throw new Error('اكتب سبب التحذير أولاً.');
   await addDoc(collection(requireDb(), 'conversations', normalizeRoomId(roomId), 'warnings'), {
-    userId, reason: text.slice(0, 500), createdBy: adminId, createdAt: serverTimestamp(),
+    userId, reason: text.slice(0, 500), createdBy: adminId, messageId: messageId ?? null, createdAt: serverTimestamp(),
   });
 }
 
