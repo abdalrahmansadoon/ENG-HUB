@@ -1,6 +1,7 @@
 import {
-  addDoc, collection, deleteDoc, doc, getDoc, getDocs, limit, onSnapshot, orderBy, query,
-  arrayUnion, runTransaction, serverTimestamp, setDoc, Timestamp, updateDoc, where, writeBatch, type Unsubscribe,
+  addDoc, arrayUnion, collection, deleteDoc, doc, getDoc, getDocs, limit, onSnapshot,
+  orderBy, query, runTransaction, serverTimestamp, setDoc, Timestamp, updateDoc, where,
+  writeBatch, type Unsubscribe,
 } from 'firebase/firestore';
 import { db } from './firebase';
 
@@ -10,9 +11,7 @@ export interface ChatAttachment {
   mimeType: string;
   size: number;
 }
-
 export type ChatReactions = Record<string, string[]>;
-
 export interface ChatMessage {
   id: string;
   text: string;
@@ -31,75 +30,7 @@ export interface ChatMessage {
   deletedAt?: Date | null;
   deletedBy?: string | null;
 }
-
-const GENERAL_CHAT_ID = 'general';
-const EDIT_WINDOW_MS = 15 * 60 * 1000;
-const ALLOWED_REACTIONS = ['👍', '❤️', '😂', '😮', '🙏', '👏'];
-
-export interface ChatMuteStatus {
-  muted: boolean;
-  mutedUntil: Date | null;
-}
-
-const muteRef = (userId: string) => doc(requireDb(), 'conversations', GENERAL_CHAT_ID, 'mutes', userId);
-
-export function subscribeGeneralChatMuteStatus(
-  userId: string,
-  onStatus: (status: ChatMuteStatus) => void,
-  onError: (error: Error) => void,
-): Unsubscribe {
-  return onSnapshot(muteRef(userId), (snapshot) => {
-    const data = snapshot.exists() ? snapshot.data() : {};
-    const until = timestampToDate(data.mutedUntil);
-    onStatus({
-      muted: data.muted === true && (!until || until.getTime() > Date.now()),
-      mutedUntil: until,
-    });
-  }, onError);
-}
-
-export async function getGeneralChatMuteStatus(userId: string): Promise<ChatMuteStatus> {
-  const snapshot = await getDoc(muteRef(userId));
-  if (!snapshot.exists()) return { muted: false, mutedUntil: null };
-  const data = snapshot.data();
-  const until = timestampToDate(data.mutedUntil);
-  return {
-    muted: data.muted === true && (!until || until.getTime() > Date.now()),
-    mutedUntil: until,
-  };
-}
-
-export async function toggleGeneralChatMute(userId: string, adminId: string, minutes = 60) {
-  const ref = muteRef(userId);
-  const current = await getGeneralChatMuteStatus(userId);
-  const muted = !current.muted;
-  await setDoc(ref, {
-    userId,
-    muted,
-    mutedUntil: muted ? Timestamp.fromDate(new Date(Date.now() + minutes * 60 * 1000)) : null,
-    updatedAt: serverTimestamp(),
-    updatedBy: adminId,
-  }, { merge: true });
-  return muted;
-}
-
-export async function setGeneralChatMute(userId: string, adminId: string, minutes: number | null) {
-  await setDoc(muteRef(userId), {
-    userId,
-    muted: true,
-    mutedUntil: minutes && minutes > 0 ? Timestamp.fromDate(new Date(Date.now() + minutes * 60 * 1000)) : null,
-    updatedAt: serverTimestamp(),
-    updatedBy: adminId,
-  }, { merge: true });
-}
-
-export async function unmuteGeneralChatUser(userId: string, adminId: string) {
-  await setDoc(muteRef(userId), {
-    userId, muted: false, mutedUntil: null,
-    updatedAt: serverTimestamp(), updatedBy: adminId,
-  }, { merge: true });
-}
-
+export interface ChatMuteStatus { muted: boolean; mutedUntil: Date | null; }
 export interface ChatLockStatus {
   locked: boolean;
   startAt: Date | null;
@@ -107,7 +38,6 @@ export interface ChatLockStatus {
   reason: string;
   autoExpire: boolean;
 }
-
 export interface ChatWarning {
   id: string;
   userId: string;
@@ -115,99 +45,36 @@ export interface ChatWarning {
   createdAt: Date | null;
   createdBy: string;
 }
-
-const chatSettingsRef = () => doc(requireDb(), 'conversations', GENERAL_CHAT_ID, 'settings', 'chat');
-
-export function subscribeGeneralChatLockStatus(
-  onStatus: (status: ChatLockStatus) => void,
-  onError: (error: Error) => void,
-): Unsubscribe {
-  return onSnapshot(chatSettingsRef(), (snapshot) => {
-    const data = snapshot.exists() ? snapshot.data() : {};
-    const startAt = timestampToDate(data.startAt);
-    const endAt = timestampToDate(data.endAt);
-    const started = !startAt || startAt.getTime() <= Date.now();
-    const notEnded = !endAt || endAt.getTime() > Date.now();
-    onStatus({
-      locked: data.locked === true && started && notEnded,
-      startAt,
-      endAt,
-      reason: String(data.reason ?? ''),
-      autoExpire: data.autoExpire === true,
-    });
-  }, onError);
+export interface ChatRoomInfo {
+  id: string;
+  title: string;
+  type: 'global' | 'course';
+  courseId?: string;
 }
-
-export async function setGeneralChatLock(
-  adminId: string,
-  input: { startAt: Date; endAt?: Date | null; reason?: string; autoExpire?: boolean },
-) {
-  if (input.endAt && input.endAt.getTime() <= input.startAt.getTime()) {
-    throw new Error('وقت فتح الدردشة يجب أن يكون بعد وقت بداية القفل.');
-  }
-  await setDoc(chatSettingsRef(), {
-    locked: true,
-    startAt: Timestamp.fromDate(input.startAt),
-    endAt: input.autoExpire ? (input.endAt ? Timestamp.fromDate(input.endAt) : null) : null,
-    autoExpire: input.autoExpire === true,
-    reason: input.reason?.trim() ?? '',
-    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
-    updatedAt: serverTimestamp(),
-    updatedBy: adminId,
-  }, { merge: true });
-}
-
-export async function clearGeneralChatLock(adminId: string) {
-  await setDoc(chatSettingsRef(), {
-    locked: false, startAt: null, endAt: null, autoExpire: false,
-    reason: '', updatedAt: serverTimestamp(), updatedBy: adminId,
-  }, { merge: true });
-}
-
-export function subscribeGeneralChatWarnings(
-  userId: string,
-  onWarnings: (warnings: ChatWarning[]) => void,
-  onError: (error: Error) => void,
-): Unsubscribe {
-  const warningsQuery = query(
-    collection(requireDb(), 'conversations', GENERAL_CHAT_ID, 'warnings'),
-    where('userId', '==', userId),
-  );
-  return onSnapshot(warningsQuery, (snapshot) => {
-    const warnings = snapshot.docs.map((entry) => {
-      const data = entry.data();
-      return {
-        id: entry.id,
-        userId: String(data.userId ?? ''),
-        reason: String(data.reason ?? ''),
-        createdAt: timestampToDate(data.createdAt),
-        createdBy: String(data.createdBy ?? ''),
-      } as ChatWarning;
-    }).sort((a,b) => (b.createdAt?.getTime() ?? 0) - (a.createdAt?.getTime() ?? 0));
-    onWarnings(warnings);
-  }, onError);
-}
-
-export async function createGeneralChatWarning(userId: string, adminId: string, reason: string) {
-  const text = reason.trim();
-  if (!text) throw new Error('اكتب سبب التحذير أولاً.');
-  await addDoc(collection(requireDb(), 'conversations', GENERAL_CHAT_ID, 'warnings'), {
-    userId,
-    reason: text.slice(0, 500),
-    createdBy: adminId,
-    createdAt: serverTimestamp(),
-  });
-}
+export const GENERAL_CHAT_ID = 'general';
+const EDIT_WINDOW_MS = 15 * 60 * 1000;
+const ALLOWED_REACTIONS = ['👍', '❤️', '😂', '😮', '🙏', '👏'];
 
 function requireDb() {
   if (!db) throw new Error('Firebase غير متصل.');
   return db;
 }
-
-function messageRef(messageId: string) {
-  return doc(requireDb(), 'conversations', GENERAL_CHAT_ID, 'messages', messageId);
+function normalizeRoomId(roomId?: string) { return roomId?.trim() || GENERAL_CHAT_ID; }
+function conversationRef(roomId?: string) {
+  return doc(requireDb(), 'conversations', normalizeRoomId(roomId));
 }
-
+function messageCollection(roomId?: string) {
+  return collection(requireDb(), 'conversations', normalizeRoomId(roomId), 'messages');
+}
+function messageRef(messageId: string, roomId?: string) {
+  return doc(requireDb(), 'conversations', normalizeRoomId(roomId), 'messages', messageId);
+}
+function muteRef(userId: string, roomId?: string) {
+  return doc(requireDb(), 'conversations', normalizeRoomId(roomId), 'mutes', userId);
+}
+function chatSettingsRef(roomId?: string) {
+  return doc(requireDb(), 'conversations', normalizeRoomId(roomId), 'settings', 'chat');
+}
 function timestampToDate(value: unknown): Date | null {
   if (!value) return null;
   if (value instanceof Date) return value;
@@ -217,14 +84,22 @@ function timestampToDate(value: unknown): Date | null {
   return null;
 }
 
-export async function joinGeneralChat(user: { uid: string; displayName: string; photoURL?: string | null }) {
+/* Membership is created in the room subcollection. A course room is keyed by course_<subjectId>. */
+export async function joinGeneralChat(
+  user: { uid: string; displayName: string; photoURL?: string | null },
+  roomId = GENERAL_CHAT_ID,
+  roomTitle = 'المحادثة العامة',
+  courseId?: string,
+) {
   const firestore = requireDb();
-  const conversationRef = doc(firestore, 'conversations', GENERAL_CHAT_ID);
-
+  const normalizedRoomId = normalizeRoomId(roomId);
+  const isCourseRoom = normalizedRoomId.startsWith('course_') && Boolean(courseId);
+  const ref = doc(firestore, 'conversations', normalizedRoomId);
   try {
-    await setDoc(conversationRef, {
-      title: 'المحادثة العامة',
-      type: 'global',
+    await setDoc(ref, {
+      title: roomTitle,
+      type: isCourseRoom ? 'course' : 'global',
+      ...(isCourseRoom ? { courseId } : {}),
       createdBy: user.uid,
       createdAt: serverTimestamp(),
     });
@@ -232,8 +107,7 @@ export async function joinGeneralChat(user: { uid: string; displayName: string; 
     const code = (error as { code?: string })?.code;
     if (code !== 'permission-denied') throw error;
   }
-
-  const memberRef = doc(conversationRef, 'members', user.uid);
+  const memberRef = doc(ref, 'members', user.uid);
   const memberSnapshot = await getDoc(memberRef);
   if (memberSnapshot.exists()) {
     await updateDoc(memberRef, {
@@ -252,18 +126,17 @@ export async function joinGeneralChat(user: { uid: string; displayName: string; 
   }
 }
 
+/* Realtime messages and user-specific hidden-message IDs for the selected room. */
 export function subscribeGeneralChat(
   userId: string,
   onMessages: (messages: ChatMessage[]) => void,
   onError: (error: Error) => void,
+  roomId = GENERAL_CHAT_ID,
 ): Unsubscribe {
   const firestore = requireDb();
-  const messagesQuery = query(
-    collection(firestore, 'conversations', GENERAL_CHAT_ID, 'messages'),
-    orderBy('createdAt', 'desc'),
-    limit(200),
-  );
-  const hiddenRef = doc(firestore, 'users', userId, 'hiddenChatMessages', GENERAL_CHAT_ID);
+  const normalizedRoomId = normalizeRoomId(roomId);
+  const messagesQuery = query(messageCollection(normalizedRoomId), orderBy('createdAt', 'desc'), limit(200));
+  const hiddenRef = doc(firestore, 'users', userId, 'hiddenChatMessages', normalizedRoomId);
   let allMessages: ChatMessage[] = [];
   let hiddenIds = new Set<string>();
   const emit = () => onMessages(allMessages.filter((message) => !hiddenIds.has(message.id)));
@@ -308,11 +181,11 @@ export async function sendGeneralChatMessage(input: {
   senderPhotoURL?: string | null;
   attachments?: ChatAttachment[];
   replyTo?: { id: string; text: string; senderName: string } | null;
-}) {
+}, roomId = GENERAL_CHAT_ID) {
   const firestore = requireDb();
   if (!input.text.trim() && !input.attachments?.length) return;
   if (input.text.length > 5000) throw new Error('الرسالة طويلة جداً. الحد الأقصى 5000 حرف.');
-  await addDoc(collection(firestore, 'conversations', GENERAL_CHAT_ID, 'messages'), {
+  await addDoc(collection(firestore, 'conversations', normalizeRoomId(roomId), 'messages'), {
     text: input.text.trim(),
     senderId: input.senderId,
     senderName: input.senderName,
@@ -326,33 +199,29 @@ export async function sendGeneralChatMessage(input: {
   });
 }
 
-export async function editGeneralChatMessage(messageId: string, senderId: string, text: string) {
+export async function editGeneralChatMessage(messageId: string, senderId: string, text: string, roomId = GENERAL_CHAT_ID) {
   const nextText = text.trim();
   if (!nextText) throw new Error('لا يمكن حفظ رسالة فارغة.');
   if (nextText.length > 5000) throw new Error('الرسالة طويلة جداً. الحد الأقصى 5000 حرف.');
-  const ref = messageRef(messageId);
+  const ref = messageRef(messageId, roomId);
   const snapshot = await getDoc(ref);
   if (!snapshot.exists()) throw new Error('هذه الرسالة لم تعد موجودة.');
   const data = snapshot.data();
-  if (data.senderId !== senderId) throw new Error('يمكنك تعديل رسائلك فقط.');
+  if (data.senderId !== senderId || data.deleted === true) throw new Error('يمكنك تعديل رسائلك غير المحذوفة فقط.');
   const createdAt = timestampToDate(data.createdAt);
   if (!createdAt || Date.now() - createdAt.getTime() > EDIT_WINDOW_MS) {
     throw new Error('انتهت مهلة تعديل الرسالة (15 دقيقة).');
   }
-  await updateDoc(ref, {
-    text: nextText,
-    edited: true,
-    editedAt: serverTimestamp(),
-  });
+  await updateDoc(ref, { text: nextText, edited: true, editedAt: serverTimestamp() });
 }
 
-export async function toggleGeneralChatReaction(messageId: string, userId: string, emoji: string) {
+export async function toggleGeneralChatReaction(messageId: string, userId: string, emoji: string, roomId = GENERAL_CHAT_ID) {
   if (!ALLOWED_REACTIONS.includes(emoji)) throw new Error('رمز التفاعل غير مدعوم.');
   const firestore = requireDb();
   await runTransaction(firestore, async (transaction) => {
-    const ref = doc(firestore, 'conversations', GENERAL_CHAT_ID, 'messages', messageId);
+    const ref = doc(firestore, 'conversations', normalizeRoomId(roomId), 'messages', messageId);
     const snapshot = await transaction.get(ref);
-    if (!snapshot.exists()) throw new Error('هذه الرسالة لم تعد موجودة.');
+    if (!snapshot.exists() || snapshot.data().deleted === true) throw new Error('هذه الرسالة لم تعد متاحة.');
     const reactions = (snapshot.data().reactions ?? {}) as ChatReactions;
     const current = Array.isArray(reactions[emoji]) ? reactions[emoji] : [];
     const next = current.includes(userId) ? current.filter((id) => id !== userId) : [...current, userId];
@@ -363,60 +232,162 @@ export async function toggleGeneralChatReaction(messageId: string, userId: strin
   });
 }
 
-export async function toggleGeneralChatPin(messageId: string, adminId: string, pinned: boolean) {
-  await updateDoc(messageRef(messageId), {
-    pinned,
-    pinnedBy: pinned ? adminId : null,
-    pinnedAt: pinned ? serverTimestamp() : null,
+export async function toggleGeneralChatPin(messageId: string, adminId: string, pinned: boolean, roomId = GENERAL_CHAT_ID) {
+  await updateDoc(messageRef(messageId, roomId), {
+    pinned, pinnedBy: pinned ? adminId : null, pinnedAt: pinned ? serverTimestamp() : null,
   });
 }
 
-export async function softDeleteGeneralChatMessage(messageId: string, senderId: string) {
-  const ref = messageRef(messageId);
+export async function softDeleteGeneralChatMessage(messageId: string, senderId: string, roomId = GENERAL_CHAT_ID) {
+  const ref = messageRef(messageId, roomId);
   const snapshot = await getDoc(ref);
   if (!snapshot.exists()) throw new Error('هذه الرسالة لم تعد موجودة.');
   if (snapshot.data().senderId !== senderId) throw new Error('يمكنك حذف رسائلك فقط.');
-  await updateDoc(ref, {
-    deleted: true,
-    deletedAt: serverTimestamp(),
-    deletedBy: senderId,
-    text: '',
-    attachments: [],
-  });
+  await updateDoc(ref, { deleted: true, deletedAt: serverTimestamp(), deletedBy: senderId, text: '', attachments: [] });
 }
 
-export async function adminSoftDeleteGeneralChatMessage(messageId: string, adminId: string) {
-  const ref = messageRef(messageId);
+export async function adminSoftDeleteGeneralChatMessage(messageId: string, adminId: string, roomId = GENERAL_CHAT_ID) {
+  const ref = messageRef(messageId, roomId);
   const snapshot = await getDoc(ref);
   if (!snapshot.exists()) throw new Error('هذه الرسالة لم تعد موجودة.');
-  await updateDoc(ref, {
-    deleted: true,
-    deletedAt: serverTimestamp(),
-    deletedBy: adminId,
-    text: '',
-    attachments: [],
-  });
+  await updateDoc(ref, { deleted: true, deletedAt: serverTimestamp(), deletedBy: adminId, text: '', attachments: [] });
 }
 
-export async function hideGeneralChatMessageForUser(userId: string, messageId: string) {
+export async function hideGeneralChatMessageForUser(userId: string, messageId: string, roomId = GENERAL_CHAT_ID) {
   if (!userId) throw new Error('يجب تسجيل الدخول لإخفاء الرسالة من حسابك.');
-  const ref = doc(requireDb(), 'users', userId, 'hiddenChatMessages', GENERAL_CHAT_ID);
-  await setDoc(ref, {
-    messageIds: arrayUnion(messageId),
-    updatedAt: serverTimestamp(),
-  }, { merge: true });
+  const ref = doc(requireDb(), 'users', userId, 'hiddenChatMessages', normalizeRoomId(roomId));
+  await setDoc(ref, { messageIds: arrayUnion(messageId), updatedAt: serverTimestamp() }, { merge: true });
 }
 
-export async function deleteGeneralChatMessage(messageId: string) {
-  await deleteDoc(messageRef(messageId));
+export async function deleteGeneralChatMessage(messageId: string, roomId = GENERAL_CHAT_ID) {
+  await deleteDoc(messageRef(messageId, roomId));
 }
 
-export async function deleteGeneralChatRoomMessages() {
+export async function deleteGeneralChatRoomMessages(roomId = GENERAL_CHAT_ID) {
   const firestore = requireDb();
-  const snapshot = await getDocs(collection(firestore, 'conversations', GENERAL_CHAT_ID, 'messages'));
+  const snapshot = await getDocs(messageCollection(roomId));
   for (let offset = 0; offset < snapshot.docs.length; offset += 400) {
     const batch = writeBatch(firestore);
     snapshot.docs.slice(offset, offset + 400).forEach((entry) => batch.delete(entry.ref));
     await batch.commit();
   }
+}
+
+/* Moderation state and schedules are stored per room, not globally. */
+export async function subscribeGeneralChatMuteStatus(
+  userId: string,
+  onStatus: (status: ChatMuteStatus) => void,
+  onError: (error: Error) => void,
+  roomId = GENERAL_CHAT_ID,
+): Promise<Unsubscribe> {
+  return onSnapshot(muteRef(userId, roomId), (snapshot) => {
+    const data = snapshot.exists() ? snapshot.data() : {};
+    const until = timestampToDate(data.mutedUntil);
+    onStatus({ muted: data.muted === true && (!until || until.getTime() > Date.now()), mutedUntil: until });
+  }, onError);
+}
+
+export async function getGeneralChatMuteStatus(userId: string, roomId = GENERAL_CHAT_ID): Promise<ChatMuteStatus> {
+  const snapshot = await getDoc(muteRef(userId, roomId));
+  if (!snapshot.exists()) return { muted: false, mutedUntil: null };
+  const data = snapshot.data();
+  const until = timestampToDate(data.mutedUntil);
+  return { muted: data.muted === true && (!until || until.getTime() > Date.now()), mutedUntil: until };
+}
+
+export async function toggleGeneralChatMute(userId: string, adminId: string, minutes = 60, roomId = GENERAL_CHAT_ID) {
+  const ref = muteRef(userId, roomId);
+  const current = await getGeneralChatMuteStatus(userId, roomId);
+  const muted = !current.muted;
+  await setDoc(ref, {
+    userId, muted,
+    mutedUntil: muted ? Timestamp.fromDate(new Date(Date.now() + minutes * 60 * 1000)) : null,
+    updatedAt: serverTimestamp(), updatedBy: adminId,
+  }, { merge: true });
+  return muted;
+}
+
+export async function setGeneralChatMute(userId: string, adminId: string, minutes: number | null, roomId = GENERAL_CHAT_ID) {
+  await setDoc(muteRef(userId, roomId), {
+    userId, muted: true,
+    mutedUntil: minutes && minutes > 0 ? Timestamp.fromDate(new Date(Date.now() + minutes * 60 * 1000)) : null,
+    updatedAt: serverTimestamp(), updatedBy: adminId,
+  }, { merge: true });
+}
+
+export async function unmuteGeneralChatUser(userId: string, adminId: string, roomId = GENERAL_CHAT_ID) {
+  await setDoc(muteRef(userId, roomId), {
+    userId, muted: false, mutedUntil: null, updatedAt: serverTimestamp(), updatedBy: adminId,
+  }, { merge: true });
+}
+
+export function subscribeGeneralChatLockStatus(
+  onStatus: (status: ChatLockStatus) => void,
+  onError: (error: Error) => void,
+  roomId = GENERAL_CHAT_ID,
+): Unsubscribe {
+  return onSnapshot(chatSettingsRef(roomId), (snapshot) => {
+    const data = snapshot.exists() ? snapshot.data() : {};
+    const startAt = timestampToDate(data.startAt);
+    const endAt = timestampToDate(data.endAt);
+    const started = !startAt || startAt.getTime() <= Date.now();
+    const notEnded = !endAt || endAt.getTime() > Date.now();
+    onStatus({
+      locked: data.locked === true && started && notEnded,
+      startAt, endAt, reason: String(data.reason ?? ''), autoExpire: data.autoExpire === true,
+    });
+  }, onError);
+}
+
+export async function setGeneralChatLock(
+  adminId: string,
+  input: { startAt: Date; endAt?: Date | null; reason?: string; autoExpire?: boolean },
+  roomId = GENERAL_CHAT_ID,
+) {
+  if (input.endAt && input.endAt.getTime() <= input.startAt.getTime()) {
+    throw new Error('وقت فتح الدردشة يجب أن يكون بعد وقت بداية القفل.');
+  }
+  await setDoc(chatSettingsRef(roomId), {
+    locked: true,
+    startAt: Timestamp.fromDate(input.startAt),
+    endAt: input.autoExpire ? (input.endAt ? Timestamp.fromDate(input.endAt) : null) : null,
+    autoExpire: input.autoExpire === true,
+    reason: input.reason?.trim() ?? '',
+    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
+    updatedAt: serverTimestamp(), updatedBy: adminId,
+  }, { merge: true });
+}
+
+export async function clearGeneralChatLock(adminId: string, roomId = GENERAL_CHAT_ID) {
+  await setDoc(chatSettingsRef(roomId), {
+    locked: false, startAt: null, endAt: null, autoExpire: false,
+    reason: '', updatedAt: serverTimestamp(), updatedBy: adminId,
+  }, { merge: true });
+}
+
+export function subscribeGeneralChatWarnings(
+  userId: string,
+  onWarnings: (warnings: ChatWarning[]) => void,
+  onError: (error: Error) => void,
+  roomId = GENERAL_CHAT_ID,
+): Unsubscribe {
+  const warningsQuery = query(collection(requireDb(), 'conversations', normalizeRoomId(roomId), 'warnings'), where('userId', '==', userId));
+  return onSnapshot(warningsQuery, (snapshot) => {
+    const warnings = snapshot.docs.map((entry) => {
+      const data = entry.data();
+      return {
+        id: entry.id, userId: String(data.userId ?? ''), reason: String(data.reason ?? ''),
+        createdAt: timestampToDate(data.createdAt), createdBy: String(data.createdBy ?? ''),
+      } as ChatWarning;
+    }).sort((a, b) => (b.createdAt?.getTime() ?? 0) - (a.createdAt?.getTime() ?? 0));
+    onWarnings(warnings);
+  }, onError);
+}
+
+export async function createGeneralChatWarning(userId: string, adminId: string, reason: string, roomId = GENERAL_CHAT_ID) {
+  const text = reason.trim();
+  if (!text) throw new Error('اكتب سبب التحذير أولاً.');
+  await addDoc(collection(requireDb(), 'conversations', normalizeRoomId(roomId), 'warnings'), {
+    userId, reason: text.slice(0, 500), createdBy: adminId, createdAt: serverTimestamp(),
+  });
 }
