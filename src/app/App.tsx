@@ -531,6 +531,7 @@ function App() {
         {page === 'tasks' && <TasksPage tasks={tasks} onNew={() => setTaskModal(true)} onStatus={changeTaskStatus} onDelete={(id) => void removeTask(id)} canEdit={isAdmin}/>}
         {(page === 'courses' || page === 'lectures') && selectedSubjectId && selectedSubjectCategory && selectedSubjectCategory !== 'chat' && subjects.find((item) => item.id === selectedSubjectId) && <AcademicContentArea
           subject={subjects.find((item) => item.id === selectedSubjectId)!}
+          currentUserId={activeUser.uid}
           nodes={academicContentWithLegacy}
           category={selectedSubjectCategory as AcademicContentCategory}
           activeNodeId={selectedContentNodeId || selectedLectureId || selectedLecturerId}
