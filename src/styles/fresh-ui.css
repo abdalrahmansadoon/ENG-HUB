@@ -1793,7 +1793,7 @@ img { max-width:100%; }
 .eh-app .eh-analytics-progress-label b { color:var(--purple);font:800 17px Inter,sans-serif; }
 .eh-app .eh-analytics-progress-label small { color:var(--muted);font-size:9px; }
 .eh-app .eh-analytics-ring { width:142px;height:142px;flex:0 0 142px;display:grid;place-items:center;border:0;border-radius:50%;background:conic-gradient(var(--purple) var(--analytics-degree,0deg),var(--surface3) 0);position:relative; }
-.eh-app .eh-analytics-ring>div { display:flex;flex-direction:column;align-items:center;gap:3px; }
+.eh-app .eh-analytics-ring>div { width:122px;height:122px;border-radius:50%;background:var(--surface);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px; }
 .eh-app .eh-analytics-ring b { color:var(--text);font:800 25px Inter,sans-serif; }
 .eh-app .eh-analytics-ring span { color:var(--muted);font-size:9px; }
 .eh-app .eh-analytics-kpis { display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:11px; }
