@@ -64,7 +64,7 @@ function App() {
   const [lecturers, setLecturers] = useState<Lecturer[]>([]);
   const [selectedSubjectId, setSelectedSubjectId] = useState(initialRoute.subjectId);
   const [selectedSubjectCategory, setSelectedSubjectCategory] = useState<SubjectCategory | ''>(initialRoute.category);
-  const [selectedContentNodeId, setSelectedContentNodeId] = useState(initialRoute.contentNodeId);
+  const [selectedContentNodeId, setSelectedContentNodeId] = useState(initialRoute.contentNodeId || initialRoute.lectureId || initialRoute.lecturerId);
   const [selectedLecturerId, setSelectedLecturerId] = useState(initialRoute.lecturerId);
   const [selectedLectureId, setSelectedLectureId] = useState(initialRoute.lectureId);
   const [academicContent, setAcademicContent] = useState<AcademicContentNode[]>([]);
@@ -151,6 +151,42 @@ function App() {
   const pendingCount = tasks.filter((task) => task.status !== 'completed').length;
   const unreadCount = notifications.filter((item) => !item.read).length;
   const isAdmin = activeUser.role === 'admin' || activeUser.role === 'super-admin';
+  const academicContentWithLegacy = useMemo<AcademicContentNode[]>(() => {
+    const combined = [...academicContent];
+    const existing = new Set(combined.map((node) => node.id));
+    lecturers.filter((item) => item.subjectId === selectedSubjectId && item.status === 'active').forEach((item) => {
+      if (existing.has(item.id)) return;
+      combined.push({
+        id: item.id, subjectId: item.subjectId, parentId: null, kind: 'lecturer', category: 'lectures',
+        title: item.name, description: item.bio || item.description || 'مدرس أو معيد بالمقرر',
+        linkedNodeIds: [], publicationStatus: 'published', sortOrder: 0, createdBy: 'legacy',
+        createdAt: null, updatedAt: null,
+      });
+      existing.add(item.id);
+    });
+    lectures.filter((item) => item.subjectId === selectedSubjectId).forEach((item) => {
+      if (existing.has(item.id)) return;
+      combined.push({
+        id: item.id, subjectId: item.subjectId, parentId: item.lecturerId || null, kind: 'lecture', category: 'lectures',
+        title: item.title, description: item.description || item.lecturerName || '',
+        ...(item.videoUrl ? { url: item.videoUrl } : {}),
+        duration: item.duration || '', linkedNodeIds: [], publicationStatus: 'published',
+        sortOrder: Number(item.lectureNumber || 0), createdBy: 'legacy', createdAt: null, updatedAt: null,
+      });
+      existing.add(item.id);
+    });
+    lectureParts.filter((item) => item.lectureId === selectedLectureId).forEach((item) => {
+      if (existing.has(item.id)) return;
+      combined.push({
+        id: item.id, subjectId: selectedSubjectId, parentId: item.lectureId, kind: 'video', category: 'lectures',
+        title: item.title, description: '', url: item.videoUrl, duration: item.duration || '',
+        linkedNodeIds: [], publicationStatus: 'published', sortOrder: item.order || 0,
+        createdBy: 'legacy', createdAt: null, updatedAt: null,
+      });
+      existing.add(item.id);
+    });
+    return combined;
+  }, [academicContent, lecturers, lectures, lectureParts, selectedSubjectId, selectedLectureId]);
   const quickResults = search.trim() ? [
     ...tasks.filter((item) => `${item.title} ${item.subjectName}`.toLowerCase().includes(search.toLowerCase())).slice(0, 3).map((item) => ({ id: item.id, title: item.title, sub: item.subjectName, page: 'tasks' })),
     ...subjects.filter((item) => `${item.name} ${item.code}`.toLowerCase().includes(search.toLowerCase())).slice(0, 2).map((item) => ({ id: item.id, title: item.name, sub: 'مادة دراسية', page: 'courses' })),
@@ -328,8 +364,8 @@ function App() {
   const changeAcademicRoute = (category: SubjectCategory, nodeId?: string) => {
     setSelectedSubjectCategory(category);
     setSelectedContentNodeId(nodeId || '');
-    setSelectedLecturerId('');
-    setSelectedLectureId('');
+    setSelectedLecturerId(nodeId && lecturers.some((item) => item.id === nodeId) ? nodeId : '');
+    setSelectedLectureId(nodeId && lectures.some((item) => item.id === nodeId) ? nodeId : '');
   };
 
   const addExam = async (data: { title: string; subjectName: string; date: string; duration: string; questions: number }) => {
@@ -402,18 +438,18 @@ function App() {
       <div className={`eh-page-view ${page === 'chat' ? 'eh-chat-page' : ''}`}>
         {page === 'home' && <Dashboard userName={activeUser.displayName} tasks={tasks} subjects={subjects} exams={exams} lectures={lectures} onGo={setPage} onNewTask={() => setTaskModal(true)} onStatus={changeTaskStatus} canCreateTask={isAdmin}/>}
         {page === 'tasks' && <TasksPage tasks={tasks} onNew={() => setTaskModal(true)} onStatus={changeTaskStatus} onDelete={(id) => void removeTask(id)} canEdit={isAdmin}/>}
-        {(page === 'courses' || page === 'lectures') && selectedSubjectId && selectedSubjectCategory && selectedSubjectCategory !== 'lectures' && subjects.find((item) => item.id === selectedSubjectId) && <AcademicContentArea
+        {(page === 'courses' || page === 'lectures') && selectedSubjectId && selectedSubjectCategory && subjects.find((item) => item.id === selectedSubjectId) && <AcademicContentArea
           subject={subjects.find((item) => item.id === selectedSubjectId)!}
-          nodes={academicContent}
+          nodes={academicContentWithLegacy}
           category={selectedSubjectCategory}
-          activeNodeId={selectedContentNodeId}
+          activeNodeId={selectedContentNodeId || selectedLectureId || selectedLecturerId}
           isAdmin={isAdmin}
           onNavigate={(category, nodeId) => changeAcademicRoute(category, nodeId)}
           onCreate={addAcademicContent}
           onDelete={removeAcademicContent}
           onUpload={uploadAcademicAsset}
         />}
-        {(page === 'courses' || page === 'lectures') && (!selectedSubjectId || !selectedSubjectCategory || selectedSubjectCategory === 'lectures') && <AcademicHubPage
+        {(page === 'courses' || page === 'lectures') && (!selectedSubjectId || !selectedSubjectCategory) && <AcademicHubPage
           subjects={subjects} lecturers={lecturers} lectures={lectures} parts={lectureParts}
           selectedSubjectId={selectedSubjectId} selectedLecturerId={selectedLecturerId} selectedLectureId={selectedLectureId}
           subjectCategory={selectedSubjectCategory}
