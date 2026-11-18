@@ -1643,3 +1643,100 @@ img { max-width:100%; }
   .eh-app .onboarding-photo-row { align-items:flex-start; }
   .eh-app .onboarding-photo-copy { flex:1; }
 }
+
+
+/* Exams page */
+.eh-app .eh-exams-page { display:flex;flex-direction:column;gap:16px; }
+.eh-app .eh-next-exam { position:relative;display:flex;align-items:center;gap:17px;overflow:hidden;padding:22px 24px;border:1px solid rgba(177,166,255,.22);border-radius:18px;background:radial-gradient(circle at 8% 20%,rgba(154,138,255,.23),transparent 32%),linear-gradient(112deg,#24224f,#35306f 58%,#253c60);color:#fff; }
+.eh-app .eh-next-exam-copy { position:relative;z-index:1;min-width:0;flex:1; }
+.eh-app .eh-next-exam-copy h2 { margin:6px 0;color:#fff;font-size:20px;font-weight:800; }
+.eh-app .eh-next-exam-copy p { margin:0;color:#d7d8f0;font-size:11px;line-height:1.8; }
+.eh-app .eh-next-exam-symbol { width:59px;height:59px;flex:0 0 59px;display:grid;place-items:center;border:1px solid rgba(255,255,255,.22);border-radius:17px;background:rgba(255,255,255,.1);color:#fff; }
+.eh-app .eh-next-exam-count { min-width:94px;display:flex;flex-direction:column;align-items:center;gap:3px;padding-inline:17px;border-right:1px solid rgba(255,255,255,.18); }
+.eh-app .eh-next-exam-count b { color:#fff;font:800 28px Inter,sans-serif; }
+.eh-app .eh-next-exam-count span { color:#d5d5f0;font-size:9px; }
+.eh-app .eh-exam-metrics { display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px; }
+.eh-app .eh-exam-metrics>div { display:flex;flex-direction:column;gap:5px;padding:13px 16px;border:1px solid var(--border);border-radius:13px;background:var(--surface); }
+.eh-app .eh-exam-metrics span { color:var(--muted);font-size:9px; }
+.eh-app .eh-exam-metrics b { color:var(--text);font:800 22px Inter,sans-serif; }
+.eh-app .eh-exam-list { overflow:hidden; }
+.eh-app .eh-exam-toolbar { display:flex;align-items:center;justify-content:space-between;gap:15px;padding:18px 19px;border-bottom:1px solid var(--border); }
+.eh-app .eh-exam-toolbar h2 { margin:4px 0 2px;color:var(--text);font-size:15px;font-weight:800; }
+.eh-app .eh-exam-toolbar p { margin:0;color:var(--muted);font-size:10px; }
+.eh-app .eh-exam-filters { display:flex;align-items:center;gap:5px;flex-wrap:wrap; }
+.eh-app .eh-exam-filters button { min-height:34px;padding:0 11px;border:1px solid transparent;border-radius:9px;background:transparent;color:var(--muted);font-size:9px; }
+.eh-app .eh-exam-filters button.active { color:var(--purple);background:color-mix(in srgb,var(--purple) 11%,var(--surface2));border-color:color-mix(in srgb,var(--purple) 22%,var(--border)); }
+.eh-app .eh-exam-card { min-height:76px;display:flex;align-items:center;gap:12px;padding:12px 18px;border-bottom:1px solid var(--border); }
+.eh-app .eh-exam-card:last-child { border-bottom:0; }
+.eh-app .eh-exam-icon { width:41px;height:41px;flex:0 0 41px;display:grid;place-items:center;border-radius:11px;background:var(--surface2);color:var(--purple); }
+.eh-app .eh-exam-icon.available { color:var(--green);background:color-mix(in srgb,var(--green) 11%,var(--surface2)); }
+.eh-app .eh-exam-icon.completed { color:var(--muted); }
+.eh-app .eh-exam-card-copy { min-width:0;flex:1;display:flex;flex-direction:column;gap:3px; }
+.eh-app .eh-exam-card-copy small { color:var(--muted);font-size:9px; }
+.eh-app .eh-exam-card-copy b { color:var(--text);font-size:12px; }
+.eh-app .eh-exam-card-copy>span { display:flex;align-items:center;gap:5px;color:var(--dim);font-size:9px; }
+.eh-app .eh-exam-date { min-width:75px;display:flex;flex-direction:column;gap:3px;text-align:left; }
+.eh-app .eh-exam-date b { color:var(--text);font:700 11px Inter,var(--font-ar); }
+.eh-app .eh-exam-date small { color:var(--muted);font:9px Inter,sans-serif; }
+.eh-app .eh-exam-status { min-width:66px;padding:5px 7px;border-radius:20px;background:var(--surface2);color:var(--muted);font-size:8px;font-weight:800;text-align:center; }
+.eh-app .eh-exam-status.upcoming { color:var(--amber);background:color-mix(in srgb,var(--amber) 11%,var(--surface2)); }
+.eh-app .eh-exam-status.available { color:var(--green);background:color-mix(in srgb,var(--green) 11%,var(--surface2)); }
+
+/* Files page */
+.eh-app .eh-files-page { display:flex;flex-direction:column;gap:16px; }
+.eh-app .eh-files-overview { display:flex;align-items:center;justify-content:space-between;gap:18px;padding:18px 20px;border:1px solid var(--border);border-radius:17px;background:var(--surface); }
+.eh-app .eh-files-overview-main { display:flex;align-items:center;gap:13px;min-width:0;flex:1; }
+.eh-app .eh-files-icon { width:48px;height:48px;flex:0 0 48px;display:grid;place-items:center;border-radius:14px;background:color-mix(in srgb,var(--blue) 13%,var(--surface2));color:var(--blue); }
+.eh-app .eh-files-overview-main>div { min-width:0; }
+.eh-app .eh-files-overview h2 { margin:4px 0 3px;color:var(--text);font-size:15px; }
+.eh-app .eh-files-overview p { margin:0;color:var(--muted);font-size:10px;line-height:1.8; }
+.eh-app .eh-files-breakdown { display:flex;align-items:center;gap:17px; }
+.eh-app .eh-files-breakdown>div { min-width:45px;display:flex;flex-direction:column;gap:3px; }
+.eh-app .eh-files-breakdown b { color:var(--text);font:800 18px Inter,sans-serif; }
+.eh-app .eh-files-breakdown span { color:var(--muted);font-size:9px; }
+.eh-app .eh-files-board { overflow:hidden; }
+.eh-app .eh-files-toolbar { display:flex;align-items:center;justify-content:space-between;gap:15px;padding:17px 19px 13px; }
+.eh-app .eh-files-toolbar h2 { margin:4px 0 0;color:var(--text);font-size:15px; }
+.eh-app .eh-files-toolbar .eh-inline-search { width:min(300px,44%); }
+.eh-app .eh-files-filters { display:flex;align-items:center;gap:5px;flex-wrap:wrap;padding:0 18px 14px;border-bottom:1px solid var(--border); }
+.eh-app .eh-files-filters button { min-height:32px;display:inline-flex;align-items:center;gap:6px;padding:0 10px;border:1px solid transparent;border-radius:8px;background:transparent;color:var(--muted);font-size:9px; }
+.eh-app .eh-files-filters button.active { border-color:color-mix(in srgb,var(--purple) 23%,var(--border));background:color-mix(in srgb,var(--purple) 10%,var(--surface2));color:var(--purple);font-weight:800; }
+.eh-app .eh-files-filters small { color:var(--dim);font:9px Inter,sans-serif; }
+.eh-app .eh-files-grid { display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;padding:15px; }
+.eh-app .eh-file-card { min-width:0;display:flex;align-items:center;gap:11px;padding:12px;border:1px solid var(--border);border-radius:13px;background:var(--surface2);transition:border-color .18s,transform .18s; }
+.eh-app .eh-file-card:hover { border-color:var(--purple);transform:translateY(-1px); }
+.eh-app .eh-file-kind { width:43px;height:43px;flex:0 0 43px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;border-radius:11px;background:var(--surface3);color:var(--purple); }
+.eh-app .eh-file-kind small { font:800 7px Inter,sans-serif; }
+.eh-app .eh-file-kind.kind-video { color:var(--blue); }
+.eh-app .eh-file-kind.kind-image { color:var(--green); }
+.eh-app .eh-file-copy { min-width:0;flex:1;display:flex;flex-direction:column;gap:3px; }
+.eh-app .eh-file-copy b { overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text);font-size:10px; }
+.eh-app .eh-file-copy span { color:var(--muted);font-size:9px; }
+.eh-app .eh-file-copy small { color:var(--dim);font-size:8px; }
+.eh-app .eh-file-open { width:31px;height:31px;flex:0 0 31px;display:grid;place-items:center;border:1px solid var(--border);border-radius:9px;background:var(--surface);color:var(--muted); }
+.eh-app .eh-file-open:hover:not(:disabled) { color:var(--purple);border-color:var(--purple); }
+.eh-app .eh-file-open:disabled { opacity:.35; }
+@media(max-width:720px) {
+  .eh-app .eh-next-exam { padding:15px;gap:10px;align-items:flex-start; }
+  .eh-app .eh-next-exam-symbol { width:42px;height:42px;flex-basis:42px; }
+  .eh-app .eh-next-exam-copy h2 { font-size:15px; }
+  .eh-app .eh-next-exam-count { min-width:54px;padding-inline:8px; }
+  .eh-app .eh-next-exam-count b { font-size:20px; }
+  .eh-app .eh-exam-metrics { grid-template-columns:repeat(2,minmax(0,1fr));gap:8px; }
+  .eh-app .eh-exam-toolbar { align-items:flex-start;flex-direction:column; }
+  .eh-app .eh-exam-filters { width:100%; }
+  .eh-app .eh-exam-filters button { flex:1;padding-inline:5px; }
+  .eh-app .eh-exam-card { gap:8px;padding:11px 9px; }
+  .eh-app .eh-exam-card-copy b { font-size:10px; }
+  .eh-app .eh-exam-card-copy small { font-size:8px; }
+  .eh-app .eh-exam-status { min-width:52px;font-size:7px;padding:4px; }
+  .eh-app .eh-exam-date { min-width:53px; }
+  .eh-app .eh-exam-date b { font-size:9px; }
+  .eh-app .eh-files-overview { align-items:flex-start;flex-direction:column;padding:14px; }
+  .eh-app .eh-files-breakdown { width:100%;justify-content:space-between;padding-top:11px;border-top:1px solid var(--border); }
+  .eh-app .eh-files-toolbar { align-items:stretch;flex-direction:column;padding:14px; }
+  .eh-app .eh-files-toolbar .eh-inline-search { width:100%; }
+  .eh-app .eh-files-filters { padding-inline:10px;gap:2px; }
+  .eh-app .eh-files-filters button { padding-inline:7px; }
+  .eh-app .eh-files-grid { grid-template-columns:1fr;padding:10px; }
+}
