@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import {
-  ArrowLeft, Bell, Check, ChevronDown, ChevronLeft, CircleHelp, Command, Copy, Menu,
+  ArrowLeft, Bell, ChevronDown, ChevronLeft, Command, Menu, PanelLeftClose, PanelLeftOpen,
   Moon, Search, Settings, ShieldCheck, Sun, X, type LucideIcon,
 } from 'lucide-react';
 import type { AppUser } from '../../types';
@@ -46,7 +46,8 @@ export function AppShell({
   onOpenMobileNav, onCloseMobileNav,
 }: AppShellProps) {
   const initials = user.displayName.trim().slice(0, 1) || 'ط';
-  const [linkCopied, setLinkCopied] = useState(false);
+  const [collapsed, setCollapsed] = useState(() => window.localStorage.getItem('enghub-sidebar-collapsed') === '1');
+  const toggleCollapsed = () => setCollapsed((value) => { window.localStorage.setItem('enghub-sidebar-collapsed', value ? '0' : '1'); return !value; });
   const rootNav = [...navGroups.flatMap((group) => group.items), ...(isAdmin ? [{ id: 'admin', label: 'لوحة الإدارة', icon: ShieldCheck }] : [])];
   useEffect(() => {
     const handleShortcuts = (event: KeyboardEvent) => {
@@ -73,7 +74,7 @@ export function AppShell({
     .filter(Boolean) as AppNavItem[];
 
   return (
-    <div className={`eh-app ${dark ? 'eh-dark theme-dark' : 'eh-light theme-light'}`} dir="rtl">
+    <div className={`eh-app ${dark ? 'eh-dark theme-dark' : 'eh-light theme-light'} ${collapsed ? 'eh-sidebar-collapsed' : ''}`} dir="rtl">
       <aside className={`eh-sidebar ${mobileNav ? 'is-open' : ''}`} aria-label="القائمة الرئيسية">
         <div className="eh-brand">
           <div className="eh-brand-symbol"><img src={`${import.meta.env.BASE_URL}brand/enghub-mark.svg`} alt="ENG HUB"/></div>
@@ -81,11 +82,7 @@ export function AppShell({
           <button type="button" className="eh-icon-btn eh-sidebar-close" onClick={onCloseMobileNav} aria-label="إغلاق القائمة"><X size={19}/></button>
         </div>
 
-        <div className="eh-term-card">
-          <span className="eh-term-symbol"><Command size={17}/></span>
-          <span><b>الترم الأول</b><small>كلية الهندسة · جامعة القاهرة</small></span>
-          <ChevronDown size={15}/>
-        </div>
+        <details className="eh-term-switcher"><summary className="eh-term-card"><span className="eh-term-symbol"><Command size={17}/></span><span><b>{user.term || 'الترم الأول'}</b><small>{user.academicYear || 'السنة الإعدادية'} · هندسة القاهرة</small></span><ChevronDown size={15}/></summary><div className="eh-term-menu"><span>الفصل الدراسي الحالي</span><strong>{user.term || 'الترم الأول'}</strong><small>إدارة السنوات والفصول الدراسية متاحة من إعدادات المدير.</small></div></details>
 
         <nav className="eh-navigation">
           {navGroups.map((group) => (
@@ -113,11 +110,7 @@ export function AppShell({
         </nav>
 
         <div className="eh-sidebar-bottom">
-          <button type="button" className="eh-help-card" onClick={() => onNavigate('chat')}>
-            <span><CircleHelp size={18}/></span>
-            <span><b>تواصل مع مجتمعك</b><small>اسأل زملاءك وشارك المعرفة</small></span>
-            <ChevronLeft size={15}/>
-          </button>
+
           <button type="button" className="eh-account-mini" onClick={() => onNavigate('profile')}>
             <span className="eh-avatar">{user.photoURL ? <img src={user.photoURL} alt=""/> : initials}</span>
             <span className="eh-account-copy"><b>{user.displayName}</b><small>{isAdmin ? 'مدير المنصة' : 'طالب هندسة'}</small></span>
@@ -132,7 +125,7 @@ export function AppShell({
         <header className="eh-topbar">
           <div className="eh-topbar-leading">
             <button type="button" className="eh-icon-btn eh-mobile-menu" onClick={onOpenMobileNav} aria-label="فتح القائمة"><Menu size={21}/></button>
-            <div className="eh-breadcrumb"><span>ENG HUB</span><ChevronLeft size={14}/><b>{pageTitle}</b></div>
+            <button type="button" className="eh-icon-btn eh-sidebar-toggle" onClick={toggleCollapsed} aria-label={collapsed ? "توسيع القائمة" : "طي القائمة"} title={collapsed ? "توسيع القائمة" : "طي القائمة"}>{collapsed ? <PanelLeftOpen size={18}/> : <PanelLeftClose size={18}/>}</button><div className="eh-breadcrumb"><span>ENG HUB</span><ChevronLeft size={14}/><b>{pageTitle}</b></div>
           </div>
           <div className="eh-topbar-actions">
             <div className="eh-search-wrap">
@@ -149,21 +142,6 @@ export function AppShell({
                 )) : <div className="eh-search-empty">لا توجد نتائج مطابقة</div>}
               </div>}
             </div>
-            <button type="button" className="eh-icon-btn eh-copy-page-link" onClick={async () => {
-              try {
-                const value = window.location.href;
-                if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(value);
-                else {
-                  const temporary = document.createElement('textarea');
-                  temporary.value = value; temporary.setAttribute('readonly', '');
-                  temporary.style.position = 'fixed'; temporary.style.opacity = '0';
-                  document.body.appendChild(temporary); temporary.select();
-                  const copied = document.execCommand('copy'); temporary.remove();
-                  if (!copied) throw new Error('clipboard-unavailable');
-                }
-                setLinkCopied(true); window.setTimeout(() => setLinkCopied(false), 1800);
-              } catch { setLinkCopied(false); }
-            }} title={linkCopied ? 'تم نسخ الرابط' : 'نسخ رابط الصفحة الحالية'} aria-label="نسخ رابط الصفحة الحالية" aria-live="polite">{linkCopied ? <Check size={18}/> : <Copy size={18}/>}</button>
             <button type="button" className="eh-icon-btn" onClick={onToggleTheme} aria-label={dark ? 'تفعيل الوضع الفاتح' : 'تفعيل الوضع الداكن'}>{dark ? <Sun size={19}/> : <Moon size={19}/>}</button>
             <button type="button" className="eh-icon-btn eh-notification-btn" onClick={() => onNavigate('notifications')} aria-label="الإشعارات"><Bell size={19}/>{unreadCount > 0 && <i/>}</button>
             <button type="button" className="eh-avatar eh-top-avatar" onClick={() => onNavigate('profile')} aria-label="الملف الشخصي">{user.photoURL ? <img src={user.photoURL} alt=""/> : initials}</button>
