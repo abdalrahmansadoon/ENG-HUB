@@ -1,6 +1,6 @@
 import {
   addDoc, collection, deleteDoc, doc, getDoc, limit, onSnapshot, orderBy, query,
-  serverTimestamp, setDoc, updateDoc, type Unsubscribe,
+  runTransaction, serverTimestamp, setDoc, updateDoc, type Unsubscribe,
 } from 'firebase/firestore';
 import { db } from './firebase';
 
@@ -18,8 +18,11 @@ export interface ChatMessage {
   senderName: string;
   senderPhotoURL?: string | null;
   createdAt: Date | null;
+  edited?: boolean;
+  editedAt?: Date | null;
   attachments: ChatAttachment[];
   replyTo?: { id: string; text: string; senderName: string } | null;
+  reactions?: Record<string, string[]>;
 }
 
 const GENERAL_CHAT_ID = 'general';
@@ -29,12 +32,14 @@ function requireDb() {
   return db;
 }
 
+function messageRef(messageId: string) {
+  return doc(requireDb(), 'conversations', GENERAL_CHAT_ID, 'messages', messageId);
+}
+
 export async function joinGeneralChat(user: { uid: string; displayName: string; photoURL?: string | null }) {
   const firestore = requireDb();
   const conversationRef = doc(firestore, 'conversations', GENERAL_CHAT_ID);
 
-  // Only the first user creates the fixed public room. For later users this
-  // create-only write is denied as an update; they then create their own member row.
   try {
     await setDoc(conversationRef, {
       title: 'المحادثة العامة',
@@ -80,6 +85,11 @@ export function subscribeGeneralChat(
     onMessages(snapshot.docs.map((entry) => {
       const data = entry.data();
       const timestamp = data.createdAt?.toDate?.() as Date | undefined;
+      const editedAt = data.editedAt?.toDate?.() as Date | undefined;
+      const rawReactions = data.reactions && typeof data.reactions === 'object' ? data.reactions as Record<string, unknown> : {};
+      const reactions = Object.fromEntries(
+        Object.entries(rawReactions).map(([emoji, ids]) => [emoji, Array.isArray(ids) ? ids.filter((id): id is string => typeof id === 'string') : []]),
+      );
       return {
         id: entry.id,
         text: String(data.text ?? ''),
@@ -87,8 +97,11 @@ export function subscribeGeneralChat(
         senderName: String(data.senderName ?? 'طالب'),
         senderPhotoURL: typeof data.senderPhotoURL === 'string' ? data.senderPhotoURL : null,
         createdAt: timestamp ?? null,
+        edited: data.edited === true,
+        editedAt: editedAt ?? null,
         attachments: Array.isArray(data.attachments) ? data.attachments as ChatAttachment[] : [],
         replyTo: data.replyTo ?? null,
+        reactions,
       };
     }).reverse());
   }, onError);
@@ -111,12 +124,40 @@ export async function sendGeneralChatMessage(input: {
     senderPhotoURL: input.senderPhotoURL ?? null,
     attachments: input.attachments ?? [],
     replyTo: input.replyTo ?? null,
+    reactions: {},
     createdAt: serverTimestamp(),
   });
 }
 
+export async function updateGeneralChatMessage(messageId: string, text: string) {
+  const trimmed = text.trim();
+  if (!trimmed) throw new Error('لا يمكن حفظ رسالة فارغة.');
+  await updateDoc(messageRef(messageId), {
+    text: trimmed,
+    edited: true,
+    editedAt: serverTimestamp(),
+  });
+}
+
+export async function toggleGeneralChatReaction(messageId: string, emoji: string, userId: string) {
+  const ref = messageRef(messageId);
+  await runTransaction(requireDb(), async (transaction) => {
+    const snapshot = await transaction.get(ref);
+    if (!snapshot.exists()) throw new Error('هذه الرسالة لم تعد موجودة.');
+    const data = snapshot.data();
+    const raw = data.reactions && typeof data.reactions === 'object' ? data.reactions as Record<string, unknown> : {};
+    const reactions: Record<string, string[]> = {};
+    for (const [key, value] of Object.entries(raw)) {
+      reactions[key] = Array.isArray(value) ? value.filter((id): id is string => typeof id === 'string') : [];
+    }
+    const users = reactions[emoji] ?? [];
+    reactions[emoji] = users.includes(userId) ? users.filter((id) => id !== userId) : [...users, userId];
+    transaction.update(ref, { reactions });
+  });
+}
+
 export async function deleteGeneralChatMessage(messageId: string) {
-  await deleteDoc(doc(requireDb(), 'conversations', GENERAL_CHAT_ID, 'messages', messageId));
+  await deleteDoc(messageRef(messageId));
 }
 
 export async function deleteGeneralChatRoomMessages() {
