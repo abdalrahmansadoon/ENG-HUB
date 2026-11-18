@@ -1,14 +1,23 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" fill="none" role="img" aria-labelledby="title desc">
-  <title id="title">ENG HUB</title><desc id="desc">Engineering hub monogram with connected nodes</desc>
+  <title id="title">ENG HUB — Engineering Network</title>
+  <desc id="desc">A geometric engineering E connected to a central hub node</desc>
   <defs>
-    <linearGradient id="tile" x1="10" y1="8" x2="88" y2="92" gradientUnits="userSpaceOnUse"><stop stop-color="#1C3558"/><stop offset="1" stop-color="#0B172A"/></linearGradient>
-    <linearGradient id="mark" x1="22" y1="24" x2="75" y2="75" gradientUnits="userSpaceOnUse"><stop stop-color="#F7FAFF"/><stop offset="1" stop-color="#BFD3F7"/></linearGradient>
-    <linearGradient id="accent" x1="57" y1="22" x2="79" y2="75" gradientUnits="userSpaceOnUse"><stop stop-color="#5CE0D0"/><stop offset="1" stop-color="#35AFC3"/></linearGradient>
+    <linearGradient id="tile" x1="12" y1="8" x2="86" y2="90" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#17345B"/><stop offset="1" stop-color="#0B1729"/>
+    </linearGradient>
+    <linearGradient id="steel" x1="24" y1="23" x2="63" y2="73" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F8FBFF"/><stop offset="1" stop-color="#B8D0F4"/>
+    </linearGradient>
+    <linearGradient id="mint" x1="53" y1="28" x2="80" y2="70" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#76F0DB"/><stop offset="1" stop-color="#22B8B0"/>
+    </linearGradient>
   </defs>
-  <rect x="5" y="5" width="86" height="86" rx="25" fill="url(#tile)"/>
-  <rect x="5.75" y="5.75" width="84.5" height="84.5" rx="24.25" stroke="#9DB9E8" stroke-opacity=".24" stroke-width="1.5"/>
-  <path d="M27 28H48M27 28V68M27 48H44M27 68H48" stroke="url(#mark)" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
-  <path d="M58 28V68M58 48H72M72 28V68" stroke="url(#accent)" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
-  <path d="M48 48H58" stroke="#5CE0D0" stroke-width="3.5" stroke-linecap="round"/>
-  <circle cx="75" cy="20" r="4" fill="#5CE0D0"/>
+  <rect x="4" y="4" width="88" height="88" rx="25" fill="url(#tile)"/>
+  <rect x="4.75" y="4.75" width="86.5" height="86.5" rx="24.25" stroke="#A8C7F1" stroke-opacity=".24" stroke-width="1.5"/>
+  <path d="M27 26V70M27 27H57M27 48H49M27 69H57" stroke="url(#steel)" stroke-width="6.5" stroke-linecap="round"/>
+  <path d="M49 48H63M63 48L75 32M63 48L75 65" stroke="url(#mint)" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="64" cy="48" r="7.5" fill="#0F263E" stroke="#6BE7D5" stroke-width="3.5"/>
+  <circle cx="77" cy="29" r="5.5" fill="#6BE7D5"/>
+  <circle cx="77" cy="68" r="5.5" fill="#4CBFE0"/>
+  <path d="M77 34.5V39M77 58V62.5" stroke="#B6F5EA" stroke-width="1.5" stroke-linecap="round" opacity=".8"/>
 </svg>
