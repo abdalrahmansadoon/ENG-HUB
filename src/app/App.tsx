@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode, type MouseEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode, type MouseEvent, type PointerEvent } from 'react';
 import {
   Activity, AlarmClock, AlertCircle, ArrowDownLeft, ArrowLeft, ArrowUpLeft, Bell, BookOpen,
   BookOpenCheck, CalendarDays, Check, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight,
@@ -8,7 +8,7 @@ import {
   SlidersHorizontal, Sparkles, Sun, Moon, Target, Timer, TrendingUp, Upload, Users,
   Video, X, Zap, ClipboardList, CalendarClock, BookMarked, ListChecks, ChartNoAxesCombined,
   ImagePlus, Volume2, VolumeX, Maximize, Trash2, Pencil, Monitor, Smartphone,
-  Copy, Smile, MoreVertical,
+  Copy, MoreVertical,
 } from 'lucide-react';
 import { useAuth, registerAccount } from './AuthContext';
 import { defaultCloudinarySettings, isCloudinaryConfigured, saveCloudinarySettings, subscribeCloudinarySettings, type CloudinarySettings } from '../lib/cloudinary';
@@ -856,7 +856,7 @@ function ChatPage({ user, cloudinarySettings, isDemo, isAdmin }: {
       longPressTimer.current = null;
     }
   };
-  const handlePointerDown = (event: React.PointerEvent<HTMLElement>, message: ChatMessage) => {
+  const handlePointerDown = (event: PointerEvent<HTMLElement>, message: ChatMessage) => {
     if (event.pointerType !== 'touch') return;
     const target = event.target as HTMLElement;
     if (target.closest('button,a,input,textarea,video')) return;
