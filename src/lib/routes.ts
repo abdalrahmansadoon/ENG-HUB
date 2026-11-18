@@ -7,6 +7,7 @@ export interface EngHubRoute {
   lecturerId: string;
   lectureId: string;
   contentNodeId: string;
+  profileUid: string;
 }
 
 const decode = (value: string | undefined) => {
@@ -19,8 +20,9 @@ export function readEngHubRoute(hash = window.location.hash): EngHubRoute {
   const parts = hash.replace(/^#\/?/, '').split('/').filter(Boolean).map(decode);
   const [first = 'home'] = parts;
   const base: EngHubRoute = {
-    page: first || 'home', subjectId: '', category: '', lecturerId: '', lectureId: '', contentNodeId: '',
+    page: first || 'home', subjectId: '', category: '', lecturerId: '', lectureId: '', contentNodeId: '', profileUid: '',
   };
+  if (first === 'students') { base.page = 'student-profile'; base.profileUid = parts[1] || ''; return base; }
   if (first !== 'courses') return base;
   base.page = 'courses';
   base.subjectId = parts[1] || '';
@@ -39,6 +41,7 @@ export function readEngHubRoute(hash = window.location.hash): EngHubRoute {
 }
 
 export function buildEngHubHash(route: EngHubRoute): string {
+  if (route.page === 'student-profile') return route.profileUid ? '#/students/' + encode(route.profileUid) : '#/students';
   if (route.page !== 'courses') return '#/' + encode(route.page || 'home');
   if (!route.subjectId) return '#/courses';
   const root = '#/courses/' + encode(route.subjectId);
