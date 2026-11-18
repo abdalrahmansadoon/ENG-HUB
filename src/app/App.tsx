@@ -1749,95 +1749,79 @@ function ProfilePage({ user, isDemo, onToggleRole, onLogout, onDeleteAccount, on
     }
   };
 
-  return <>
-    <PageHeader eyebrow="ACCOUNT SETTINGS" title="الملف الشخصي والإعدادات" description="حدّث بياناتك، واختر مظهر المنصة، وتحكم في حسابك."/>
-    <div className="profile-layout">
-      <section className="panel profile-card">
-        <div className="profile-cover"/>
-        <div className="profile-details">
-          <div className="profile-avatar-large">{photoPreview || photoURL ? <img src={photoPreview || photoURL} alt={user.displayName}/> : user.displayName.slice(0, 1)}</div>
-          <h2>{user.displayName}</h2>
-          <p>{user.email}</p>
-          <span className="role-chip">{user.role === 'admin' || user.role === 'super-admin' ? 'مدير المنصة' : 'طالب هندسة'}</span>
-          <div className="profile-academic">
-            <div><span>الفرقة</span><b>{user.academicYear}</b></div>
-            <div><span>الفصل الدراسي</span><b>{user.term}</b></div>
+  return <div className="eh-profile-page">
+    <PageHeader eyebrow="YOUR ACCOUNT" title="الملف الشخصي والإعدادات" description="تحكم في بياناتك وخصوصيتك وطريقة ظهور منصة ENG HUB."/>
+    <section className="eh-profile-hero">
+      <div className="eh-profile-cover"/>
+      <div className="eh-profile-identity">
+        <div className="eh-profile-avatar">{photoPreview||photoURL?<img src={photoPreview||photoURL} alt={user.displayName}/>:user.displayName.slice(0,1)}</div>
+        <div className="eh-profile-name"><span className="eh-eyebrow">STUDENT PROFILE</span><h2>{user.displayName}</h2><p>{user.email}</p><span className="eh-profile-role">{user.role==='admin'||user.role==='super-admin'?'مدير المنصة':'طالب هندسة'}</span></div>
+        <div className="eh-profile-academic-facts"><div><small>الفرقة</small><b>{user.academicYear}</b></div><div><small>الفصل الدراسي</small><b>{user.term}</b></div></div>
+      </div>
+    </section>
+
+    <div className="eh-profile-grid">
+      <section className="eh-surface-card eh-profile-editor">
+        <div className="eh-card-heading"><div><span className="eh-eyebrow">PERSONAL DETAILS</span><h2>بياناتك الشخصية</h2><p>هذه البيانات التي تظهر في ملفك ورسائلك داخل المنصة.</p></div></div>
+        <form className="eh-profile-form" onSubmit={(event)=>void saveProfile(event)}>
+          <div className="eh-profile-photo-picker">
+            <div className="eh-profile-photo-preview">{photoPreview||photoURL?<img src={photoPreview||photoURL} alt=""/>:name.slice(0,1)}</div>
+            <div><b>الصورة الشخصية</b><span>اختر صورة واضحة ليتعرف عليك زملاؤك.</span></div>
+            <label className="eh-button"><ImagePlus size={15}/> تغيير الصورة<input type="file" accept="image/*" className="visually-hidden" onChange={(event)=>setPhotoFile(event.target.files?.[0]??null)}/></label>
           </div>
-        </div>
-      </section>
-      <section className="panel settings-panel">
-        <form className="settings-section profile-edit-form" onSubmit={(event) => void saveProfile(event)}>
-          <h3>بيانات الملف الشخصي</h3>
-          <div className="profile-edit-photo">
-            <div className="avatar avatar-purple">{photoPreview || photoURL ? <img src={photoPreview || photoURL} alt=""/> : name.slice(0, 1)}</div>
-            <div><b>الصورة الشخصية</b><span>ارفع صورة جديدة من جهازك</span></div>
-            <label className="btn btn-outline btn-small"><ImagePlus size={14}/> تغيير الصورة<input type="file" accept="image/*" className="visually-hidden" onChange={(event) => setPhotoFile(event.target.files?.[0] ?? null)}/></label>
-          </div>
-          <label>الاسم الظاهر<input required minLength={2} maxLength={80} value={name} onChange={(event) => setName(event.target.value)}/></label>
-          <label>رقم الهاتف أو واتساب<input type="tel" maxLength={24} value={phone} onChange={(event) => setPhone(event.target.value)} placeholder="+20 1xxxxxxxxx" dir="ltr"/></label>
-          <label>نبذة عنك<textarea rows={3} maxLength={240} value={bio} onChange={(event) => setBio(event.target.value)} placeholder="نبذة قصيرة عنك..."/></label>
-          {profileMessage && <p className="settings-hint" role="status">{profileMessage}</p>}
-          <button className="btn btn-primary btn-small" type="submit" disabled={savingProfile || name.trim().length < 2}>{savingProfile ? <span className="spinner"/> : <Check size={14}/>} حفظ بيانات الملف</button>
+          <label>الاسم الظاهر<input required minLength={2} maxLength={80} value={name} onChange={(event)=>setName(event.target.value)} placeholder="اسمك الكامل"/></label>
+          <label>رقم الهاتف أو واتساب<input type="tel" maxLength={24} value={phone} onChange={(event)=>setPhone(event.target.value)} placeholder="+20 1xxxxxxxxx" dir="ltr"/></label>
+          <label>نبذة مختصرة<textarea rows={4} maxLength={240} value={bio} onChange={(event)=>setBio(event.target.value)} placeholder="اكتب نبذة قصيرة عنك واهتماماتك الدراسية..."/></label>
+          {profileMessage&&<div className="eh-inline-feedback" role="status">{profileMessage}</div>}
+          <div className="eh-profile-form-footer"><small>آخر البيانات المحفوظة تظهر في ملفك مباشرة.</small><button type="submit" className="eh-button primary" disabled={savingProfile||name.trim().length<2}>{savingProfile?<span className="spinner"/>:<Check size={16}/>} حفظ التغييرات</button></div>
         </form>
-        <div className="settings-section">
-          <h3>المظهر</h3>
-          <div className="theme-choice-group" role="group" aria-label="تفضيل المظهر">
-            <button type="button" className={themePreference === 'system' ? 'selected' : ''} onClick={() => onThemeChange('system')} aria-pressed={themePreference === 'system'}><Monitor size={17}/><span>حسب الجهاز</span></button>
-            <button type="button" className={themePreference === 'light' ? 'selected' : ''} onClick={() => onThemeChange('light')} aria-pressed={themePreference === 'light'}><Sun size={17}/><span>فاتح</span></button>
-            <button type="button" className={themePreference === 'dark' ? 'selected' : ''} onClick={() => onThemeChange('dark')} aria-pressed={themePreference === 'dark'}><Moon size={17}/><span>داكن</span></button>
-          </div>
-          <p className="settings-hint">{themePreference === 'system' ? 'يتغير المظهر تلقائياً حسب إعدادات جهازك.' : themePreference === 'light' ? 'المظهر الفاتح مفعل.' : 'المظهر الداكن مفعل.'}</p>
-        </div>
-        <div className="settings-section">
-          <h3>الإشعارات</h3>
-          <div className="setting-row">
-            <div className="setting-icon"><Bell size={18}/></div>
-            <div><b>إشعارات المتصفح</b><span>{isDemo ? 'تفعيلها متاح بعد ربط Firebase بالموقع.' : pushGranted ? 'إذن الإشعارات ممنوح لهذا المتصفح.' : 'اسمح للموقع بإرسال تنبيهات المنصة.'}</span></div>
-            <button className="btn btn-outline btn-small" onClick={() => void activatePush()} disabled={isDemo || pushBusy}>{pushBusy ? <span className="spinner"/> : null}{pushGranted ? 'تحديث التسجيل' : 'تفعيل الإشعارات'}</button>
-          </div>
-          {pushMessage && <p className="settings-hint" role="status">{pushMessage}</p>}
-        </div>
-        <div className="settings-section">
-          <h3>الحساب</h3>
-          <div className="setting-row">
-            <div className="setting-icon"><ShieldCheck size={18}/></div>
-            <div><b>حالة الاتصال</b><span>{isDemo ? 'وضع تجريبي — لا يوجد اتصال بقاعدة البيانات' : 'متصل بخدمات Firebase'}</span></div>
-            <span className={'connection-state ' + (isDemo ? 'demo' : '')}><i/>{isDemo ? 'Demo' : 'Online'}</span>
-          </div>
-          {isDemo && <div className="setting-row"><div className="setting-icon"><Users size={18}/></div><div><b>تجربة صلاحيات المدير</b><span>للعرض التجريبي فقط</span></div><button className="btn btn-outline btn-small" onClick={onToggleRole}>تبديل الدور</button></div>}
-        </div>
-        <div className="settings-section">
-          <h3>الجلسة</h3>
-          <div className="setting-row">
-            <div className="setting-icon"><LogOut size={18}/></div>
-            <div><b>تسجيل الخروج</b><span>إنهاء جلستك الحالية</span></div>
-            <button className="btn btn-outline btn-small" onClick={() => void onLogout()}>تسجيل الخروج</button>
-          </div>
-        </div>
-        <div className="settings-section danger-zone">
-          <h3>منطقة الخطر</h3>
-          <div className="setting-row">
-            <div className="setting-icon danger-setting"><Trash2 size={18}/></div>
-            <div><b>حذف الحساب نهائياً</b><span>حذف حساب Firebase وملفك والبيانات الشخصية القابلة للحذف.</span></div>
-            <button className="btn btn-danger btn-small" onClick={() => { setShowDelete(true); setDeleteError(''); }}>حذف الحساب</button>
-          </div>
-          <p className="settings-hint">{isDemo ? 'حذف الحساب متاح للحسابات المسجلة في Firebase فقط.' : 'لن تُحذف ملفات Cloudinary الثنائية تلقائياً من المتصفح؛ ستُزال بيانات ربطها بحسابك من Firestore. احتفظ بنسخة من ملفاتك قبل المتابعة.'}</p>
-        </div>
       </section>
+
+      <aside className="eh-profile-settings-column">
+        <section className="eh-surface-card eh-profile-settings">
+          <div className="eh-card-heading"><div><span className="eh-eyebrow">APPEARANCE</span><h2>مظهر المنصة</h2><p>اختر المظهر الأنسب لك.</p></div><span className="eh-setting-symbol"><Sun size={18}/></span></div>
+          <div className="eh-theme-options">
+            <button type="button" className={themePreference==='system'?'selected':''} onClick={()=>onThemeChange('system')} aria-pressed={themePreference==='system'}><Monitor size={17}/><span>حسب الجهاز</span></button>
+            <button type="button" className={themePreference==='light'?'selected':''} onClick={()=>onThemeChange('light')} aria-pressed={themePreference==='light'}><Sun size={17}/><span>فاتح</span></button>
+            <button type="button" className={themePreference==='dark'?'selected':''} onClick={()=>onThemeChange('dark')} aria-pressed={themePreference==='dark'}><Moon size={17}/><span>داكن</span></button>
+          </div>
+          <p className="eh-settings-caption">{themePreference==='system'?'يتغير المظهر تلقائياً حسب جهازك.':themePreference==='light'?'المظهر الفاتح مفعل حالياً.':'المظهر الداكن مفعل حالياً.'}</p>
+        </section>
+
+        <section className="eh-surface-card eh-profile-settings">
+          <div className="eh-card-heading"><div><span className="eh-eyebrow">NOTIFICATIONS</span><h2>الإشعارات</h2><p>إدارة تنبيهات المتصفح.</p></div><span className="eh-setting-symbol"><Bell size={18}/></span></div>
+          <div className="eh-setting-entry"><span className="eh-setting-entry-icon"><Bell size={16}/></span><div><b>إشعارات هذا المتصفح</b><small>{isDemo?'متاحة بعد ربط Firebase.':pushGranted?'إذن الإشعارات مفعل.':'لم يتم السماح بالإشعارات بعد.'}</small></div><button type="button" className="eh-button small" onClick={()=>void activatePush()} disabled={isDemo||pushBusy}>{pushBusy?<span className="spinner"/>:pushGranted?'تحديث':'تفعيل'}</button></div>
+          {pushMessage&&<p className="eh-settings-caption">{pushMessage}</p>}
+        </section>
+
+        <section className="eh-surface-card eh-profile-settings">
+          <div className="eh-card-heading"><div><span className="eh-eyebrow">SECURITY & SESSION</span><h2>الحساب والجلسة</h2><p>معلومات الاتصال وإدارة الجلسة الحالية.</p></div><span className="eh-setting-symbol"><ShieldCheck size={18}/></span></div>
+          <div className="eh-setting-entry"><span className="eh-setting-entry-icon"><ShieldCheck size={16}/></span><div><b>حالة الاتصال</b><small>{isDemo?'وضع تجريبي':'متصل بخدمات Firebase'}</small></div><span className={'eh-online-status '+(isDemo?'offline':'')}>{isDemo?'Demo':'Online'}</span></div>
+          {isDemo&&<div className="eh-setting-entry"><span className="eh-setting-entry-icon"><Users size={16}/></span><div><b>تجربة دور المدير</b><small>للعرض التجريبي فقط</small></div><button type="button" className="eh-button small" onClick={onToggleRole}>تبديل الدور</button></div>}
+          <div className="eh-setting-entry"><span className="eh-setting-entry-icon"><LogOut size={16}/></span><div><b>تسجيل الخروج</b><small>إنهاء جلستك الحالية على هذا الجهاز.</small></div><button type="button" className="eh-button small" onClick={()=>void onLogout()}>تسجيل الخروج</button></div>
+        </section>
+
+        <section className="eh-surface-card eh-profile-danger">
+          <div><span className="eh-eyebrow">DANGER ZONE</span><h2>حذف الحساب</h2><p>سيتم حذف بيانات الحساب الشخصية من Firebase. ملفات Cloudinary الفعلية لا تُحذف تلقائياً من المتصفح.</p></div>
+          <button type="button" className="eh-button danger" onClick={()=>{setShowDelete(true);setDeleteError('');}} disabled={isDemo||user.role==='admin'||user.role==='super-admin'}><Trash2 size={15}/> حذف الحساب</button>
+        </section>
+      </aside>
     </div>
-    {showDelete && <div className="modal-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) setShowDelete(false); }}>
+
+    {showDelete&&<div className="modal-backdrop" onMouseDown={(event)=>{if(event.target===event.currentTarget)setShowDelete(false);}}>
       <section className="modal-card delete-account-dialog" role="dialog" aria-modal="true" aria-labelledby="delete-account-title">
-        <div className="modal-head"><div><h2 id="delete-account-title">تأكيد حذف الحساب</h2><p>هذا الإجراء نهائي ولا يمكن التراجع عنه.</p></div><button className="icon-button" type="button" onClick={() => setShowDelete(false)} aria-label="إغلاق"><X size={18}/></button></div>
-        <form className="form-stack" onSubmit={(event) => void confirmDelete(event)}>
+        <div className="modal-head"><div><h2 id="delete-account-title">تأكيد حذف الحساب</h2><p>هذا الإجراء نهائي ولا يمكن التراجع عنه.</p></div><button type="button" className="icon-button" onClick={()=>setShowDelete(false)} aria-label="إغلاق"><X size={18}/></button></div>
+        <form className="form-stack" onSubmit={(event)=>void confirmDelete(event)}>
           <div className="delete-warning"><AlertCircle size={18}/><span>سيتم حذف حساب تسجيل الدخول وملف المستخدم والبيانات الشخصية المرتبطة به من Firestore.</span></div>
-          {!isDemo && user.providerId === 'password' && <label>أدخل كلمة المرور لتأكيد هويتك<input type="password" required autoComplete="current-password" value={deletePassword} onChange={(event) => setDeletePassword(event.target.value)}/></label>}
-          {user.role === 'admin' || user.role === 'super-admin' ? <p className="auth-error">لا يمكن حذف حساب مدير ما دامت له صلاحية إدارة. عطّل سجله في admins من Firebase Console أولاً ثم سجّل الدخول مجدداً.</p> : null}
-          {deleteError && <p className="auth-error">{deleteError}</p>}
-          <div className="modal-actions"><button type="button" className="btn btn-outline" onClick={() => setShowDelete(false)}>إلغاء</button><button type="submit" className="btn btn-danger" disabled={deleting || isDemo || user.role === 'admin' || user.role === 'super-admin'}>{deleting ? <span className="spinner"/> : <Trash2 size={15}/>} حذف الحساب نهائياً</button></div>
+          {!isDemo&&user.providerId==='password'&&<label>أدخل كلمة المرور لتأكيد هويتك<input type="password" required autoComplete="current-password" value={deletePassword} onChange={(event)=>setDeletePassword(event.target.value)}/></label>}
+          {(user.role==='admin'||user.role==='super-admin')&&<p className="auth-error">لا يمكن حذف حساب مدير قبل تعطيل صلاحياته في مجموعة admins.</p>}
+          {deleteError&&<p className="auth-error">{deleteError}</p>}
+          <div className="modal-actions"><button type="button" className="eh-button" onClick={()=>setShowDelete(false)}>إلغاء</button><button type="submit" className="eh-button danger" disabled={deleting||isDemo||user.role==='admin'||user.role==='super-admin'}>{deleting?<span className="spinner"/>:<Trash2 size={15}/>} حذف نهائي</button></div>
         </form>
       </section>
     </div>}
-  </>;
+  </div>;
+
 }
 
 function TaskModal({ subjects, userId, onClose, onSave }: {
