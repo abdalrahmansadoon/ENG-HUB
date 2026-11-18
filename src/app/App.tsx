@@ -34,6 +34,7 @@ const navGroups = [
   ] },
   { title: 'التواصل والتنظيم', items: [
     { id: 'chat', label: 'المحادثات', icon: MessageCircle },
+    { id: 'focus', label: 'مساحة التركيز', icon: Timer },
     { id: 'planner', label: 'مخطط المذاكرة', icon: CalendarDays },
     { id: 'analytics', label: 'إحصائياتي', icon: ChartNoAxesCombined },
   ] },
@@ -592,6 +593,7 @@ function App() {
         />}
         {page === 'student-profile' && <PublicStudentProfilePage uid={publicProfileUid} currentUid={activeUser.uid} onBack={() => setPage('chat')}/>}
         {page === 'planner' && <PlannerPage tasks={tasks} userId={activeUser.uid}/>}
+        {page === 'focus' && <FocusModePage userId={activeUser.uid}/>}
         {page === 'analytics' && <AnalyticsPage tasks={tasks} subjects={subjects} lectures={lectures} exams={exams} completedVideos={completedVideoIds.size}/>}
         {page === 'notifications' && <NotificationsPage items={notifications} setItems={setNotifications}/>}
         {page === 'admin' && <AdminPage tasks={tasks} subjects={subjects} lecturers={lecturers} lectures={lectures} exams={exams} files={files} currentUser={activeUser} cloudinarySettings={cloudinarySettings} academicCalendar={academicCalendar} onSaveAcademicCalendar={async (settings) => { await saveAcademicCalendar(settings, activeUser.uid); setAcademicCalendar(settings); setToast('تم حفظ السنة والفصل الدراسي الحاليين لجميع الطلاب.'); }} onNewTask={() => setTaskModal(true)} onAddSubject={() => setSubjectModal(true)} onAddLecturer={() => { setPage('courses'); setSelectedSubjectId(''); setSelectedLecturerId(''); setSelectedLectureId(''); }} onAddLecture={() => setLectureModal(true)} onAddExam={() => setExamModal(true)} onSaved={() => setToast('تم حفظ إعدادات Cloudinary في Firestore')} onError={(message) => setToast(message)}/>}
@@ -1214,6 +1216,69 @@ function FilesPage({ files, onUpload, cloudinaryReady, isDemo, canUpload }: { fi
   </div>;
 }
 
+
+function FocusModePage({ userId }: { userId: string }) {
+  const presets = [15, 25, 45, 60, 90];
+  const [minutes, setMinutes] = useState(() => {
+    try { return Math.max(1, Math.min(240, Number(window.localStorage.getItem('enghub-focus-minutes:' + userId)) || 25)); } catch { return 25; }
+  });
+  const [seconds, setSeconds] = useState(minutes * 60);
+  const [running, setRunning] = useState(false);
+  const [sessionDone, setSessionDone] = useState(false);
+  const [mode, setMode] = useState<'focus' | 'break'>('focus');
+  const [selectedTask, setSelectedTask] = useState('');
+  useEffect(() => {
+    if (!running) return;
+    const timer = window.setInterval(() => setSeconds((value) => {
+      if (value <= 1) { setRunning(false); setSessionDone(true); return 0; }
+      return value - 1;
+    }), 1000);
+    return () => window.clearInterval(timer);
+  }, [running]);
+  const setDuration = (value: number) => {
+    const next = Math.max(1, Math.min(240, Math.round(value)));
+    setMinutes(next); setSeconds(next * 60); setRunning(false); setSessionDone(false); setMode('focus');
+    try { window.localStorage.setItem('enghub-focus-minutes:' + userId, String(next)); } catch { /* optional preference */ }
+  };
+  const switchBreak = () => { setMode('break'); setRunning(false); setSessionDone(false); setSeconds(5 * 60); };
+  const reset = () => { setRunning(false); setSessionDone(false); setSeconds((mode === 'break' ? 5 : minutes) * 60); };
+  const total = (mode === 'break' ? 5 : minutes) * 60;
+  const progress = total > 0 ? Math.max(0, Math.min(1, (total - seconds) / total)) : 0;
+  const time = String(Math.floor(seconds / 60)).padStart(2, '0') + ':' + String(seconds % 60).padStart(2, '0');
+  return <div className="eh-focus-workspace">
+    <div className="eh-focus-workspace-glow" aria-hidden="true"/>
+    <header className="eh-focus-heading">
+      <div><span className="eh-focus-kicker"><Sparkles size={14}/> ENG HUB · FOCUS SPACE</span><h1>مساحة التركيز</h1><p>مساحة هادئة لتنجز مهمة واحدة في كل مرة، دون تشتيت.</p></div>
+      <div className="eh-focus-status"><span className={running ? 'is-running' : ''}/>{running ? 'جلسة نشطة' : sessionDone ? 'اكتملت الجلسة' : 'جاهز للبدء'}</div>
+    </header>
+    <div className="eh-focus-layout">
+      <section className="eh-focus-main-card">
+        <div className="eh-focus-mode-switch">
+          <button type="button" className={mode === 'focus' ? 'active' : ''} onClick={() => { setMode('focus'); setRunning(false); setSessionDone(false); setSeconds(minutes * 60); }}>تركيز</button>
+          <button type="button" className={mode === 'break' ? 'active' : ''} onClick={switchBreak}>استراحة قصيرة</button>
+        </div>
+        <div className="eh-focus-ring" style={{'--eh-focus-angle': (progress * 360) + 'deg'} as React.CSSProperties}>
+          <div className="eh-focus-ring-inner"><span>{mode === 'focus' ? 'وقت التركيز' : 'وقت الاستراحة'}</span><strong>{time}</strong><small>{running ? 'استمر… أنت تقوم بعمل رائع' : sessionDone ? 'أحسنت! أنهيت جلستك' : 'خذ نفساً عميقاً وابدأ'}</small></div>
+        </div>
+        <div className="eh-focus-controls-pro">
+          <button type="button" className="eh-focus-start" onClick={() => { if (seconds === 0) { setSeconds(total); setSessionDone(false); } setRunning((value) => !value); }}>{running ? <><Pause size={18}/> إيقاف مؤقت</> : <><Play size={18} fill="currentColor"/> {sessionDone ? 'ابدأ جلسة جديدة' : 'ابدأ التركيز'}</>}</button>
+          <button type="button" className="eh-focus-reset" onClick={reset} aria-label="إعادة ضبط المؤقت"><RotateCcw size={18}/></button>
+        </div>
+        <div className="eh-focus-quote"><span>✦</span> التقدم الصغير كل يوم يصنع فرقاً كبيراً.</div>
+      </section>
+      <aside className="eh-focus-settings-card">
+        <div className="eh-focus-settings-title"><span className="eh-focus-settings-icon"><Timer size={18}/></span><div><b>إعداد الجلسة</b><small>خصص وقتك بالطريقة التي تناسبك</small></div></div>
+        <div className="eh-focus-presets"><label>المدد المقترحة</label><div>{presets.map((value) => <button type="button" key={value} className={mode === 'focus' && minutes === value ? 'active' : ''} onClick={() => setDuration(value)}>{value}<small>دقيقة</small></button>)}</div></div>
+        <div className="eh-focus-range"><div><label htmlFor="eh-focus-range">مدة مخصصة</label><strong>{minutes} دقيقة</strong></div><input id="eh-focus-range" type="range" min="5" max="180" step="5" value={minutes} onChange={(event) => setDuration(Number(event.target.value))}/><div className="eh-focus-range-labels"><span>5 دقائق</span><span>3 ساعات</span></div></div>
+        <div className="eh-focus-custom-number"><label htmlFor="eh-focus-minutes">إدخال المدة بالدقائق</label><div><input id="eh-focus-minutes" type="number" min="1" max="240" value={minutes} onChange={(event) => setDuration(Number(event.target.value) || 1)}/><span>دقيقة</span></div><small>يمكنك ضبط مدة من دقيقة واحدة حتى 4 ساعات.</small></div>
+        <div className="eh-focus-task-field"><label htmlFor="eh-focus-task">ما المهمة التي ستعمل عليها؟</label><input id="eh-focus-task" value={selectedTask} onChange={(event) => setSelectedTask(event.target.value)} placeholder="مثال: حل مسائل التفاضل"/></div>
+        <div className="eh-focus-tip"><Sparkles size={16}/><span><b>نصيحة بسيطة</b> أغلق الإشعارات، جهّز أدواتك، وابدأ بمهمة واحدة فقط.</span></div>
+      </aside>
+    </div>
+  </div>;
+}
+
+
 function PlannerPage({ tasks, userId }: { tasks: StudyTask[]; userId: string }) {
   const [seconds,setSeconds]=useState(25*60);
   const [running,setRunning]=useState(false);
@@ -1268,6 +1333,7 @@ function PlannerPage({ tasks, userId }: { tasks: StudyTask[]; userId: string }) 
     <div className="eh-planner-grid">
       <section className="eh-surface-card eh-focus-card">
         <div className="eh-card-heading"><div><span className="eh-eyebrow">FOCUS MODE</span><h2>مؤقت التركيز</h2><p>اختر جلسة جاهزة أو حدّد المدة التي تناسبك.</p></div><span className="eh-focus-icon"><Timer size={20}/></span></div>
+        <button type="button" className="eh-focus-open-link" onClick={()=>window.location.hash="#/focus"}><span>افتح مساحة التركيز الكاملة</span><ArrowLeft size={15}/></button>
         <div className="eh-focus-tabs"><button type="button" className={mode==='focus'?'active':''} onClick={()=>switchMode('focus')}>جلسة تركيز · 25 دقيقة</button><button type="button" className={mode==='break'?'active':''} onClick={()=>switchMode('break')}>استراحة · 5 دقائق</button></div>
         <div className="eh-custom-timer"><label htmlFor="eh-custom-minutes">تحديد وقت يدوي (بالدقائق)</label><div><input id="eh-custom-minutes" type="number" min="1" max="240" value={customMinutes} onChange={event=>setCustomMinutes(event.target.value)}/><button type="button" className="eh-button" onClick={applyCustomTime}>تطبيق الوقت</button></div><small>يمكنك اختيار مدة من دقيقة واحدة حتى 4 ساعات.</small></div>
         <div className="eh-focus-clock" style={{'--focus-progress':percent*3.6+'deg'} as React.CSSProperties}>
