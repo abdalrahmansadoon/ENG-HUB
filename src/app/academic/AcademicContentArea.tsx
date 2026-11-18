@@ -72,12 +72,13 @@ export function AcademicContentArea({
       .filter((node) => (node.title + ' ' + node.description).toLowerCase().includes(search.trim().toLowerCase())),
     [nodes, activeNodeId, category, search],
   );
-  const linked = activeNode ? [...new Set([
+  const currentActiveNodeId = activeNode?.id;
+  const linked = activeNode && currentActiveNodeId ? [...new Set([
     ...activeNode.linkedNodeIds,
-    ...nodes.filter((node) => node.linkedNodeIds.includes(activeNode.id)).map((node) => node.id),
+    ...nodes.filter((node) => node.linkedNodeIds.includes(currentActiveNodeId)).map((node) => node.id),
   ])]
     .map((id) => nodes.find((node) => node.id === id))
-    .filter((node): node is AcademicContentNode => node !== undefined && node.id !== activeNode.id) : [];
+    .filter((node): node is AcademicContentNode => Boolean(node && node.id !== currentActiveNodeId)) : [];
   const openAdd = () => { setEditTarget(null); setModalOpen(true); };
   const openEdit = (node: AcademicContentNode) => { setEditTarget(node); setModalOpen(true); };
 
