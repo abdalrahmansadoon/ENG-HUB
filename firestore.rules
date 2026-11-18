@@ -196,7 +196,11 @@ service cloud.firestore {
         allow read: if activeUser() && exists(/databases/$(database)/documents/conversations/$(conversationId)/members/$(request.auth.uid));
         allow create: if activeUser()
           && exists(/databases/$(database)/documents/conversations/$(conversationId)/members/$(request.auth.uid))
-          && request.resource.data.senderId == request.auth.uid;
+          && request.resource.data.senderId == request.auth.uid
+          && (!exists(/databases/$(database)/documents/conversations/$(conversationId)/mutes/$(request.auth.uid))
+            || get(/databases/$(database)/documents/conversations/$(conversationId)/mutes/$(request.auth.uid)).data.muted != true
+            || (get(/databases/$(database)/documents/conversations/$(conversationId)/mutes/$(request.auth.uid)).data.mutedUntil is timestamp
+              && get(/databases/$(database)/documents/conversations/$(conversationId)/mutes/$(request.auth.uid)).data.mutedUntil <= request.time));
         allow update: if isModerator()
           || (activeUser()
             && resource.data.senderId == request.auth.uid
