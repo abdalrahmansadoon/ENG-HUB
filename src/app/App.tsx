@@ -222,7 +222,7 @@ function App() {
       });
       existing.add(id);
     });
-    tasks.filter((item) => item.subjectId === selectedSubjectId && item.type !== 'personal').forEach((item) => {
+    tasks.filter((item) => item.subjectId === selectedSubjectId).forEach((item) => {
       const id = 'legacy-task-' + item.id;
       if (existing.has(id)) return;
       combined.push({
