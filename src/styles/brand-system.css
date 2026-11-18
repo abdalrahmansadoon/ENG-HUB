@@ -690,3 +690,18 @@ button,input,textarea,select{font-family:inherit}
   .eh-app .chat-unread-jump{left:12px;bottom:calc(76px + env(safe-area-inset-bottom));min-height:36px;font-size:10px}
   .eh-app .chat-unread-divider span{font-size:9px;padding:4px 10px}
 }
+
+
+/* WhatsApp-like swipe affordance: visible only while the user drags in reply direction. */
+.eh-app .chat-msg{position:relative}
+.eh-app .chat-swipe-reply-indicator{
+  position:absolute;top:50%;width:32px;height:32px;display:grid;place-items:center;
+  border:1px solid var(--eh-stroke-strong);border-radius:50%;
+  background:var(--eh-card-bg);color:var(--eh-accent);opacity:0;
+  transform:translateY(-50%) scale(.82);pointer-events:none;
+  box-shadow:0 5px 16px rgba(8,20,42,.12);
+  transition:opacity .14s ease,transform .14s ease;
+}
+.eh-app .chat-swipe-reply-indicator.is-visible{opacity:1;transform:translateY(-50%) scale(1)}
+.eh-app .chat-msg.sent .chat-swipe-reply-indicator{inset-inline-start:-43px;inset-inline-end:auto}
+.eh-app .chat-msg.received .chat-swipe-reply-indicator{inset-inline-end:-43px;inset-inline-start:auto}
