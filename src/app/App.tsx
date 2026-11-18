@@ -1314,6 +1314,10 @@ function ChatPage({ user, cloudinarySettings, isDemo, isAdmin, onBack }: {
   const send = async (event?: FormEvent) => {
     event?.preventDefault();
     if (sending) return;
+    if (lockState.locked && !isAdmin) {
+      setError('المحادثة مغلقة مؤقتاً من الإدارة. يمكنك قراءة الرسائل لكن لا يمكنك الإرسال الآن.');
+      return;
+    }
     if (muteState.muted) {
       setError('تم كتمك مؤقتاً من المحادثة العامة. يمكنك الإرسال بعد انتهاء مدة الكتم.');
       return;
@@ -1423,11 +1427,56 @@ function ChatPage({ user, cloudinarySettings, isDemo, isAdmin, onBack }: {
   const handleMute = async (message: ChatMessage) => {
     if (!isAdmin || message.senderId === user.uid) return;
     setContextMessage(null);
+    if (contextMuted) {
+      try {
+        await unmuteGeneralChatUser(message.senderId, user.uid);
+        setNotice(`تم إلغاء كتم ${message.senderName}.`);
+      } catch (reason) {
+        setError(reason instanceof Error ? reason.message : 'تعذر إلغاء كتم الطالب.');
+      }
+    } else {
+      setMuteTarget(message);
+    }
+  };
+
+  const saveMuteDuration = async (minutes: number | null) => {
+    if (!isAdmin || !muteTarget) return;
+    setModerationBusy(true);
     try {
-      const muted = await toggleGeneralChatMute(message.senderId, user.uid, 60);
-      setNotice(muted ? `تم كتم ${message.senderName} لمدة ساعة.` : `تم إلغاء كتم ${message.senderName}.`);
+      await setGeneralChatMute(muteTarget.senderId, user.uid, minutes);
+      setNotice(minutes ? `تم كتم ${muteTarget.senderName} لمدة ${minutes >= 1440 ? Math.round(minutes / 1440) + ' يوم' : minutes >= 60 ? Math.round(minutes / 60) + ' ساعة' : minutes + ' دقيقة'}.` : `تم كتم ${muteTarget.senderName} حتى إلغاء الكتم يدوياً.`);
+      setMuteTarget(null);
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : 'تعذر تغيير حالة كتم الطالب.');
+      setError(reason instanceof Error ? reason.message : 'تعذر كتم الطالب.');
+    } finally {
+      setModerationBusy(false);
+    }
+  };
+
+  const saveChatLock = async (startAt: Date, endAt: Date | null, reason: string, autoExpire: boolean) => {
+    if (!isAdmin) return;
+    setModerationBusy(true);
+    try {
+      await setGeneralChatLock(user.uid, { startAt, endAt, reason, autoExpire });
+      setLockSettingsOpen(false);
+      setNotice(autoExpire && endAt ? 'تم جدولة قفل المحادثة وفتحها تلقائياً في الموعد المحدد.' : 'تم إعداد قفل المحادثة حتى يفتحه المدير يدوياً.');
+    } catch (reasonError) {
+      setError(reasonError instanceof Error ? reasonError.message : 'تعذر حفظ إعدادات قفل المحادثة.');
+    } finally {
+      setModerationBusy(false);
+    }
+  };
+
+  const unlockChat = async () => {
+    if (!isAdmin || !window.confirm('هل تريد فتح المحادثة للطلاب الآن؟')) return;
+    setModerationBusy(true);
+    try {
+      await clearGeneralChatLock(user.uid);
+      setNotice('تم فتح المحادثة للطلاب.');
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : 'تعذر فتح المحادثة.');
+    } finally {
+      setModerationBusy(false);
     }
   };
 
