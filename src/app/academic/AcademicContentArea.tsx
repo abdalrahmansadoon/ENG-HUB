@@ -20,6 +20,7 @@ const categories: Array<{ id: AcademicContentCategory; title: string; descriptio
 
 const kinds: Array<{ id: AcademicContentKind; label: string }> = [
   { id: 'folder', label: 'مجلد جديد' },
+  { id: 'lecturer', label: 'مدرس أو معيد' },
   { id: 'lecture', label: 'محاضرة / مجموعة محتوى' },
   { id: 'video', label: 'فيديو' },
   { id: 'file', label: 'ملف أو مذكرة' },
@@ -107,8 +108,8 @@ export function AcademicContentArea({
       </div>
       {children.length > 0 ? <div className="eh-content-item-grid">
         {children.map((node, index) => {
-          const isFolder = node.kind === 'folder' || node.kind === 'lecture';
-          const Icon = node.kind === 'folder' ? Folder : node.kind === 'lecture' ? GraduationCap : node.kind === 'video' ? Video : node.kind === 'exam' ? ClipboardList : node.kind === 'file' ? FileText : node.kind === 'link' ? ExternalLink : File;
+          const isFolder = node.kind === 'folder' || node.kind === 'lecturer' || node.kind === 'lecture';
+          const Icon = node.kind === 'folder' ? Folder : node.kind === 'lecturer' ? GraduationCap : node.kind === 'lecture' ? BookOpen : node.kind === 'video' ? Video : node.kind === 'exam' ? ClipboardList : node.kind === 'file' ? FileText : node.kind === 'link' ? ExternalLink : File;
           const isDraft = node.publicationStatus === 'draft';
           return <article className="eh-content-item-card" key={node.id}>
             <button type="button" className="eh-content-item-open" onClick={() => isFolder ? onNavigate(category, node.id) : onNavigate(category, node.id)}>
@@ -117,7 +118,7 @@ export function AcademicContentArea({
               <ChevronLeft size={16}/>
             </button>
             <div className="eh-content-item-meta">
-              <span>{node.kind === 'folder' ? 'مجلد' : node.kind === 'lecture' ? 'مجموعة محاضرة' : node.kind === 'video' ? 'فيديو' : node.kind === 'file' ? 'ملف' : node.kind === 'exam' ? 'اختبار' : node.kind === 'assignment' ? 'واجب' : node.kind === 'link' ? 'رابط' : 'محتوى'}</span>
+              <span>{node.kind === 'folder' ? 'مجلد' : node.kind === 'lecturer' ? 'مدرس / معيد' : node.kind === 'lecture' ? 'محاضرة' : node.kind === 'video' ? 'فيديو' : node.kind === 'file' ? 'ملف' : node.kind === 'exam' ? 'اختبار' : node.kind === 'assignment' ? 'واجب' : node.kind === 'link' ? 'رابط' : 'محتوى'}</span>
               {node.duration && <span>{node.duration}</span>}
               {isDraft && <span className="eh-content-draft"><Lock size={11}/> مسودة</span>}
               {node.linkedNodeIds.length > 0 && <span><Link2 size={12}/> {node.linkedNodeIds.length} روابط مرتبطة</span>}
@@ -142,7 +143,8 @@ export function AcademicContentArea({
       {(activeNode.kind === 'link' || activeNode.kind === 'exam' || activeNode.kind === 'assignment') && activeNode.url && <a className="eh-related-content-link" href={activeNode.url} target="_blank" rel="noreferrer"><ExternalLink size={17}/><span><b>{activeNode.kind === 'exam' ? 'فتح الاختبار' : activeNode.kind === 'assignment' ? 'فتح التكليف' : 'فتح الرابط'}</b><small>{activeNode.url}</small></span><ChevronLeft size={15}/></a>}
       {activeNode.kind === 'note' && <div className="eh-content-note">{activeNode.description || activeNode.title}</div>}
       {activeNode.kind === 'folder' && <p className="eh-content-note">افتح العناصر الموجودة داخل هذا المجلد من القائمة أعلاه.</p>}
-      {activeNode.kind === 'lecture' && <p className="eh-content-note">هذه مساحة للمحاضرة. أضف تحتها أي عدد من الفيديوهات والملفات والاختبارات أو المجلدات الفرعية.</p>}
+      {activeNode.kind === 'lecture' && <p className="eh-content-note">هذه مساحة للمحاضرة. أضف تحتها أي عدد من الفيديوهات والملفات والاختبارات أو المجلدات الفرعية.</p>
+      {activeNode.kind === 'lecturer' && <p className="eh-content-note">أضف محاضرات هذا المدرس داخل هذا القسم، أو أضف أي مجلدات ومصادر مرتبطة به.</p>}}
 
       {linked.length > 0 && <div className="eh-related-content"><div className="eh-content-items-heading"><div><span className="eh-eyebrow">CONNECTED MATERIALS</span><h3>محتوى مرتبط بهذا العنصر</h3></div><span>{linked.length} مرتبط</span></div>
         <div className="eh-related-content-grid">{linked.map((node) => <button type="button" className="eh-related-content-link" key={node.id} onClick={() => onNavigate(node.category, node.id)}>
