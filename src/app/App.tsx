@@ -8,6 +8,7 @@ import {
   SlidersHorizontal, Sparkles, Sun, Moon, Target, Timer, TrendingUp, Upload, Users,
   Video, X, Zap, ClipboardList, CalendarClock, BookMarked, ListChecks, ChartNoAxesCombined,
   ImagePlus, Volume2, VolumeX, Maximize, Trash2, Pencil, Monitor, Smartphone,
+  Copy, Pin, Smile, CheckCheck, FileArchive,
 } from 'lucide-react';
 import { useAuth, registerAccount } from './AuthContext';
 import { defaultCloudinarySettings, isCloudinaryConfigured, saveCloudinarySettings, subscribeCloudinarySettings, type CloudinarySettings } from '../lib/cloudinary';
@@ -16,7 +17,7 @@ import { enablePushNotifications, listenForForegroundMessages } from '../lib/mes
 import { isFirebaseConfigured } from '../lib/firebase';
 import { readLocal, writeLocal } from '../lib/storage';
 import { createExamCloud, createLectureCloud, createLecturePartCloud, createLecturerCloud, createSubjectCloud, createTaskCloud, deleteTaskCloud, saveFileMetadataCloud, subscribeExams, subscribeFiles, subscribeLectureParts, subscribeLecturers, subscribeLectures, subscribeSubjects, subscribeTasks, updateTaskStatusCloud } from '../lib/cloudData';
-import { deleteGeneralChatMessage, joinGeneralChat, sendGeneralChatMessage, subscribeGeneralChat, type ChatAttachment, type ChatMessage } from '../lib/chat';
+import { deleteGeneralChatMessage, editGeneralChatMessage, joinGeneralChat, sendGeneralChatMessage, subscribeGeneralChat, toggleGeneralChatPin, toggleGeneralChatReaction, type ChatAttachment, type ChatMessage } from '../lib/chat';
 import type { AppNotification, AppUser, Exam, Lecture, LecturePart, Lecturer, LibraryFile, Priority, StudyTask, Subject, TaskStatus } from '../types';
 
 const navGroups = [
@@ -760,12 +761,21 @@ function ChatPage({ user, cloudinarySettings, isDemo, isAdmin }: {
   const [draft, setDraft] = useState('');
   const [files, setFiles] = useState<File[]>([]);
   const [replyTo, setReplyTo] = useState<ChatMessage | null>(null);
+  const [editingMessage, setEditingMessage] = useState<ChatMessage | null>(null);
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
+  const [emojiOpen, setEmojiOpen] = useState(false);
+  const [contextMessage, setContextMessage] = useState<ChatMessage | null>(null);
+  const [contextPosition, setContextPosition] = useState({ x: 0, y: 0 });
+  const [lightbox, setLightbox] = useState<ChatAttachment | null>(null);
+  const [filePreviews, setFilePreviews] = useState<Array<{ key: string; url: string }>>([]);
   const fileInput = useRef<HTMLInputElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const composerRef = useRef<HTMLTextAreaElement>(null);
+  const pressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const suppressClickUntil = useRef(0);
 
   useEffect(() => {
     if (isDemo) {
@@ -799,19 +809,88 @@ function ChatPage({ user, cloudinarySettings, isDemo, isAdmin }: {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
   }, [messages.length]);
 
+  useEffect(() => {
+    const next = files.map((file, index) => ({
+      key: `${file.name}-${file.size}-${file.lastModified}-${index}`,
+      url: URL.createObjectURL(file),
+    }));
+    setFilePreviews(next);
+    return () => next.forEach((item) => URL.revokeObjectURL(item.url));
+  }, [files]);
+
+  useEffect(() => {
+    const close = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setContextMessage(null);
+        setLightbox(null);
+        setEmojiOpen(false);
+      }
+    };
+    window.addEventListener('keydown', close);
+    return () => window.removeEventListener('keydown', close);
+  }, []);
+
   const visibleMessages = messages.filter((message) =>
     (message.text + ' ' + message.senderName + ' ' + message.attachments.map((item) => item.name).join(' '))
       .toLowerCase().includes(search.trim().toLowerCase()),
   );
+  const pinnedMessage = messages.find((message) => message.pinned);
+  const editAllowed = (message: ChatMessage) => Boolean(
+    message.createdAt && message.senderId === user.uid && Date.now() - message.createdAt.getTime() <= 15 * 60 * 1000,
+  );
 
-  const send = async (event: FormEvent) => {
-    event.preventDefault();
-    if ((!draft.trim() && files.length === 0) || sending) return;
+  const focusComposer = () => window.setTimeout(() => composerRef.current?.focus(), 40);
+  const beginReply = (message: ChatMessage) => {
+    setEditingMessage(null);
+    setReplyTo(message);
+    setContextMessage(null);
+    focusComposer();
+  };
+  const beginEdit = (message: ChatMessage) => {
+    if (!editAllowed(message)) {
+      setError('انتهت مهلة تعديل الرسالة. التعديل متاح خلال أول 15 دقيقة.');
+      setContextMessage(null);
+      return;
+    }
+    setEditingMessage(message);
+    setReplyTo(null);
+    setDraft(message.text);
+    setFiles([]);
+    setContextMessage(null);
+    focusComposer();
+  };
+  const cancelComposerMode = () => {
+    setReplyTo(null);
+    setEditingMessage(null);
+    setDraft('');
+    setFiles([]);
+    if (fileInput.current) fileInput.current.value = '';
+  };
+
+  const send = async (event?: FormEvent) => {
+    event?.preventDefault();
+    if (sending) return;
+    if (editingMessage) {
+      if (!draft.trim()) return;
+      setSending(true);
+      setError('');
+      try {
+        await editGeneralChatMessage(editingMessage.id, user.uid, draft);
+        cancelComposerMode();
+      } catch (reason) {
+        setError(reason instanceof Error ? reason.message : 'تعذر تعديل الرسالة.');
+      } finally {
+        setSending(false);
+      }
+      return;
+    }
+    if ((!draft.trim() && files.length === 0)) return;
     setSending(true);
     setError('');
     try {
       const attachments: ChatAttachment[] = [];
       for (const file of files) {
+        if (file.size > 40 * 1024 * 1024) throw new Error(`الملف ${file.name} أكبر من الحد المسموح (40 MB).`);
         const url = await uploadFile(file, cloudinarySettings);
         attachments.push({ name: file.name, url, mimeType: file.type || 'application/octet-stream', size: file.size });
       }
@@ -827,10 +906,8 @@ function ChatPage({ user, cloudinarySettings, isDemo, isAdmin }: {
           senderName: replyTo.senderName,
         } : null,
       });
-      setDraft('');
-      setFiles([]);
-      setReplyTo(null);
-      if (fileInput.current) fileInput.current.value = '';
+      cancelComposerMode();
+      setEmojiOpen(false);
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : 'تعذر إرسال الرسالة.');
     } finally {
@@ -838,16 +915,42 @@ function ChatPage({ user, cloudinarySettings, isDemo, isAdmin }: {
     }
   };
 
-  const removeMessage = async (messageId: string) => {
+  const removeMessage = async (message: ChatMessage) => {
+    const mine = message.senderId === user.uid;
+    if (!mine && !isAdmin) return;
+    const confirmed = window.confirm(mine
+      ? 'سيتم حذف هذه الرسالة من المحادثة لدى الجميع. هل تريد المتابعة؟'
+      : 'سيتم حذف الرسالة لجميع المشاركين. هل تريد المتابعة؟');
+    if (!confirmed) return;
+    setContextMessage(null);
+    setError('');
     try {
-      await deleteGeneralChatMessage(messageId);
+      await deleteGeneralChatMessage(message.id);
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : 'تعذر حذف الرسالة.');
     }
   };
 
+  const handleReaction = async (message: ChatMessage, emoji: string) => {
+    setContextMessage(null);
+    try {
+      await toggleGeneralChatReaction(message.id, user.uid, emoji);
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : 'تعذر تسجيل التفاعل.');
+    }
+  };
+
+  const handlePin = async (message: ChatMessage) => {
+    setContextMessage(null);
+    try {
+      await toggleGeneralChatPin(message.id, user.uid, !message.pinned);
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : 'تعذر تثبيت الرسالة.');
+    }
+  };
+
   const clearRoom = async () => {
-    if (!isAdmin || !window.confirm('سيتم حذف جميع رسائل المحادثة العامة. هل تريد المتابعة؟')) return;
+    if (!isAdmin || !window.confirm('سيتم حذف جميع رسائل المحادثة العامة نهائياً. هل تريد المتابعة؟')) return;
     try {
       const { deleteGeneralChatRoomMessages } = await import('../lib/chat');
       await deleteGeneralChatRoomMessages();
@@ -856,61 +959,204 @@ function ChatPage({ user, cloudinarySettings, isDemo, isAdmin }: {
     }
   };
 
+  const openContextMenu = (message: ChatMessage, x: number, y: number) => {
+    suppressClickUntil.current = Date.now() + 750;
+    const width = 226;
+    const height = 286;
+    setContextPosition({
+      x: Math.max(10, Math.min(x, window.innerWidth - width - 10)),
+      y: Math.max(10, Math.min(y, window.innerHeight - height - 10)),
+    });
+    setContextMessage(message);
+  };
+
+  const onMessageContextMenu = (event: MouseEvent<HTMLElement>, message: ChatMessage) => {
+    event.preventDefault();
+    openContextMenu(message, event.clientX, event.clientY);
+  };
+
+  const copyMessage = async (message: ChatMessage) => {
+    const value = message.text || message.attachments.map((item) => item.url).join('\n');
+    try {
+      await navigator.clipboard.writeText(value);
+      setContextMessage(null);
+    } catch {
+      setError('تعذر نسخ الرسالة. تحقق من صلاحية الحافظة في المتصفح.');
+    }
+  };
+
+  const appendEmoji = (emoji: string) => {
+    setDraft((value) => value + emoji);
+    setEmojiOpen(false);
+    focusComposer();
+  };
+
+  const jumpToMessage = (messageId: string) => {
+    document.getElementById('chat-message-' + messageId)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  };
+
+  const formatMessageTime = (date: Date | null) => date
+    ? date.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })
+    : 'الآن';
+
+  const emojis = ['👍', '❤️', '😂', '😮', '🙏', '👏'];
+
   return <>
-    <PageHeader eyebrow="STUDY TOGETHER" title="المحادثات" description="تواصل مع زملائك في مساحة مشتركة، وأرسل الرسائل والمرفقات الدراسية."/>
-    <div className="chat-layout panel chat-layout-live">
-      <aside className="chat-list">
-        <div className="chat-list-header"><b>المحادثات</b><span className="chat-room-count">غرفة واحدة</span></div>
-        <div className="chat-search"><Search size={15}/><input placeholder="ابحث في الرسائل" value={search} onChange={(event) => setSearch(event.target.value)}/></div>
-        <div className="chat-contact active">
-          <div className="avatar avatar-cyan"><MessageCircle size={17}/></div>
-          <div><b>المحادثة العامة</b><span>غرفة طلاب ENG HUB</span></div>
-          <span className="live-dot"/>
-        </div>
-        <div className="chat-list-note"><Users size={15}/><span>كل مستخدم مسجل في المنصة يستطيع الانضمام إلى هذه الغرفة.</span></div>
+    <PageHeader eyebrow="STUDY TOGETHER" title="مجتمع ENG HUB" description="تواصل مع زملائك، شارك الملفات والصور، ورد على الرسائل في مساحة واحدة."/>
+    <section className="chat-workspace panel">
+      <aside className="chat-rail">
+        <div className="chat-rail-brand"><div className="chat-room-avatar"><MessageCircle size={22}/></div><div><b>المحادثات</b><span>مساحة طلاب الهندسة</span></div></div>
+        <div className="chat-rail-search"><Search size={16}/><input placeholder="ابحث في الرسائل..." value={search} onChange={(event) => setSearch(event.target.value)}/><kbd>⌕</kbd></div>
+        <button type="button" className="chat-room-item active"><span className="chat-room-icon"><Users size={18}/></span><span className="chat-room-info"><b>المحادثة العامة</b><small>كل طلاب ENG HUB</small></span><i className="live-dot"/></button>
+        <div className="chat-rail-footer"><div className="live-dot"/><span>الاتصال المباشر نشط</span></div>
       </aside>
-      <section className="chat-conversation chat-conversation-live">
-        <div className="chat-top">
-          <div className="avatar avatar-cyan"><MessageCircle size={17}/></div>
-          <div className="chat-top-copy"><b>المحادثة العامة</b><span><i className="live-dot"/> رسائل مباشرة عبر Firestore</span></div>
-          {isAdmin && <button className="btn btn-outline btn-small" type="button" onClick={() => void clearRoom()}><Trash2 size={14}/> تفريغ المحادثة</button>}
-        </div>
-        <div className="chat-messages chat-messages-live" aria-live="polite">
-          {loading && <EmptyState title="جاري فتح المحادثة" body="يتم الاتصال بغرفة الدردشة المشتركة."/>}
-          {!loading && visibleMessages.length === 0 && <EmptyState title={messages.length === 0 ? 'لا توجد رسائل بعد' : 'لا توجد نتائج مطابقة'} body={messages.length === 0 ? 'ابدأ المحادثة بإرسال أول رسالة إلى زملائك.' : 'جرّب كلمة بحث أخرى.'}/>}
+
+      <section className="chat-main">
+        <header className="chat-main-header">
+          <div className="chat-main-heading">
+            <div className="chat-room-avatar small"><MessageCircle size={17}/></div>
+            <div><b>المحادثة العامة</b><span><i className="live-dot"/> غرفة مشتركة · متزامنة مباشرة</span></div>
+          </div>
+          <div className="chat-main-actions">
+            <span className="chat-secure-label"><CheckCircle2 size={14}/> للطلاب المسجلين</span>
+            {isAdmin && <button className="btn btn-danger chat-clear-button" type="button" onClick={() => void clearRoom()}><Trash2 size={14}/> تفريغ المحادثة</button>}
+          </div>
+        </header>
+
+        {pinnedMessage && <button type="button" className="chat-pinned-banner" onClick={() => jumpToMessage(pinnedMessage.id)}>
+          <span className="chat-pin-icon"><Pin size={15}/></span>
+          <span><b>رسالة مثبّتة</b><small>{pinnedMessage.text || pinnedMessage.attachments[0]?.name || 'مرفق'}</small></span>
+          <ChevronLeft size={17}/>
+        </button>}
+
+        <div className="chat-messages-live" aria-live="polite">
+          {loading && <div className="chat-loading-state"><span className="spinner"/><b>جارٍ الاتصال بالمحادثة</b><small>نجهّز الرسائل والمرفقات...</small></div>}
+          {!loading && visibleMessages.length === 0 && <div className="chat-empty-state"><div><MessageCircle size={26}/></div><b>{messages.length === 0 ? 'ابدأ أول محادثة' : 'لا توجد نتائج مطابقة'}</b><span>{messages.length === 0 ? 'اكتب رسالة أو شارك ملفاً مع زملائك.' : 'جرّب البحث بكلمة مختلفة.'}</span></div>}
           {visibleMessages.map((message) => {
             const mine = message.senderId === user.uid;
-            return <article className={'chat-msg ' + (mine ? 'sent' : 'received')} key={message.id}>
-              <div className="msg-header">
-                <span className="chat-sender">{mine ? 'أنت' : message.senderName}</span>
-                <time className="msg-time">{message.createdAt ? message.createdAt.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }) : 'الآن'}</time>
+            const senderInitial = message.senderName.trim().slice(0, 1) || '؟';
+            return <article
+              id={'chat-message-' + message.id}
+              className={'chat-message-row ' + (mine ? 'mine' : 'theirs') + (message.pinned ? ' is-pinned' : '')}
+              key={message.id}
+              onContextMenu={(event) => onMessageContextMenu(event, message)}
+              onPointerDown={(event) => {
+                if (event.pointerType !== 'touch') return;
+                if (pressTimer.current) clearTimeout(pressTimer.current);
+                pressTimer.current = setTimeout(() => openContextMenu(message, event.clientX, event.clientY), 520);
+              }}
+              onPointerMove={() => { if (pressTimer.current) clearTimeout(pressTimer.current); }}
+              onPointerUp={() => { if (pressTimer.current) clearTimeout(pressTimer.current); }}
+              onPointerCancel={() => { if (pressTimer.current) clearTimeout(pressTimer.current); }}
+            >
+              <div className="chat-message-avatar">
+                {message.senderPhotoURL ? <img src={message.senderPhotoURL} alt=""/> : senderInitial}
               </div>
-              {message.replyTo && <div className="reply-block"><span className="ru">{message.replyTo.senderName}</span><span className="rt">{message.replyTo.text}</span></div>}
-              {message.text && <p className="chat-message-text">{message.text}</p>}
-              {message.attachments.length > 0 && <div className="chat-attachments">
-                {message.attachments.map((attachment, index) => attachment.mimeType.startsWith('image/')
-                  ? <a href={attachment.url} target="_blank" rel="noreferrer" className="chat-image-attachment" key={attachment.url + index}><img src={attachment.url} alt={attachment.name}/><span>{attachment.name}</span></a>
-                  : <a href={attachment.url} target="_blank" rel="noreferrer" className="chat-file-attachment" key={attachment.url + index}><FileText size={18}/><span><b>{attachment.name}</b><small>{(attachment.size / 1024 / 1024).toFixed(1)} MB</small></span><Download size={15}/></a>)}
-              </div>}
-              <div className="msg-actions">
-                <button type="button" onClick={() => setReplyTo(message)} title="الرد على الرسالة"><ArrowDownLeft size={14}/> رد</button>
-                {mine && <button type="button" onClick={() => void removeMessage(message.id)} title="حذف الرسالة"><Trash2 size={14}/> حذف</button>}
+              <div className="chat-message-body">
+                <div className="chat-message-meta">
+                  <b>{mine ? 'أنت' : message.senderName}</b>
+                  {message.pinned && <span className="chat-pinned-label"><Pin size={11}/> مثبّتة</span>}
+                  <time>{formatMessageTime(message.createdAt)}</time>
+                </div>
+                <div className="chat-message-bubble">
+                  {message.replyTo && <button type="button" className="chat-reply-quote" onClick={() => jumpToMessage(message.replyTo!.id)}>
+                    <b>{message.replyTo.senderName}</b><span>{message.replyTo.text}</span>
+                  </button>}
+                  {message.text && <p className="chat-message-content">{message.text}</p>}
+                  {message.attachments.length > 0 && <div className="chat-attachment-grid">
+                    {message.attachments.map((attachment, index) => {
+                      const imageFile = attachment.mimeType.startsWith('image/');
+                      const videoFile = attachment.mimeType.startsWith('video/');
+                      return imageFile
+                        ? <button type="button" className="chat-image-tile" key={attachment.url + index} onClick={() => setLightbox(attachment)}>
+                            <img src={attachment.url} alt={attachment.name} loading="lazy"/><span>{attachment.name}</span>
+                          </button>
+                        : videoFile
+                          ? <a className="chat-video-tile" key={attachment.url + index} href={attachment.url} target="_blank" rel="noreferrer"><Video size={21}/><span><b>{attachment.name}</b><small>ملف فيديو · {(attachment.size / 1024 / 1024).toFixed(1)} MB</small></span><Download size={15}/></a>
+                          : <a className="chat-file-tile" key={attachment.url + index} href={attachment.url} target="_blank" rel="noreferrer"><FileText size={21}/><span><b>{attachment.name}</b><small>{(attachment.size / 1024 / 1024).toFixed(1)} MB</small></span><Download size={15}/></a>;
+                    })}
+                  </div>}
+                  {message.edited && <span className="chat-edited-label">تم التعديل</span>}
+                  <div className="chat-message-footer">
+                    <span>{formatMessageTime(message.createdAt)}</span>
+                    {mine && <CheckCheck size={14}/>}
+                  </div>
+                </div>
+                <div className="chat-reactions-row">
+                  {Object.entries(message.reactions ?? {}).map(([emoji, users]) => users.length > 0 && <button type="button" key={emoji} className={'chat-reaction-chip ' + (users.includes(user.uid) ? 'mine' : '')} onClick={() => void handleReaction(message, emoji)}><span>{emoji}</span><small>{users.length}</small></button>)}
+                  <div className="chat-quick-reactions">{emojis.slice(0, 4).map((emoji) => <button type="button" key={emoji} aria-label={'تفاعل ' + emoji} onClick={() => void handleReaction(message, emoji)}>{emoji}</button>)}</div>
+                  <button type="button" className="chat-message-more" aria-label="خيارات الرسالة" onClick={(event) => openContextMenu(message, event.currentTarget.getBoundingClientRect().left, event.currentTarget.getBoundingClientRect().bottom)}><MoreHorizontal size={16}/></button>
+                </div>
               </div>
             </article>;
           })}
           <div ref={bottomRef}/>
         </div>
-        {error && <div className="chat-error" role="alert"><AlertCircle size={14}/>{error}</div>}
-        <form className="chat-composer chat-composer-live" onSubmit={send}>
-          {replyTo && <div className="reply-indicator active"><div className="ri-text"><strong>الرد على {replyTo.senderName}</strong><span>{replyTo.text || replyTo.attachments[0]?.name || 'مرفق'}</span></div><button type="button" className="ri-close" onClick={() => setReplyTo(null)} aria-label="إلغاء الرد"><X size={15}/></button></div>}
-          {files.length > 0 && <div className="chat-selected-files">{files.map((file, index) => <span key={file.name + index}><Paperclip size={13}/>{file.name}<button type="button" onClick={() => setFiles((all) => all.filter((_, i) => i !== index))} aria-label="إزالة المرفق"><X size={12}/></button></span>)}</div>}
-          <button type="button" className="icon-button chat-attach-button" onClick={() => fileInput.current?.click()} aria-label="إرفاق ملف"><Paperclip size={18}/></button>
-          <input ref={fileInput} type="file" multiple accept="image/*,video/mp4,video/webm,.pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.zip,.txt" className="visually-hidden" onChange={(event) => setFiles((all) => [...all, ...Array.from(event.target.files ?? [])])}/>
-          <textarea rows={1} value={draft} onChange={(event) => setDraft(event.target.value)} placeholder="اكتب رسالتك هنا..." aria-label="نص الرسالة" onKeyDown={(event) => { if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); void send(event as unknown as FormEvent); } }}/>
-          <button type="submit" className="send-button" aria-label="إرسال الرسالة" disabled={sending || (!draft.trim() && files.length === 0)}>{sending ? <span className="spinner"/> : <Send size={17}/>}</button>
+
+        {error && <div className="chat-error" role="alert"><AlertCircle size={15}/><span>{error}</span><button type="button" onClick={() => setError('')} aria-label="إغلاق التنبيه"><X size={14}/></button></div>}
+
+        <form className="chat-composer-v2" onSubmit={(event) => void send(event)} ref={undefined}>
+          {(replyTo || editingMessage) && <div className="chat-composer-mode">
+            <div className="chat-mode-symbol">{editingMessage ? <Pencil size={16}/> : <ArrowDownLeft size={16}/>}</div>
+            <div><b>{editingMessage ? 'تعديل الرسالة' : 'الرد على ' + replyTo?.senderName}</b><span>{editingMessage ? 'يمكن تعديل الرسالة خلال 15 دقيقة من إرسالها.' : replyTo?.text || replyTo?.attachments[0]?.name || 'مرفق'}</span></div>
+            <button type="button" onClick={cancelComposerMode} aria-label="إلغاء"><X size={16}/></button>
+          </div>}
+          {files.length > 0 && <div className="chat-file-preview-list">{files.map((file, index) => {
+            const key = `${file.name}-${file.size}-${file.lastModified}-${index}`;
+            const preview = filePreviews.find((item) => item.key === key);
+            return <div className="chat-file-preview" key={key}>
+              {file.type.startsWith('image/') && preview ? <img src={preview.url} alt=""/> : <span className="chat-file-preview-icon"><File size={18}/></span>}
+              <span><b>{file.name}</b><small>{(file.size / 1024 / 1024).toFixed(1)} MB</small></span>
+              <button type="button" onClick={() => setFiles((items) => items.filter((_, i) => i !== index))} aria-label="إزالة المرفق"><X size={14}/></button>
+            </div>;
+          })}</div>}
+          {emojiOpen && <div className="chat-emoji-panel">{emojis.concat(['🎉','🔥','✅','🤝','📚','💡']).map((emoji) => <button type="button" key={emoji} onClick={() => appendEmoji(emoji)}>{emoji}</button>)}</div>}
+          <div className="chat-composer-actions">
+            <div className="chat-composer-tools">
+              <button type="button" className="chat-tool-button" onClick={() => fileInput.current?.click()} aria-label="إرفاق ملفات" title="إرفاق ملفات"><Paperclip size={19}/></button>
+              <button type="button" className={'chat-tool-button ' + (emojiOpen ? 'active' : '')} onClick={() => setEmojiOpen((value) => !value)} aria-label="إضافة رمز تعبيري" title="الرموز التعبيرية"><Smile size={19}/></button>
+              <input ref={fileInput} type="file" multiple accept="image/*,video/*,.pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.zip,.txt" className="visually-hidden" onChange={(event) => {
+                const picked = Array.from(event.target.files ?? []);
+                setFiles((current) => {
+                  const combined = [...current, ...picked];
+                  if (combined.length > 8) setError('يمكن إرفاق 8 ملفات كحد أقصى في الرسالة الواحدة.');
+                  return combined.slice(0, 8);
+                });
+                if (fileInput.current) fileInput.current.value = '';
+              }}/>
+            </div>
+            <textarea ref={composerRef} rows={1} maxLength={5000} value={draft} onChange={(event) => setDraft(event.target.value)} placeholder={editingMessage ? 'عدّل نص الرسالة...' : 'اكتب رسالة لزملائك...'} aria-label="نص الرسالة" onKeyDown={(event) => {
+              if (event.key === 'Enter' && !event.shiftKey && !event.isComposing) {
+                event.preventDefault();
+                void send();
+              }
+            }}/>
+            <button type="submit" className="chat-send-button" disabled={sending || (!draft.trim() && files.length === 0) || (editingMessage !== null && !draft.trim())} aria-label={editingMessage ? 'حفظ التعديل' : 'إرسال الرسالة'}>
+              {sending ? <span className="spinner"/> : editingMessage ? <Check size={19}/> : <Send size={18}/>}
+            </button>
+          </div>
+          <div className="chat-composer-hint"><span>Enter للإرسال</span><span>Shift + Enter لسطر جديد</span><span>{draft.length}/5000</span></div>
         </form>
       </section>
-    </div>
+    </section>
+
+    {contextMessage && <div className="chat-context-overlay" onMouseDown={() => setContextMessage(null)}>
+      <div className="chat-context-menu" style={{ left: contextPosition.x, top: contextPosition.y }} onMouseDown={(event) => event.stopPropagation()}>
+        <div className="chat-context-heading">إجراءات الرسالة</div>
+        <button type="button" onClick={() => void copyMessage(contextMessage)}><Copy size={16}/> نسخ النص</button>
+        <button type="button" onClick={() => beginReply(contextMessage)}><ArrowDownLeft size={16}/> الرد على الرسالة</button>
+        {contextMessage.senderId === user.uid && editAllowed(contextMessage) && <button type="button" onClick={() => beginEdit(contextMessage)}><Pencil size={16}/> تعديل الرسالة</button>}
+        <button type="button" className="danger" onClick={() => void removeMessage(contextMessage)}><Trash2 size={16}/> {contextMessage.senderId === user.uid ? 'حذف للجميع' : 'حذف الرسالة'}</button>
+        {isAdmin && <button type="button" onClick={() => void handlePin(contextMessage)}><Pin size={16}/> {contextMessage.pinned ? 'إلغاء التثبيت' : 'تثبيت الرسالة'}</button>}
+        <div className="chat-context-reactions">{emojis.map((emoji) => <button type="button" key={emoji} onClick={() => void handleReaction(contextMessage, emoji)}>{emoji}</button>)}</div>
+      </div>
+    </div>}
+
+    {lightbox && <div className="chat-image-lightbox" role="dialog" aria-modal="true" aria-label={lightbox.name} onClick={() => setLightbox(null)}>
+      <button type="button" onClick={() => setLightbox(null)} aria-label="إغلاق الصورة"><X size={22}/></button>
+      <img src={lightbox.url} alt={lightbox.name} onClick={(event) => event.stopPropagation()}/>
+      <span>{lightbox.name}</span>
+    </div>}
   </>;
 }
 
