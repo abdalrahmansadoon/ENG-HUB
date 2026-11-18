@@ -9,6 +9,7 @@ export interface AppUser {
   photoURL?: string | null;
   phone?: string;
   bio?: string;
+  profileVisibility?: 'public' | 'private';
   providerId?: string;
   role: UserRole;
   academicYear: string;
