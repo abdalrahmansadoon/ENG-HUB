@@ -2262,6 +2262,9 @@ function ProfilePage({ user, isDemo, onToggleRole, onLogout, onDeleteAccount, on
   const [name, setName] = useState(user.displayName);
   const [phone, setPhone] = useState(user.phone || '');
   const [bio, setBio] = useState(user.bio || '');
+  const [profileVisibility, setProfileVisibility] = useState<'public' | 'private'>(user.profileVisibility ?? 'public');
+  const [showBioOnPublicProfile, setShowBioOnPublicProfile] = useState(user.showBioOnPublicProfile !== false);
+  const [showAcademicInfoOnPublicProfile, setShowAcademicInfoOnPublicProfile] = useState(user.showAcademicInfoOnPublicProfile !== false);
   const [photoURL, setPhotoURL] = useState(user.photoURL || '');
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState('');
