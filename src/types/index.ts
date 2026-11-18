@@ -10,6 +10,8 @@ export interface AppUser {
   phone?: string;
   bio?: string;
   profileVisibility?: 'public' | 'private';
+  showBioOnPublicProfile?: boolean;
+  showAcademicInfoOnPublicProfile?: boolean;
   providerId?: string;
   role: UserRole;
   academicYear: string;
