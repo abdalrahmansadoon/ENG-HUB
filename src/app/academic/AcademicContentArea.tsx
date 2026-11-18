@@ -146,8 +146,8 @@ export function AcademicContentArea({
       {activeNode.kind === 'custom' && activeNode.url && <AcademicCustomAttachment url={activeNode.url} title={activeNode.title} mimeType={activeNode.mimeType}/>}
       {['exam','assignment'].includes(activeNode.kind) && !activeNode.url && <div className="eh-content-note">{activeNode.description || 'تفاصيل هذا العنصر متاحة في صفحة المحتوى المرتبط.'}</div>}
       {activeNode.kind === 'file' && !activeNode.url && <div className="eh-content-note">لم يعد رابط الملف متاحاً. تواصل مع مدير المادة لإعادة رفعه.</div>}
-      {activeNode.kind === 'lecture' && <p className="eh-content-note">هذه مساحة للمحاضرة. أضف تحتها أي عدد من الفيديوهات والملفات والاختبارات أو المجلدات الفرعية.</p>
-      {activeNode.kind === 'lecturer' && <p className="eh-content-note">أضف محاضرات هذا المدرس داخل هذا القسم، أو أضف أي مجلدات ومصادر مرتبطة به.</p>}}
+      {activeNode.kind === 'lecture' && <p className="eh-content-note">هذه مساحة للمحاضرة. أضف تحتها أي عدد من الفيديوهات والملفات والاختبارات أو المجلدات الفرعية.</p>}
+      {activeNode.kind === 'lecturer' && <p className="eh-content-note">أضف محاضرات هذا المدرس داخل هذا القسم، أو أضف أي مجلدات ومصادر مرتبطة به.</p>}
 
       {linked.length > 0 && <div className="eh-related-content"><div className="eh-content-items-heading"><div><span className="eh-eyebrow">CONNECTED MATERIALS</span><h3>محتوى مرتبط بهذا العنصر</h3></div><span>{linked.length} مرتبط</span></div>
         <div className="eh-related-content-grid">{linked.map((node) => <button type="button" className="eh-related-content-link" key={node.id} onClick={() => onNavigate(node.category, node.id)}>
