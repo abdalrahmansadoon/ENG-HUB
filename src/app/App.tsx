@@ -860,8 +860,9 @@ function ChatPage({ user, cloudinarySettings, isDemo, isAdmin }: {
     if (event.pointerType !== 'touch') return;
     const target = event.target as HTMLElement;
     if (target.closest('button,a,input,textarea,video')) return;
+    const { clientX, clientY } = event;
     clearLongPress();
-    longPressTimer.current = window.setTimeout(() => openContextMenu(message, event.clientX, event.clientY), 560);
+    longPressTimer.current = window.setTimeout(() => openContextMenu(message, clientX, clientY), 560);
   };
   const canEditMessage = (message: ChatMessage) =>
     message.senderId === user.uid && !!message.createdAt && Date.now() - message.createdAt.getTime() <= 15 * 60 * 1000;
@@ -902,6 +903,7 @@ function ChatPage({ user, cloudinarySettings, isDemo, isAdmin }: {
     }
     setDraft(message.text);
     setEditingId(message.id);
+    setFiles([]);
     setReplyTo(null);
     setContextMenu(null);
     window.setTimeout(() => {
@@ -970,6 +972,7 @@ function ChatPage({ user, cloudinarySettings, isDemo, isAdmin }: {
           id: replyTo.id,
           text: replyTo.text || (replyTo.attachments[0]?.name ?? 'مرفق'),
           senderName: replyTo.senderName,
+          thumb: replyTo.attachments.find((item) => item.mimeType.startsWith('image/'))?.url,
         } : null,
       });
       setDraft('');
@@ -1079,6 +1082,7 @@ function ChatPage({ user, cloudinarySettings, isDemo, isAdmin }: {
                   </div>
                   {message.replyTo && (
                     <button type="button" className="reply-block reply-block-clickable" onClick={() => jumpToMessage(message.replyTo!.id)}>
+                      {message.replyTo.thumb && <img className="chat-reply-thumb" src={message.replyTo.thumb} alt=""/>}
                       <span className="ru">{message.replyTo.senderName}</span>
                       <span className="rt">{message.replyTo.text}</span>
                     </button>
@@ -1117,7 +1121,7 @@ function ChatPage({ user, cloudinarySettings, isDemo, isAdmin }: {
                   )}
                   <div className="msg-actions chat-message-actions">
                     <button type="button" onClick={() => startReply(message)} title="الرد على الرسالة"><ArrowDownLeft size={15}/> رد</button>
-                    <button type="button" onClick={() => openContextMenu(message, Math.min(window.innerWidth - 245, 200), Math.min(window.innerHeight - 320, 220))} title="المزيد من الخيارات" aria-label="المزيد من خيارات الرسالة"><MoreVertical size={16}/></button>
+                    <button type="button" onClick={(event) => { const rect = event.currentTarget.getBoundingClientRect(); openContextMenu(message, rect.left, rect.bottom + 6); }} title="المزيد من الخيارات" aria-label="المزيد من خيارات الرسالة"><MoreVertical size={16}/></button>
                     <div className="chat-quick-reactions">
                       <button type="button" title="إعجاب" onClick={() => void reactToMessage(message, '👍')}>👍</button>
                       <button type="button" title="قلب" onClick={() => void reactToMessage(message, '❤️')}>❤️</button>
@@ -1136,6 +1140,7 @@ function ChatPage({ user, cloudinarySettings, isDemo, isAdmin }: {
           {replyTo && <div className="reply-indicator active">
             <div className="reply-indicator-mark"/>
             <div className="ri-text"><strong>الرد على {replyTo.senderName}</strong><span>{replyText(replyTo)}</span></div>
+            {replyTo.attachments.find((item) => item.mimeType.startsWith('image/')) && <img className="chat-reply-selected-thumb" src={replyTo.attachments.find((item) => item.mimeType.startsWith('image/'))?.url} alt=""/>}
             <button type="button" className="ri-close" onClick={() => setReplyTo(null)} aria-label="إلغاء الرد"><X size={16}/></button>
           </div>}
           {editingId && <div className="chat-edit-indicator">
