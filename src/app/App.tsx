@@ -390,8 +390,16 @@ function ProfileCompletionScreen({ user, cloudinarySettings, onComplete, themeCl
   const [bio, setBio] = useState(user.bio || '');
   const [photoURL, setPhotoURL] = useState(user.photoURL || '');
   const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (!photoFile) { setPhotoPreview(''); return; }
+    const objectUrl = URL.createObjectURL(photoFile);
+    setPhotoPreview(objectUrl);
+    return () => URL.revokeObjectURL(objectUrl);
+  }, [photoFile]);
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
@@ -422,7 +430,7 @@ function ProfileCompletionScreen({ user, cloudinarySettings, onComplete, themeCl
       <p className="onboarding-subtitle">هذه الخطوة مطلوبة قبل الدخول إلى مساحة الدراسة. اختر الاسم والصورة التي سيراها زملاؤك.</p>
       <form className="form-stack" onSubmit={submit}>
         <div className="onboarding-photo-row">
-          <div className="onboarding-avatar">{photoFile ? <span>{photoFile.name.slice(0, 1).toUpperCase()}</span> : photoURL ? <img src={photoURL} alt="صورتك الشخصية"/> : displayName.trim().slice(0, 1) || <Users size={26}/>}</div>
+          <div className="onboarding-avatar">{photoPreview || photoURL ? <img src={photoPreview || photoURL} alt="صورتك الشخصية"/> : displayName.trim().slice(0, 1) || <Users size={26}/>}</div>
           <div className="onboarding-photo-copy"><b>الصورة الشخصية</b><span>اختيارية — يمكنك إضافتها أو تغييرها لاحقاً</span><label className="btn btn-outline btn-small photo-pick-button"><ImagePlus size={14}/> اختيار صورة<input type="file" accept="image/*" className="visually-hidden" onChange={(event) => setPhotoFile(event.target.files?.[0] ?? null)}/></label></div>
         </div>
         <label>الاسم الذي سيظهر في المنصة<input required minLength={2} maxLength={80} autoFocus value={displayName} onChange={(event) => setDisplayName(event.target.value)} placeholder="اكتب اسمك الكامل"/></label>
