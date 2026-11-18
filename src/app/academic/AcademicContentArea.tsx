@@ -2,7 +2,7 @@ import { useMemo, useState, type FormEvent } from 'react';
 import {
   ArrowDown, ArrowUpLeft, BookOpen, Check, ChevronLeft, ChevronRight, ClipboardList,
   Download, ExternalLink, File, FileText, Folder, FolderPlus, GraduationCap, Layers3,
-  Link2, Lock, MoreHorizontal, Play, Plus, Search, ShieldCheck, Trash2, Video, X,
+  Link2, Lock, MoreHorizontal, Pencil, Play, Plus, Search, ShieldCheck, Trash2, Video, X,
 } from 'lucide-react';
 import type { Subject } from '../../types';
 import type {
@@ -40,14 +40,16 @@ interface Props {
   onBackToSubject: () => void;
   onCreate: (input: CreateAcademicContentInput) => Promise<void>;
   onDelete: (node: AcademicContentNode) => Promise<void>;
+  onUpdate: (nodeId: string, patch: Partial<CreateAcademicContentInput>) => Promise<void>;
   onUpload: (file: File) => Promise<{ url: string; mimeType: string }>;
 }
 
 export function AcademicContentArea({
-  subject, nodes, category, activeNodeId, isAdmin, onNavigate, onBackToSubject, onCreate, onDelete, onUpload,
+  subject, nodes, category, activeNodeId, isAdmin, onNavigate, onBackToSubject, onCreate, onDelete, onUpdate, onUpload,
 }: Props) {
   const [search, setSearch] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
+  const [editTarget, setEditTarget] = useState<AcademicContentNode | null>(null);
   const [busy, setBusy] = useState(false);
   const activeNode = nodes.find((node) => node.id === activeNodeId) ?? null;
   const children = useMemo(
@@ -61,7 +63,8 @@ export function AcademicContentArea({
   ])]
     .map((id) => nodes.find((node) => node.id === id))
     .filter((node): node is AcademicContentNode => Boolean(node) && node.id !== activeNode.id) : [];
-  const openAdd = () => setModalOpen(true);
+  const openAdd = () => { setEditTarget(null); setModalOpen(true); };
+  const openEdit = (node: AcademicContentNode) => { setEditTarget(node); setModalOpen(true); };
 
   const remove = async (node: AcademicContentNode) => {
     if (!window.confirm(`سيتم حذف "${node.title}" وكل ما بداخله من عناصر. هل تريد المتابعة؟`)) return;
@@ -116,7 +119,8 @@ export function AcademicContentArea({
               {node.linkedNodeIds.length > 0 && <span><Link2 size={12}/> {node.linkedNodeIds.length} روابط مرتبطة</span>}
             </div>
             {isAdmin && node.createdBy !== 'legacy' && <div className="eh-content-item-admin">
-              <button type="button" title="حذف العنصر" onClick={() => void remove(node)}><Trash2 size={14}/></button>
+              <button type="button" title="تعديل العنصر" aria-label={'تعديل ' + node.title} onClick={() => openEdit(node)}><Pencil size={14}/></button>
+              <button type="button" title="حذف العنصر" aria-label={'حذف ' + node.title} onClick={() => void remove(node)}><Trash2 size={14}/></button>
             </div>}
           </article>;
         })}
@@ -146,16 +150,21 @@ export function AcademicContentArea({
           <span><b>{node.title}</b><small>{kinds.find((item) => item.id === node.kind)?.label ?? node.kind}</small></span><ChevronLeft size={15}/>
         </button>)}</div>
       </div>}
-      {isAdmin && <button type="button" className="eh-button primary" onClick={openAdd}><Plus size={16}/> إضافة عنصر داخل {activeNode.kind === 'folder' ? 'المجلد' : 'هذا القسم'}</button>}
+      {isAdmin && <div className="eh-content-detail-actions">
+        {activeNode.createdBy !== 'legacy' && <button type="button" className="eh-button" onClick={() => openEdit(activeNode)}><Pencil size={15}/> تعديل العنصر</button>}
+        <button type="button" className="eh-button primary" onClick={openAdd}><Plus size={16}/> إضافة عنصر داخل {activeNode.kind === 'folder' ? 'المجلد' : 'هذا القسم'}</button>
+      </div>}
     </section>}
 
     {modalOpen && <AcademicContentModal
       category={category}
       parent={activeNode}
+      initialNode={editTarget}
       nodes={nodes}
       onClose={() => setModalOpen(false)}
       onUpload={onUpload}
       onSave={async (input) => { setBusy(true); try { await onCreate(input); setModalOpen(false); } finally { setBusy(false); } }}
+      onUpdate={async (nodeId, patch) => { setBusy(true); try { await onUpdate(nodeId, patch); setModalOpen(false); } finally { setBusy(false); } }}
       busy={busy}
     />}
   </div>;
@@ -175,37 +184,43 @@ function AcademicVideo({ url, title }: { url: string; title: string }) {
   return <a className="eh-related-content-link" href={url} target="_blank" rel="noreferrer"><ExternalLink size={17}/><span><b>فتح مصدر الفيديو</b><small>{url}</small></span></a>;
 }
 
-function AcademicContentModal({ category, parent, nodes, onClose, onSave, onUpload, busy }: {
+function AcademicContentModal({ category, parent, initialNode, nodes, onClose, onSave, onUpdate, onUpload, busy }: {
   category: AcademicContentCategory;
   parent: AcademicContentNode | null;
+  initialNode: AcademicContentNode | null;
   nodes: AcademicContentNode[];
   onClose: () => void;
   onSave: (input: CreateAcademicContentInput) => Promise<void>;
+  onUpdate: (nodeId: string, patch: Partial<CreateAcademicContentInput>) => Promise<void>;
   onUpload: (file: File) => Promise<{ url: string; mimeType: string }>;
   busy: boolean;
 }) {
-  const [kind, setKind] = useState<AcademicContentKind>(parent?.kind === 'lecture' ? 'video' : 'folder');
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
-  const [url, setUrl] = useState('');
-  const [duration, setDuration] = useState('');
-  const [itemCategory, setItemCategory] = useState<AcademicContentCategory>(parent?.category || category);
-  const [publicationStatus, setPublicationStatus] = useState<'published' | 'draft'>('published');
-  const [linkedNodeIds, setLinkedNodeIds] = useState<string[]>([]);
+  const [kind, setKind] = useState<AcademicContentKind>(initialNode?.kind ?? (parent?.kind === 'lecture' ? 'video' : 'folder'));
+  const [title, setTitle] = useState(initialNode?.title ?? '');
+  const [description, setDescription] = useState(initialNode?.description ?? '');
+  const [url, setUrl] = useState(initialNode?.url ?? '');
+  const [duration, setDuration] = useState(initialNode?.duration ?? '');
+  const [itemCategory, setItemCategory] = useState<AcademicContentCategory>(initialNode?.category ?? parent?.category ?? category);
+  const [publicationStatus, setPublicationStatus] = useState<'published' | 'draft'>(initialNode?.publicationStatus ?? 'published');
+  const [linkedNodeIds, setLinkedNodeIds] = useState<string[]>(initialNode?.linkedNodeIds ?? []);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
-  const [mimeType, setMimeType] = useState('');
+  const [mimeType, setMimeType] = useState(initialNode?.mimeType ?? '');
   const needsUrl = ['video','file','exam','assignment','link'].includes(kind);
-  const availableLinks = nodes.filter((node) => node.id !== parent?.id && node.kind !== 'folder' && node.publicationStatus === 'published');
+  const availableLinks = nodes.filter((node) => node.id !== (initialNode?.id ?? parent?.id) && node.kind !== 'folder' && node.publicationStatus === 'published');
   const submit = async (event: FormEvent) => {
     event.preventDefault(); setError('');
     if (title.trim().length < 2) { setError('اكتب عنواناً واضحاً.'); return; }
     if (needsUrl && !url.trim()) { setError('أضف رابطاً أو ارفع الملف.'); return; }
-    await onSave({
-      parentId: parent?.id ?? null, kind, category: itemCategory, title: title.trim(), description: description.trim(),
+    const payload: CreateAcademicContentInput = {
+      parentId: initialNode?.parentId ?? parent?.id ?? null,
+      kind, category: itemCategory, title: title.trim(), description: description.trim(),
       ...(url.trim() ? { url: url.trim() } : {}), ...(mimeType ? { mimeType } : {}),
-      duration: duration.trim(), linkedNodeIds, publicationStatus, sortOrder: Date.now(),
-    });
+      duration: duration.trim(), linkedNodeIds, publicationStatus,
+      sortOrder: initialNode?.sortOrder ?? Date.now(),
+    };
+    if (initialNode) await onUpdate(initialNode.id, payload);
+    else await onSave(payload);
   };
   const upload = async (file?: File) => {
     if (!file) return;
@@ -217,7 +232,7 @@ function AcademicContentModal({ category, parent, nodes, onClose, onSave, onUplo
 
   return <div className="modal-backdrop eh-content-modal-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
     <section className="modal-card eh-content-modal" role="dialog" aria-modal="true" aria-labelledby="eh-content-modal-title">
-      <div className="modal-head"><div><span className="eh-eyebrow">CONTENT BUILDER</span><h2 id="eh-content-modal-title">إضافة محتوى للمادة</h2><p>{parent ? 'سيتم إنشاء العنصر داخل: ' + parent.title : 'أنشئ بنية المادة بالطريقة التي تناسبك.'}</p></div><button type="button" className="icon-button" onClick={onClose} aria-label="إغلاق"><X size={18}/></button></div>
+      <div className="modal-head"><div><span className="eh-eyebrow">CONTENT BUILDER</span><h2 id="eh-content-modal-title">{initialNode ? 'تعديل المحتوى' : 'إضافة محتوى للمادة'}</h2><p>{initialNode ? 'عدّل بيانات هذا العنصر وروابطه مع الاحتفاظ بمكانه.' : parent ? 'سيتم إنشاء العنصر داخل: ' + parent.title : 'أنشئ بنية المادة بالطريقة التي تناسبك.'}</p></div><button type="button" className="icon-button" onClick={onClose} aria-label="إغلاق"><X size={18}/></button></div>
       <form className="form-stack" onSubmit={(event) => void submit(event)}>
         <div className="eh-content-kind-grid">{kinds.map((item) => <button key={item.id} type="button" className={kind === item.id ? 'selected' : ''} onClick={() => setKind(item.id)}><span>{item.id === 'folder' ? <FolderPlus size={17}/> : item.id === 'video' ? <Video size={17}/> : item.id === 'file' ? <FileText size={17}/> : item.id === 'exam' ? <ClipboardList size={17}/> : item.id === 'lecture' ? <GraduationCap size={17}/> : <MoreHorizontal size={17}/>}</span>{item.label}</button>)}</div>
         <label>اسم العنصر<input required minLength={2} maxLength={140} autoFocus value={title} onChange={(event) => setTitle(event.target.value)} placeholder={kind === 'folder' ? 'مثال: المحاضرات الإضافية' : 'عنوان المحتوى'}/></label>
@@ -226,12 +241,12 @@ function AcademicContentModal({ category, parent, nodes, onClose, onSave, onUplo
           <label>حالة النشر<select value={publicationStatus} onChange={(event) => setPublicationStatus(event.target.value as 'published'|'draft')}><option value="published">منشور للطلاب</option><option value="draft">مسودة للمدير</option></select></label>
         </div>
         {needsUrl && <label>الرابط<input type="url" dir="ltr" value={url} onChange={(event) => setUrl(event.target.value)} placeholder="https://..."/></label>}
-        {kind === 'file' && <label className="eh-content-upload"><input type="file" onChange={(event) => void upload(event.target.files?.[0])}/><span><File size={18}/>{uploading ? 'جارٍ رفع الملف...' : url ? 'تم رفع الملف — يمكنك استبداله' : 'رفع ملف إلى مكتبة المادة'}</span></label>}
+        {['file','video'].includes(kind) && <label className="eh-content-upload"><input type="file" accept={kind === 'video' ? 'video/*' : '.pdf,.ppt,.pptx,.doc,.docx,.xls,.xlsx,.zip,.txt,image/*'} onChange={(event) => void upload(event.target.files?.[0])}/><span>{kind === 'video' ? <Video size={18}/> : <File size={18}/ >}{uploading ? 'جارٍ رفع الملف...' : url ? 'تم رفع الملف — يمكنك استبداله' : kind === 'video' ? 'رفع فيديو مباشرة إلى مكتبة المادة' : 'رفع ملف إلى مكتبة المادة'}</span></label>}
         {['video','lecture'].includes(kind) && <label>المدة (اختياري)<input value={duration} onChange={(event) => setDuration(event.target.value)} placeholder="مثال: 35 دقيقة"/></label>}
         <label>وصف أو ملاحظات<textarea rows={3} maxLength={1400} value={description} onChange={(event) => setDescription(event.target.value)} placeholder="تفاصيل المحتوى أو تعليمات الطالب..."/></label>
         {availableLinks.length > 0 && <div className="eh-content-link-picker"><b>ربط هذا العنصر بملفات أو فيديوهات أو اختبارات أخرى</b><small>يمكن اختيار أكثر من عنصر، وتظهر الروابط في صفحة المحتوى بعد النشر.</small><div>{availableLinks.map((node) => <label key={node.id}><input type="checkbox" checked={linkedNodeIds.includes(node.id)} onChange={(event) => setLinkedNodeIds((current) => event.target.checked ? [...current, node.id] : current.filter((id) => id !== node.id))}/><span>{node.title}</span><small>{kinds.find((item) => item.id === node.kind)?.label ?? node.kind}</small></label>)}</div></div>}
         {error && <p className="auth-error">{error}</p>}
-        <div className="modal-actions"><button type="button" className="btn btn-outline" onClick={onClose}>إلغاء</button><button type="submit" className="btn btn-primary" disabled={busy || uploading || !title.trim() || (needsUrl && !url.trim())}>{busy || uploading ? 'جارٍ الحفظ...' : <><Check size={15}/> حفظ المحتوى</>}</button></div>
+        <div className="modal-actions"><button type="button" className="btn btn-outline" onClick={onClose}>إلغاء</button><button type="submit" className="btn btn-primary" disabled={busy || uploading || !title.trim() || (needsUrl && !url.trim())}>{busy || uploading ? 'جارٍ الحفظ...' : <><Check size={15}/> {initialNode ? 'حفظ التعديلات' : 'حفظ المحتوى'}</>}</button></div>
       </form>
     </section>
   </div>;
