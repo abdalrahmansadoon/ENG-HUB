@@ -1751,9 +1751,14 @@ function ChatPage({ user, cloudinarySettings, isDemo, isAdmin, roomId, roomTitle
           <div className="chat-topbar-search"><Search size={15}/><input placeholder="ابحث داخل المحادثة" value={search} onChange={(event) => setSearch(event.target.value)}/></div>
           <button type="button" className="chat-topbar-btn" onClick={() => backgroundFileInput.current?.click()} disabled={backgroundBusy} title="اختيار خلفية المحادثة">{backgroundBusy ? <span className="spinner"/> : <ImagePlus size={16}/>}</button>
           {chatBackgroundUrl && <button type="button" className="chat-topbar-btn" onClick={() => void resetChatBackground()} title="إزالة الخلفية"><X size={15}/></button>}
-          {isAdmin && <button type="button" className="chat-topbar-btn" onClick={() => { setAnnouncementTarget(null); setAnnouncementModalOpen(true); }} title="إضافة تعميم"><Megaphone size={16}/></button>}
-          {isAdmin && <button type="button" className="chat-topbar-btn" onClick={() => lockState.locked ? void unlockChat() : setLockSettingsOpen(true)} disabled={moderationBusy} title={lockState.locked ? 'فتح المحادثة للطلاب' : 'جدولة قفل المحادثة'}>{lockState.locked ? <Unlock size={16}/> : <Lock size={16}/>}</button>}
-          {isAdmin && <button type="button" className="chat-topbar-btn chat-admin-clear" onClick={() => void clearRoom()} title="تفريغ المحادثة"><Trash2 size={16}/></button>}
+          {isAdmin && <details className="chat-admin-tools">
+            <summary className="chat-topbar-btn" aria-label="أدوات إدارة المحادثة" title="أدوات الإدارة"><MoreHorizontal size={18}/></summary>
+            <div role="menu">
+              <button type="button" onClick={(event) => { event.currentTarget.closest('details')?.removeAttribute('open'); setAnnouncementTarget(null); setAnnouncementModalOpen(true); }}><Megaphone size={15}/> نشر تعميم</button>
+              <button type="button" onClick={(event) => { event.currentTarget.closest('details')?.removeAttribute('open'); lockState.locked ? void unlockChat() : setLockSettingsOpen(true); }} disabled={moderationBusy}>{lockState.locked ? <Unlock size={15}/> : <Lock size={15}/>} {lockState.locked ? 'فتح المحادثة' : 'قفل / جدولة القفل'}</button>
+              <button type="button" className="danger" onClick={(event) => { event.currentTarget.closest('details')?.removeAttribute('open'); void clearRoom(); }}><Trash2 size={15}/> تفريغ رسائل الغرفة</button>
+            </div>
+          </details>}
         </div>
       </header>
       <input ref={backgroundFileInput} type="file" accept="image/*" className="visually-hidden" onChange={(event) => void changeChatBackground(event.target.files?.[0])}/>
