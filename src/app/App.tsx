@@ -52,6 +52,7 @@ const iconForKind = { task: ClipboardList, lecture: Video, exam: BookOpenCheck, 
 function App() {
   const { user, isDemo, loading, profileComplete, completeProfile, saveProfile, deleteAccount, logout, toggleDemoRole, login, loginWithGoogle } = useAuth();
   const activeUser = user ?? { uid: '', displayName: 'طالب هندسة', email: '', photoURL: null, role: 'student' as const, academicYear: 'السنة الإعدادية', term: 'الترم الأول' };
+  const isAdmin = activeUser.role === 'admin' || activeUser.role === 'super-admin';
   const initialRoute = readEngHubRoute();
   const [page, setPage] = useState(initialRoute.page);
   const [publicProfileUid, setPublicProfileUid] = useState(initialRoute.profileUid);
@@ -155,7 +156,6 @@ function App() {
 
   const pendingCount = tasks.filter((task) => task.status !== 'completed').length;
   const unreadCount = notifications.filter((item) => !item.read).length;
-  const isAdmin = activeUser.role === 'admin' || activeUser.role === 'super-admin';
   const academicContentWithLegacy = useMemo<AcademicContentNode[]>(() => {
     const combined = [...academicContent];
     const existing = new Set(combined.map((node) => node.id));
@@ -515,7 +515,7 @@ function App() {
       <div className={`eh-page-view ${page === 'chat' ? 'eh-chat-page' : ''}`}>
         {page === 'home' && <Dashboard userName={activeUser.displayName} tasks={tasks} subjects={subjects} exams={exams} lectures={lectures} onGo={setPage} onNewTask={() => setTaskModal(true)} onStatus={changeTaskStatus} canCreateTask={isAdmin}/>}
         {page === 'tasks' && <TasksPage tasks={tasks} onNew={() => setTaskModal(true)} onStatus={changeTaskStatus} onDelete={(id) => void removeTask(id)} canEdit={isAdmin}/>}
-        {(page === 'courses' || page === 'lectures') && selectedSubjectId && selectedSubjectCategory && subjects.find((item) => item.id === selectedSubjectId) && <AcademicContentArea
+        {(page === 'courses' || page === 'lectures') && selectedSubjectId && selectedSubjectCategory && selectedSubjectCategory !== 'chat' && subjects.find((item) => item.id === selectedSubjectId) && <AcademicContentArea
           subject={subjects.find((item) => item.id === selectedSubjectId)!}
           nodes={academicContentWithLegacy}
           category={selectedSubjectCategory}
