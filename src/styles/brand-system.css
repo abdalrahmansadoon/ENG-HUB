@@ -626,3 +626,38 @@ button,input,textarea,select{font-family:inherit}
   .eh-app .eh-content-detail-actions{display:grid;grid-template-columns:1fr}
   .eh-app .eh-profile-share-link{width:100%}
 }
+
+
+/* Chat slow-mode banners and settings state */
+.eh-app .chat-slow-mode-banner,
+.eh-app .chat-slow-mode-countdown{
+  display:flex;align-items:center;gap:9px;min-height:40px;padding:8px 15px;
+  border-bottom:1px solid var(--eh-stroke);font-size:11px;line-height:1.7;
+}
+.eh-app .chat-slow-mode-banner{
+  background:var(--eh-accent-wash);color:var(--eh-accent);
+}
+.eh-app .chat-slow-mode-banner svg{flex:0 0 auto}
+.eh-app .chat-slow-mode-banner span{min-width:0}
+.eh-app .chat-slow-mode-countdown{
+  background:var(--eh-warning-wash);color:var(--eh-warning);font-weight:700;
+}
+.eh-app .chat-slow-mode-countdown b{
+  display:inline-grid;min-width:25px;height:25px;place-items:center;margin-inline:3px;
+  border-radius:8px;background:color-mix(in srgb,var(--eh-warning) 14%,var(--eh-card-bg));
+  color:var(--eh-warning);font:800 12px Inter,var(--eh-brand-font);
+}
+.eh-app .chat-slow-mode-banner + .chat-slow-mode-countdown{border-top:1px solid var(--eh-stroke)}
+.eh-app .chat-slow-mode-countdown + .chat-lock-banner{border-top:1px solid var(--eh-stroke)}
+.eh-app .chat-slow-mode-banner + .chat-lock-banner{border-top:1px solid var(--eh-stroke)}
+.eh-app .eh-chat-settings-modal .form-stack{gap:14px}
+.eh-app .eh-chat-settings-modal .eh-chat-setting-toggle{
+  display:flex;align-items:center;justify-content:space-between;gap:14px;
+  padding:13px;border:1px solid var(--eh-stroke);border-radius:12px;background:var(--eh-card-soft)
+}
+.eh-app .eh-chat-settings-modal .eh-chat-setting-toggle b{color:var(--eh-ink);font-size:12px}
+.eh-app .eh-chat-settings-modal .eh-chat-setting-toggle small{color:var(--eh-sub);font-size:10px;line-height:1.65}
+.eh-app .eh-chat-settings-modal .eh-chat-setting-toggle input{width:19px;height:19px;flex:0 0 19px;accent-color:var(--eh-accent)}
+@media(max-width:600px){
+  .eh-app .chat-slow-mode-banner,.eh-app .chat-slow-mode-countdown{padding:7px 9px;font-size:10px}
+}
