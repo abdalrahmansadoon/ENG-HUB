@@ -385,6 +385,19 @@ export async function softDeleteGeneralChatMessage(messageId: string, senderId: 
   });
 }
 
+export async function adminSoftDeleteGeneralChatMessage(messageId: string, adminId: string) {
+  const ref = messageRef(messageId);
+  const snapshot = await getDoc(ref);
+  if (!snapshot.exists()) throw new Error('هذه الرسالة لم تعد موجودة.');
+  await updateDoc(ref, {
+    deleted: true,
+    deletedAt: serverTimestamp(),
+    deletedBy: adminId,
+    text: '',
+    attachments: [],
+  });
+}
+
 export async function hideGeneralChatMessageForUser(userId: string, messageId: string) {
   if (!userId) throw new Error('يجب تسجيل الدخول لإخفاء الرسالة من حسابك.');
   const ref = doc(requireDb(), 'users', userId, 'hiddenChatMessages', GENERAL_CHAT_ID);
