@@ -473,3 +473,56 @@
 @media(prefers-reduced-motion:reduce) {
   .chat-msg,.app-shell * { transition-duration:.01ms!important;animation-duration:.01ms!important; }
 }
+
+
+/* Account entry points share the authenticated application's actual palette. */
+.auth-screen.theme-dark,.profile-onboarding.theme-dark {
+  --bg:#0a1120;--surface:#121f33;--surface2:#182941;--surface3:#20334e;
+  --border:rgba(169,188,220,.14);--border2:rgba(169,188,220,.23);
+  --text:#f3f6fc;--muted:#b5c1d3;--dim:#8595ad;--purple:#9788ff;
+  background:var(--bg);color:var(--text);color-scheme:dark;
+}
+.auth-screen.theme-light,.profile-onboarding.theme-light {
+  --bg:#f3f6fb;--surface:#fff;--surface2:#f5f7fb;--surface3:#eaf0f7;
+  --border:rgba(35,54,84,.10);--border2:rgba(35,54,84,.18);
+  --text:#1b2a40;--muted:#53657e;--dim:#71839a;--purple:#6557d8;
+  background:var(--bg);color:var(--text);color-scheme:light;
+}
+.auth-screen .auth-form-side { background:var(--bg); }
+.auth-screen .auth-form h2 { color:var(--text);font-size:31px;font-weight:800;line-height:1.45; }
+.auth-screen .auth-form > p { color:var(--muted);font-size:14px;line-height:1.9; }
+.auth-screen .auth-form label { color:var(--text);font-size:13px;font-weight:700; }
+.auth-screen .auth-form input {
+  min-height:51px;padding:12px 15px;border-radius:13px;
+  border:1px solid var(--border2);background:var(--surface2);color:var(--text);font-size:14px;
+}
+.auth-screen .auth-form input::placeholder { color:var(--dim); }
+.auth-screen .auth-form .auth-submit,.auth-screen .google-btn { min-height:51px;border-radius:13px;font-size:13px; }
+.auth-screen .auth-switch { color:var(--muted);font-size:12px; }
+.auth-screen .auth-switch button { color:var(--purple);font-size:12px; }
+.auth-screen .auth-error { font-size:12px;line-height:1.7; }
+.profile-onboarding { min-height:100vh;padding:32px 18px;background:var(--bg);color:var(--text); }
+.profile-onboarding-card {
+  width:min(100%,820px);padding:clamp(26px,4vw,48px);border-radius:26px;
+  border:1px solid var(--border2);background:var(--surface);color:var(--text);box-shadow:var(--eh-card-shadow);
+}
+.profile-onboarding-card::before { height:5px;background:linear-gradient(90deg,#48c8a1,#68a8ff,#9788ff); }
+.profile-onboarding-card .onboarding-brand { padding-bottom:22px;margin-bottom:28px;border-bottom:1px solid var(--border); }
+.profile-onboarding-card .brand-copy strong,.profile-onboarding-card h1,.profile-onboarding-card .form-stack label { color:var(--text); }
+.profile-onboarding-card .brand-copy span { color:var(--muted); }
+.profile-onboarding-card h1 { font-size:clamp(27px,3.4vw,38px);line-height:1.5;font-weight:800; }
+.profile-onboarding-card .onboarding-subtitle { color:var(--muted);font-size:14px;line-height:2; }
+.profile-onboarding-card .onboarding-photo-row { border:1px solid var(--border);border-radius:17px;background:var(--surface2);padding:17px; }
+.profile-onboarding-card .onboarding-avatar { width:92px;height:92px;flex:0 0 92px;border-radius:50%;overflow:hidden;border:4px solid var(--surface); }
+.profile-onboarding-card .onboarding-avatar img { width:100%;height:100%;display:block;object-fit:cover;object-position:center;border-radius:50%; }
+.profile-onboarding-card .form-stack label { color:var(--text);font-size:13px;font-weight:700; }
+.profile-onboarding-card .form-stack input,.profile-onboarding-card .form-stack textarea {
+  min-height:51px;padding:12px 15px;border:1px solid var(--border2);
+  border-radius:13px;background:var(--surface2);color:var(--text);font-size:14px;
+}
+.profile-onboarding-card .form-stack input::placeholder,.profile-onboarding-card .form-stack textarea::placeholder { color:var(--dim); }
+.profile-onboarding-card .onboarding-account-email { padding:14px 16px;background:var(--surface2);border:1px solid var(--border);border-radius:13px; }
+.profile-onboarding-card .onboarding-account-email b { color:var(--muted);font-size:11px; }
+.profile-onboarding-card .onboarding-account-email span { color:var(--text);font:13px Inter,sans-serif; }
+.profile-onboarding-card .onboarding-submit { min-height:54px;border-radius:14px;font-size:14px;font-weight:800; }
+.app-shell .profile-details .profile-avatar-large img { width:100%;height:100%;object-fit:cover;object-position:center;display:block;border-radius:50%; }
