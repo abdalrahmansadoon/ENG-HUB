@@ -78,6 +78,32 @@ service cloud.firestore {
       match /chatBackgrounds/{roomId} {
         allow read, create, update, delete: if owns(userId) && activeUser();
       }
+      match /chatSlowModeCooldowns/{roomId} {
+        allow read: if owns(userId) && activeUser();
+        allow create: if owns(userId) && activeUser()
+          && exists(/databases/$(database)/documents/conversations/$(roomId)/settings/chat)
+          && get(/databases/$(database)/documents/conversations/$(roomId)/settings/chat).data.slowModeEnabled == true
+          && get(/databases/$(database)/documents/conversations/$(roomId)/settings/chat).data.slowModeSeconds is int
+          && get(/databases/$(database)/documents/conversations/$(roomId)/settings/chat).data.slowModeSeconds >= 5
+          && request.resource.data.keys().hasOnly(['until', 'seconds', 'updatedAt'])
+          && request.resource.data.seconds == get(/databases/$(database)/documents/conversations/$(roomId)/settings/chat).data.slowModeSeconds
+          && request.resource.data.updatedAt == request.time
+          && request.resource.data.until is timestamp
+          && request.resource.data.until >= request.time + duration.value(request.resource.data.seconds - 3, 's')
+          && request.resource.data.until <= request.time + duration.value(request.resource.data.seconds + 3, 's');
+        allow update: if owns(userId) && activeUser()
+          && exists(/databases/$(database)/documents/conversations/$(roomId)/settings/chat)
+          && get(/databases/$(database)/documents/conversations/$(roomId)/settings/chat).data.slowModeEnabled == true
+          && resource.data.until is timestamp
+          && resource.data.until <= request.time
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['until', 'seconds', 'updatedAt'])
+          && request.resource.data.seconds == get(/databases/$(database)/documents/conversations/$(roomId)/settings/chat).data.slowModeSeconds
+          && request.resource.data.updatedAt == request.time
+          && request.resource.data.until is timestamp
+          && request.resource.data.until >= request.time + duration.value(request.resource.data.seconds - 3, 's')
+          && request.resource.data.until <= request.time + duration.value(request.resource.data.seconds + 3, 's');
+        allow delete: if false;
+      }
     }
 
     match /roles/{roleId} {
@@ -269,7 +295,24 @@ service cloud.firestore {
           && (!exists(/databases/$(database)/documents/conversations/$(conversationId)/mutes/$(request.auth.uid))
             || get(/databases/$(database)/documents/conversations/$(conversationId)/mutes/$(request.auth.uid)).data.muted != true
             || (get(/databases/$(database)/documents/conversations/$(conversationId)/mutes/$(request.auth.uid)).data.mutedUntil is timestamp
-              && get(/databases/$(database)/documents/conversations/$(conversationId)/mutes/$(request.auth.uid)).data.mutedUntil <= request.time));
+              && get(/databases/$(database)/documents/conversations/$(conversationId)/mutes/$(request.auth.uid)).data.mutedUntil <= request.time))
+          && (
+            isModerator()
+            || !(
+              exists(/databases/$(database)/documents/conversations/$(conversationId)/settings/chat)
+              && get(/databases/$(database)/documents/conversations/$(conversationId)/settings/chat).data.slowModeEnabled == true
+              && get(/databases/$(database)/documents/conversations/$(conversationId)/settings/chat).data.slowModeSeconds is int
+              && get(/databases/$(database)/documents/conversations/$(conversationId)/settings/chat).data.slowModeSeconds >= 5
+            )
+            || (
+              (!exists(/databases/$(database)/documents/users/$(request.auth.uid)/chatSlowModeCooldowns/$(conversationId))
+                || get(/databases/$(database)/documents/users/$(request.auth.uid)/chatSlowModeCooldowns/$(conversationId)).data.until <= request.time)
+              && existsAfter(/databases/$(database)/documents/users/$(request.auth.uid)/chatSlowModeCooldowns/$(conversationId))
+              && getAfter(/databases/$(database)/documents/users/$(request.auth.uid)/chatSlowModeCooldowns/$(conversationId)).data.until is timestamp
+              && getAfter(/databases/$(database)/documents/users/$(request.auth.uid)/chatSlowModeCooldowns/$(conversationId)).data.until > request.time
+              && getAfter(/databases/$(database)/documents/users/$(request.auth.uid)/chatSlowModeCooldowns/$(conversationId)).data.seconds == get(/databases/$(database)/documents/conversations/$(conversationId)/settings/chat).data.slowModeSeconds
+            )
+          );
         allow update: if isModerator()
           || (activeUser()
             && resource.data.senderId == request.auth.uid
