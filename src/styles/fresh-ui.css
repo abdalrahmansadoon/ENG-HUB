@@ -1,3 +1,29 @@
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=Cairo:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap');
+*,
+*::before,
+*::after { box-sizing:border-box; }
+html,body,#root { min-height:100%;margin:0; }
+html { scroll-behavior:smooth;background:#0a1120; }
+body { min-height:100vh;background:#0a1120;color:#f3f6fc;font-family:"IBM Plex Sans Arabic","Cairo",sans-serif; }
+button,input,select,textarea { font:inherit; }
+button { cursor:pointer; }
+button:disabled { cursor:not-allowed; }
+img { max-width:100%; }
+::selection { background:rgba(130,111,239,.28); }
+:root { --font-ar:"IBM Plex Sans Arabic","Cairo",sans-serif; }
+.visually-hidden {
+  position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;
+  overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important;
+}
+.boot-screen {
+  min-height:100dvh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:17px;
+  background:#0a1120;color:#b5c1d3;font:600 13px "IBM Plex Sans Arabic","Cairo",sans-serif;
+}
+.boot-screen .brand-mark {
+  width:58px;height:58px;display:grid;place-items:center;border-radius:18px;
+  background:linear-gradient(145deg,#8878f4,#5948d2);color:#fff;font:800 18px Inter,sans-serif;
+  box-shadow:0 10px 28px rgba(104,88,223,.3);
+}
 /* ENG HUB — interface re-foundation (2026)
    A single, intentional visual language for every authenticated screen. */
 :root {
@@ -1000,3 +1026,124 @@
   .eh-app .chat-composer-note { gap:8px;font-size:8px; }
 }
 @media(hover:none) { .eh-app .chat-msg .msg-actions { opacity:1; } }
+
+/* Exam library */
+.eh-app .exam-highlight {
+  display:flex;align-items:center;gap:16px;padding:21px 24px;margin-bottom:23px;
+  border:1px solid color-mix(in srgb,var(--purple) 22%,var(--border));border-radius:18px;
+  background:linear-gradient(110deg,color-mix(in srgb,var(--purple) 9%,var(--surface)),var(--surface));
+}
+.eh-app .exam-highlight-icon { width:53px;height:53px;flex:0 0 53px;display:grid;place-items:center;border-radius:15px;background:color-mix(in srgb,var(--purple) 13%,var(--surface2));color:var(--purple); }
+.eh-app .exam-highlight>div:nth-child(2) { min-width:0;flex:1; }
+.eh-app .exam-highlight>div:nth-child(2)>span { color:var(--muted);font-size:10px; }
+.eh-app .exam-highlight h2 { margin:4px 0;color:var(--text);font-size:18px;font-weight:800; }
+.eh-app .exam-highlight p { margin:0;color:var(--muted);font-size:11px; }
+.eh-app .exam-countdown { min-width:82px;display:flex;flex-direction:column;align-items:center;gap:3px;padding-inline:15px;border-right:1px solid var(--border); }
+.eh-app .exam-countdown b { color:var(--text);font:800 25px Inter,sans-serif; }
+.eh-app .exam-countdown span { color:var(--muted);font-size:9px; }
+.eh-app .exam-list { overflow:hidden;border:1px solid var(--border);border-radius:16px;background:var(--surface); }
+.eh-app .exam-row { min-height:78px;display:flex;align-items:center;gap:13px;padding:13px 17px;border-bottom:1px solid var(--border); }
+.eh-app .exam-row:last-child { border-bottom:0; }
+.eh-app .exam-type-icon { width:43px;height:43px;flex:0 0 43px;display:grid;place-items:center;border-radius:12px;background:var(--surface2);color:var(--purple); }
+.eh-app .exam-type-icon.available { color:var(--green);background:color-mix(in srgb,var(--green) 11%,var(--surface2)); }
+.eh-app .exam-type-icon.completed { color:var(--muted); }
+.eh-app .exam-row-copy { min-width:0;flex:1;display:flex;flex-direction:column;gap:4px; }
+.eh-app .exam-row-copy b { color:var(--text);font-size:12px; }
+.eh-app .exam-row-copy span { color:var(--muted);font-size:10px; }
+.eh-app .exam-date { min-width:80px;display:flex;flex-direction:column;gap:2px;text-align:left; }
+.eh-app .exam-date b { color:var(--text);font-size:12px; }
+.eh-app .exam-date span { color:var(--muted);font-size:9px; }
+.eh-app .exam-status { min-width:65px;padding:5px 8px;border-radius:20px;text-align:center;font-size:9px;font-weight:800;background:var(--surface2);color:var(--muted); }
+.eh-app .exam-status.upcoming { color:var(--amber);background:color-mix(in srgb,var(--amber) 11%,var(--surface2)); }
+.eh-app .exam-status.available { color:var(--green);background:color-mix(in srgb,var(--green) 11%,var(--surface2)); }
+
+/* Files library */
+.eh-app .file-storage-banner { display:flex;align-items:center;gap:13px;padding:17px 19px;margin-bottom:16px;border:1px solid var(--border);border-radius:16px;background:var(--surface); }
+.eh-app .storage-icon { width:44px;height:44px;flex:0 0 44px;display:grid;place-items:center;border-radius:13px;background:color-mix(in srgb,var(--blue) 12%,var(--surface2));color:var(--blue); }
+.eh-app .file-storage-banner>div:nth-child(2) { min-width:0;display:flex;flex-direction:column;gap:3px; }
+.eh-app .file-storage-banner b { color:var(--text);font-size:13px; }
+.eh-app .file-storage-banner span { color:var(--muted);font-size:10px;line-height:1.8; }
+.eh-app .file-panel { overflow:hidden; }
+.eh-app .file-toolbar { min-height:62px;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 17px;border-bottom:1px solid var(--border); }
+.eh-app .file-count-label { color:var(--muted);font-size:11px;font-weight:800; }
+.eh-app .file-toolbar .inline-search { width:min(300px,45%); }
+.eh-app .file-grid { display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;padding:15px; }
+.eh-app .file-card { min-width:0;display:flex;align-items:center;gap:11px;padding:13px;border:1px solid var(--border);border-radius:13px;background:var(--surface2); }
+.eh-app .file-card:hover { border-color:color-mix(in srgb,var(--purple) 42%,var(--border)); }
+.eh-app .file-type-icon { width:44px;height:44px;flex:0 0 44px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;border-radius:11px;background:var(--surface3);color:var(--purple); }
+.eh-app .file-type-icon span { font:800 7px Inter,sans-serif; }
+.eh-app .file-type-icon.type-video { color:var(--blue); }
+.eh-app .file-type-icon.type-image { color:var(--green); }
+.eh-app .file-card-copy { min-width:0;flex:1;display:flex;flex-direction:column;gap:3px; }
+.eh-app .file-card-copy b { color:var(--text);font-size:10px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
+.eh-app .file-card-copy span { color:var(--muted);font-size:9px; }
+.eh-app .file-card-copy small { color:var(--dim);font-size:8px; }
+.eh-app .file-card .icon-button { width:32px;height:32px; }
+
+/* Planner, analytics and notifications */
+.eh-app .planner-grid { display:grid;grid-template-columns:minmax(0,1.1fr) minmax(280px,.9fr);gap:15px; }
+.eh-app .pomodoro-card { padding:25px;border:1px solid var(--border);border-radius:18px;background:var(--surface);text-align:center; }
+.eh-app .pomodoro-card h2 { color:var(--text);font-size:17px; }
+.eh-app .pomodoro-time { color:var(--text);font:800 clamp(42px,6vw,62px) Inter,sans-serif;letter-spacing:-2px;margin:20px 0; }
+.eh-app .pomodoro-card p { color:var(--muted);font-size:11px; }
+.eh-app .pomodoro-controls { display:flex;justify-content:center;gap:9px; }
+.eh-app .analytics-summary { display:grid;grid-template-columns:1fr auto;gap:18px;padding:23px;border:1px solid var(--border);border-radius:18px;background:var(--surface); }
+.eh-app .analytics-summary h2 { color:var(--text);font-size:18px; }
+.eh-app .analytics-summary p { color:var(--muted);font-size:11px; }
+.eh-app .analytics-score { width:116px;height:116px;display:grid;place-items:center;border:9px solid color-mix(in srgb,var(--purple) 17%,var(--surface2));border-top-color:var(--purple);border-radius:50%; }
+.eh-app .analytics-score strong { color:var(--text);font:800 24px Inter,sans-serif; }
+.eh-app .analytics-kpis { display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:15px; }
+.eh-app .analytics-kpis>div { padding:14px;border:1px solid var(--border);border-radius:12px;background:var(--surface2); }
+.eh-app .analytics-kpis span { display:block;color:var(--muted);font-size:9px; }
+.eh-app .analytics-kpis b { display:block;color:var(--text);font:800 19px Inter,sans-serif;margin-top:5px; }
+.eh-app .notification-list { overflow:hidden;border:1px solid var(--border);border-radius:16px;background:var(--surface); }
+.eh-app .notification-row { display:flex;align-items:center;gap:12px;padding:15px 17px;border-bottom:1px solid var(--border); }
+.eh-app .notification-row:last-child { border-bottom:0; }
+.eh-app .notification-row b { color:var(--text);font-size:12px; }
+.eh-app .notification-row p { color:var(--muted);font-size:10px; }
+.eh-app .notification-row span { color:var(--dim);font-size:9px; }
+
+/* Common responsive form and overlay elements */
+.eh-app .modal-backdrop { position:fixed;inset:0;z-index:180;display:grid;place-items:center;padding:18px;background:rgba(3,7,17,.68);backdrop-filter:blur(7px); }
+.eh-app .modal-card { width:min(100%,590px);max-height:min(90dvh,850px);overflow:auto;padding:23px;border:1px solid var(--border2);border-radius:18px;background:var(--surface);color:var(--text);box-shadow:0 28px 85px rgba(0,0,0,.34); }
+.eh-app .modal-head { display:flex;align-items:flex-start;justify-content:space-between;gap:14px;margin-bottom:18px; }
+.eh-app .modal-head h2 { margin:0;color:var(--text);font-size:18px; }
+.eh-app .modal-head p { margin:5px 0 0;color:var(--muted);font-size:11px;line-height:1.8; }
+.eh-app .form-stack { display:flex;flex-direction:column;gap:14px; }
+.eh-app .form-stack label { display:flex;flex-direction:column;gap:7px;color:var(--text);font-size:11px;font-weight:700; }
+.eh-app .form-stack input,.eh-app .form-stack textarea,.eh-app .form-stack select {
+  width:100%;min-height:43px;padding:10px 12px;border:1px solid var(--border2);border-radius:10px;
+  background:var(--surface2);color:var(--text);font-size:12px;outline:0;
+}
+.eh-app .form-stack textarea { min-height:90px;resize:vertical; }
+.eh-app .form-stack input::placeholder,.eh-app .form-stack textarea::placeholder { color:var(--dim); }
+.eh-app .form-stack select option { background:var(--surface);color:var(--text); }
+.eh-app .form-row { display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px; }
+.eh-app .modal-actions { display:flex;justify-content:flex-end;gap:8px;margin-top:8px; }
+.eh-app .inline-info { display:flex;align-items:flex-start;gap:8px;padding:11px 13px;border:1px solid var(--border);border-radius:11px;background:var(--surface2);color:var(--muted);font-size:10px;line-height:1.8; }
+.eh-app .settings-hint { color:var(--muted);font-size:10px;line-height:1.8; }
+.eh-app .auth-error { padding:9px 11px;border:1px solid color-mix(in srgb,var(--danger) 28%,var(--border));border-radius:9px;background:color-mix(in srgb,var(--danger) 8%,var(--surface));color:var(--danger);font-size:10px;line-height:1.8; }
+.eh-app .spinner { width:17px;height:17px;border:2px solid currentColor;border-left-color:transparent;border-radius:50%;display:inline-block;animation:eh-spin .8s linear infinite; }
+@keyframes eh-spin { to { transform:rotate(360deg); } }
+
+@media(max-width:720px) {
+  .eh-app .exam-highlight { align-items:flex-start;padding:15px;gap:10px; }
+  .eh-app .exam-highlight-icon { width:39px;height:39px;flex-basis:39px; }
+  .eh-app .exam-highlight h2 { font-size:14px; }
+  .eh-app .exam-countdown { min-width:55px;padding-inline:8px; }
+  .eh-app .exam-countdown b { font-size:19px; }
+  .eh-app .exam-row { gap:8px;padding:11px 10px; }
+  .eh-app .exam-type-icon { width:35px;height:35px;flex-basis:35px; }
+  .eh-app .exam-row-copy b { font-size:10px; }
+  .eh-app .exam-row-copy span { font-size:8px; }
+  .eh-app .exam-date { min-width:58px; }
+  .eh-app .exam-status { min-width:52px;font-size:8px;padding:4px; }
+  .eh-app .file-grid { grid-template-columns:1fr;padding:10px; }
+  .eh-app .file-toolbar { align-items:stretch;flex-direction:column; }
+  .eh-app .file-toolbar .inline-search { width:100%; }
+  .eh-app .planner-grid { grid-template-columns:1fr; }
+  .eh-app .analytics-kpis { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .eh-app .form-row { grid-template-columns:1fr; }
+  .eh-app .modal-backdrop { padding:9px; }
+  .eh-app .modal-card { max-height:94dvh;padding:17px; }
+}
