@@ -1,7 +1,7 @@
 import { Fragment, useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode, type MouseEvent } from 'react';
 import {
   Activity, AlarmClock, AlertCircle, ArrowDownLeft, ArrowLeft, ArrowUpLeft, Bell, BookOpen, EyeOff,
-  BookOpenCheck, CalendarDays, Check, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight,
+  BookOpenCheck, CalendarDays, Check, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, ChevronUp,
   CircleHelp, Clock3, CloudUpload, Code2, Command, Download, File, FileImage, FileText,
   Filter, FolderOpen, GraduationCap, Grid2X2, Headphones, Home, Layers3, Link2, Lock, LogOut, Menu,
   MessageCircle, Megaphone, MoreHorizontal, Paperclip, Pause, Play, Plus, Search, Send, Settings, ShieldCheck,
@@ -581,7 +581,7 @@ function App() {
         />}
         {page === 'student-profile' && <PublicStudentProfilePage uid={publicProfileUid} currentUid={activeUser.uid} onBack={() => setPage('chat')}/>}
         {page === 'planner' && <PlannerPage tasks={tasks}/>}
-        {page === 'analytics' && <AnalyticsPage tasks={tasks} subjects={subjects} lectures={lectures}/>}
+        {page === 'analytics' && <AnalyticsPage tasks={tasks} subjects={subjects} lectures={lectures} exams={exams}/>}
         {page === 'notifications' && <NotificationsPage items={notifications} setItems={setNotifications}/>}
         {page === 'admin' && <AdminPage tasks={tasks} subjects={subjects} lecturers={lecturers} lectures={lectures} exams={exams} files={files} currentUser={activeUser} cloudinarySettings={cloudinarySettings} onNewTask={() => setTaskModal(true)} onAddSubject={() => setSubjectModal(true)} onAddLecturer={() => { setPage('courses'); setSelectedSubjectId(''); setSelectedLecturerId(''); setSelectedLectureId(''); }} onAddLecture={() => setLectureModal(true)} onAddExam={() => setExamModal(true)} onSaved={() => setToast('تم حفظ إعدادات Cloudinary في Firestore')} onError={(message) => setToast(message)}/>}
         {page === 'profile' && <ProfilePage user={activeUser} isDemo={isDemo} onToggleRole={toggleDemoRole} onLogout={logout} onDeleteAccount={deleteAccount} onSaveProfile={saveProfile} themePreference={themePreference} onThemeChange={setThemePreference} cloudinarySettings={cloudinarySettings} onToggleTheme={() => setThemePreference(dark ? 'light' : 'dark')} dark={dark}/>}
@@ -1280,13 +1280,16 @@ function PlannerPage({ tasks }: { tasks: StudyTask[] }) {
   </div>;
 }
 
-function AnalyticsPage({ tasks, subjects, lectures }: { tasks: StudyTask[]; subjects: Subject[]; lectures: Lecture[] }) {
+function AnalyticsPage({ tasks, subjects, lectures, exams }: { tasks: StudyTask[]; subjects: Subject[]; lectures: Lecture[]; exams: Exam[] }) {
   const completed=tasks.filter(task=>task.status==='completed').length;
   const inProgress=tasks.filter(task=>task.status==='in-progress').length;
   const notStarted=tasks.filter(task=>task.status==='not-started').length;
   const completion=tasks.length?Math.round(completed/tasks.length*100):0;
   const late=tasks.filter(task=>task.status!=='completed'&&new Date(task.dueAt).getTime()<Date.now()).length;
   const doneLectures=lectures.filter(lecture=>lecture.progress===100).length;
+  const completedExams=exams.filter(exam=>exam.status==='completed').length;
+  const upcomingExams=exams.filter(exam=>exam.status==='upcoming').length;
+  const availableExams=exams.filter(exam=>exam.status==='available').length;
   return <div className="eh-analytics-page">
     <PageHeader eyebrow="STUDY INSIGHTS" title="إحصائياتي" description="قراءة واضحة لتقدمك الأكاديمي من البيانات المسجلة في حسابك."/>
     <section className="eh-analytics-hero">
@@ -1314,6 +1317,15 @@ function AnalyticsPage({ tasks, subjects, lectures }: { tasks: StudyTask[]; subj
           </div>)}
           {subjects.length===0&&<EmptyState title="لا توجد مواد لتحليلها" body="ستظهر المواد هنا بعد نشرها وإضافة بيانات التقدم."/>}
         </div>
+      </section>
+      <section className="eh-surface-card">
+        <div className="eh-card-heading"><div><span className="eh-eyebrow">ASSESSMENTS</span><h2>الاختبارات والتقييمات</h2><p>ملخص حالة الاختبارات المسجلة</p></div></div>
+        <div className="eh-content-insights">
+          <div><span><ClipboardList size={17}/></span><b>{exams.length}</b><small>اختبار منشور</small></div>
+          <div><span><Clock3 size={17}/></span><b>{upcomingExams+availableExams}</b><small>قادم أو متاح</small></div>
+          <div><span><CheckCircle2 size={17}/></span><b>{completedExams}</b><small>اختبار مكتمل</small></div>
+        </div>
+        <div className="eh-analytics-disclaimer"><Info size={15}/> درجات المحاولات ستظهر عند ربط الاختبارات بمحرك حل وتسجيل نتائج فعلي؛ لا نعرض درجات افتراضية.</div>
       </section>
       <section className="eh-surface-card">
         <div className="eh-card-heading"><div><span className="eh-eyebrow">LEARNING CONTENT</span><h2>المحتوى الدراسي</h2><p>المحاضرات والمقررات المتاحة</p></div></div>
