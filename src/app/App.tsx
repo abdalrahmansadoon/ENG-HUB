@@ -577,6 +577,8 @@ function ProfileCompletionScreen({ user, cloudinarySettings, onComplete, themeCl
   const [phone, setPhone] = useState(user.phone || '');
   const [bio, setBio] = useState(user.bio || '');
   const [profileVisibility, setProfileVisibility] = useState<'public' | 'private'>(user.profileVisibility ?? 'public');
+  const [showBioOnPublicProfile, setShowBioOnPublicProfile] = useState(user.showBioOnPublicProfile !== false);
+  const [showAcademicInfoOnPublicProfile, setShowAcademicInfoOnPublicProfile] = useState(user.showAcademicInfoOnPublicProfile !== false);
   const [photoURL, setPhotoURL] = useState(user.photoURL || '');
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState('');
@@ -2097,7 +2099,7 @@ function ProfilePage({ user, isDemo, onToggleRole, onLogout, onDeleteAccount, on
   onToggleRole: () => void;
   onLogout: () => Promise<void>;
   onDeleteAccount: (password?: string) => Promise<void>;
-  onSaveProfile: (profile: { displayName: string; photoURL?: string | null; phone?: string; bio?: string; profileVisibility?: 'public' | 'private' }) => Promise<void>;
+  onSaveProfile: (profile: { displayName: string; photoURL?: string | null; phone?: string; bio?: string; profileVisibility?: 'public' | 'private'; showBioOnPublicProfile?: boolean; showAcademicInfoOnPublicProfile?: boolean }) => Promise<void>;
   themePreference: 'system' | 'light' | 'dark';
   onThemeChange: (preference: 'system' | 'light' | 'dark') => void;
   cloudinarySettings: CloudinarySettings;
@@ -2127,8 +2129,10 @@ function ProfilePage({ user, isDemo, onToggleRole, onLogout, onDeleteAccount, on
     setPhone(user.phone || '');
     setBio(user.bio || '');
     setProfileVisibility(user.profileVisibility ?? 'public');
+    setShowBioOnPublicProfile(user.showBioOnPublicProfile !== false);
+    setShowAcademicInfoOnPublicProfile(user.showAcademicInfoOnPublicProfile !== false);
     setPhotoURL(user.photoURL || '');
-  }, [user.displayName, user.phone, user.bio, user.photoURL, user.profileVisibility]);
+  }, [user.displayName, user.phone, user.bio, user.photoURL, user.profileVisibility, user.showBioOnPublicProfile, user.showAcademicInfoOnPublicProfile]);
 
   useEffect(() => {
     if (!photoFile) { setPhotoPreview(''); return; }
@@ -2158,7 +2162,7 @@ function ProfilePage({ user, isDemo, onToggleRole, onLogout, onDeleteAccount, on
     setProfileMessage('');
     try {
       const nextPhoto = photoFile ? await uploadFile(photoFile, cloudinarySettings) : photoURL;
-      await onSaveProfile({ displayName: name, photoURL: nextPhoto || null, phone, bio, profileVisibility });
+      await onSaveProfile({ displayName: name, photoURL: nextPhoto || null, phone, bio, profileVisibility, showBioOnPublicProfile, showAcademicInfoOnPublicProfile });
       setPhotoFile(null);
       setPhotoURL(nextPhoto || '');
       setProfileMessage('تم حفظ بيانات الملف الشخصي.');
@@ -2211,6 +2215,10 @@ function ProfilePage({ user, isDemo, onToggleRole, onLogout, onDeleteAccount, on
             <div className="eh-profile-privacy-options">
               <button type="button" className={profileVisibility === 'public' ? 'selected' : ''} aria-pressed={profileVisibility === 'public'} onClick={() => setProfileVisibility('public')}><Users size={15}/> ملف عام</button>
               <button type="button" className={profileVisibility === 'private' ? 'selected' : ''} aria-pressed={profileVisibility === 'private'} onClick={() => setProfileVisibility('private')}><Lock size={15}/> ملف خاص</button>
+            </div>
+            <div className="eh-profile-privacy-extra">
+              <label><span><b>إظهار النبذة في الملف العام</b><small>يمكنك إخفاء النبذة دون جعل الملف خاصاً.</small></span><input type="checkbox" checked={showBioOnPublicProfile} onChange={(event) => setShowBioOnPublicProfile(event.target.checked)} disabled={profileVisibility === 'private'}/></label>
+              <label><span><b>إظهار الفرقة والفصل الدراسي</b><small>تحكم في ظهور المعلومات الدراسية داخل الملف العام.</small></span><input type="checkbox" checked={showAcademicInfoOnPublicProfile} onChange={(event) => setShowAcademicInfoOnPublicProfile(event.target.checked)} disabled={profileVisibility === 'private'}/></label>
             </div>
           </section>
           {profileMessage&&<div className="eh-inline-feedback" role="status">{profileMessage}</div>}
