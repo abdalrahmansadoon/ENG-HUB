@@ -1225,7 +1225,7 @@ function ChatPage({ user, cloudinarySettings, isDemo, isAdmin, roomId, roomTitle
   const [lightboxIndex, setLightboxIndex] = useState(0);
   const [lightboxScale, setLightboxScale] = useState(1);
   const lightbox = lightboxItems[lightboxIndex] ?? null;
-  const [muteState, setMuteState] = useState<ChatMuteStatus>({ muted: false, mutedUntil: null });
+  const [muteState, setMuteState] = useState<ChatMuteStatus>({ muted: false, mutedUntil: null, reason: '' });
   const [lockState, setLockState] = useState<ChatLockStatus>({ locked: false, startAt: null, endAt: null, reason: '', autoExpire: false });
   const [warnings, setWarnings] = useState<ChatWarning[]>([]);
   const [announcements, setAnnouncements] = useState<ChatAnnouncement[]>([]);
@@ -1277,7 +1277,7 @@ function ChatPage({ user, cloudinarySettings, isDemo, isAdmin, roomId, roomTitle
   }, [user.uid, user.displayName, user.photoURL, isDemo, roomId, roomTitle, courseId]);
 
   useEffect(() => {
-    if (isDemo) { setMuteState({ muted: false, mutedUntil: null }); return; }
+    if (isDemo) { setMuteState({ muted: false, mutedUntil: null, reason: '' }); return; }
     return subscribeGeneralChatMuteStatus(user.uid, setMuteState, (reason) => setError(reason.message), roomId);
   }, [user.uid, isDemo, roomId]);
 
@@ -1554,15 +1554,24 @@ function ChatPage({ user, cloudinarySettings, isDemo, isAdmin, roomId, roomTitle
     }
   };
 
-  const saveMuteDuration = async (minutes: number | null) => {
+  const saveMuteDuration = async (duration: number | Date | null, reason: string) => {
     if (!isAdmin || !muteTarget) return;
     setModerationBusy(true);
     try {
-      await setGeneralChatMute(muteTarget.senderId, user.uid, minutes, roomId);
-      setNotice(minutes ? `تم كتم ${muteTarget.senderName} لمدة ${minutes >= 1440 ? Math.round(minutes / 1440) + ' يوم' : minutes >= 60 ? Math.round(minutes / 60) + ' ساعة' : minutes + ' دقيقة'}.` : `تم كتم ${muteTarget.senderName} حتى إلغاء الكتم يدوياً.`);
+      await setGeneralChatMute(muteTarget.senderId, user.uid, duration, roomId, reason);
+      const label = duration instanceof Date
+        ? `حتى ${duration.toLocaleString('ar-EG', { dateStyle: 'short', timeStyle: 'short' })}`
+        : duration === null
+          ? 'حتى إلغاء الكتم يدوياً'
+          : duration >= 43200 ? 'لمدة 30 يوماً'
+            : duration >= 10080 ? 'لمدة 7 أيام'
+              : duration >= 4320 ? 'لمدة 3 أيام'
+                : duration >= 1440 ? 'لمدة يوم واحد'
+                  : duration >= 60 ? 'لمدة ساعة واحدة' : `لمدة ${duration} دقيقة`;
+      setNotice(`تم كتم ${muteTarget.senderName} ${label}.`);
       setMuteTarget(null);
-    } catch (reason) {
-      setError(reason instanceof Error ? reason.message : 'تعذر كتم الطالب.');
+    } catch (reasonError) {
+      setError(reasonError instanceof Error ? reasonError.message : 'تعذر كتم الطالب.');
     } finally {
       setModerationBusy(false);
     }
@@ -1751,7 +1760,7 @@ function ChatPage({ user, cloudinarySettings, isDemo, isAdmin, roomId, roomTitle
 
       {notice && <div className="chat-inline-notice" role="status"><CheckCircle2 size={15}/><span>{notice}</span><button type="button" onClick={() => setNotice('')} aria-label="إغلاق"><X size={14}/></button></div>}
       {lockState.locked && <div className="chat-lock-banner"><Lock size={16}/><span><b>المحادثة مقفلة مؤقتاً.</b> {lockState.reason || 'تم إيقاف إرسال الطلاب بقرار من الإدارة.'} {lockState.endAt ? `موعد الفتح: ${lockState.endAt.toLocaleString('ar-EG', { dateStyle: 'short', timeStyle: 'short' })}` : 'سيتم فتحها يدوياً من الإدارة.'}</span>{isAdmin && <small>المدير يستطيع الإرسال</small>}</div>}
-      {muteState.muted && <div className="chat-lock-banner"><ShieldCheck size={16}/><span>تم إيقاف الإرسال لحسابك {muteState.mutedUntil ? `حتى ${muteState.mutedUntil.toLocaleString('ar-EG', { dateStyle: 'short', timeStyle: 'short' })}` : 'حتى إلغاء الكتم من الإدارة'}.</span></div>}
+      {muteState.muted && <div className="chat-lock-banner"><ShieldCheck size={16}/><span><b>تم كتم حسابك في هذه الغرفة.</b> {muteState.reason ? muteState.reason + ' · ' : ''}{muteState.mutedUntil ? `حتى ${muteState.mutedUntil.toLocaleString('ar-EG', { dateStyle: 'short', timeStyle: 'short' })}` : 'حتى إلغاء الكتم من الإدارة'}.</span></div>}
       {warnings.length > 0 && <div className="chat-warning-strip"><ShieldCheck size={15}/><span><b>تنبيه من إدارة المحادثة:</b> {warnings[0].reason}</span><small>{warnings[0].createdAt?.toLocaleDateString('ar-EG') || ''}</small>{warnings[0].messageId && messages.some((item) => item.id === warnings[0].messageId) && <button type="button" onClick={() => jumpToMessage(warnings[0].messageId!)}>الانتقال للرسالة</button>}</div>}
 
       {announcements.length > 0 && <section className="chat-announcement-stack" aria-label="التعاميم الإدارية">
