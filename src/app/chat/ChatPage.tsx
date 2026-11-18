@@ -603,6 +603,7 @@ export function ChatPage({ user, cloudinarySettings, isDemo, isAdmin, roomId, ro
     setError('');
     try {
       await clearGeneralChatHistoryForUser(user.uid, roomId);
+      await markChatRoomRead(user.uid, roomId);
       setReplyTo(null);
       setContextMessage(null);
       setNotice('تم إخفاء سجل المحادثة من حسابك فقط.');
