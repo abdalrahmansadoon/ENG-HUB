@@ -700,6 +700,10 @@ export function ChatPage({ user, cloudinarySettings, isDemo, isAdmin, roomId, ro
                 if (!start || event.pointerType !== 'touch') return;
                 const dx = event.clientX - start.x;
                 const dy = event.clientY - start.y;
+                const isRtl = getComputedStyle(event.currentTarget).direction === 'rtl';
+                const replyDirection = isRtl ? dx <= -18 : dx >= 18;
+                const indicator = event.currentTarget.querySelector('.chat-swipe-reply-indicator');
+                indicator?.classList.toggle('is-visible', replyDirection && Math.abs(dx) > Math.abs(dy) * 1.1);
                 if (Math.abs(dx) > 12 && Math.abs(dx) > Math.abs(dy) * 1.2) {
                   if (pressTimer.current) clearTimeout(pressTimer.current);
                   const visualOffset = Math.max(-44, Math.min(44, dx * 0.24));
@@ -707,6 +711,7 @@ export function ChatPage({ user, cloudinarySettings, isDemo, isAdmin, roomId, ro
                 } else if (Math.abs(dy) > 14 && Math.abs(dy) > Math.abs(dx) * 1.2) {
                   if (pressTimer.current) clearTimeout(pressTimer.current);
                   event.currentTarget.style.transform = '';
+                  indicator?.classList.remove('is-visible');
                   swipeStart.current = null;
                 }
               }}
@@ -714,6 +719,7 @@ export function ChatPage({ user, cloudinarySettings, isDemo, isAdmin, roomId, ro
                 if (pressTimer.current) clearTimeout(pressTimer.current);
                 const start = swipeStart.current;
                 event.currentTarget.style.transform = '';
+                event.currentTarget.querySelector('.chat-swipe-reply-indicator')?.classList.remove('is-visible');
                 swipeStart.current = null;
                 if (!start || longPressTriggered.current || event.pointerType !== 'touch') return;
                 const dx = event.clientX - start.x;
@@ -730,8 +736,10 @@ export function ChatPage({ user, cloudinarySettings, isDemo, isAdmin, roomId, ro
                 if (pressTimer.current) clearTimeout(pressTimer.current);
                 swipeStart.current = null;
                 event.currentTarget.style.transform = '';
+                event.currentTarget.querySelector('.chat-swipe-reply-indicator')?.classList.remove('is-visible');
               }}
             >
+              <div className="chat-swipe-reply-indicator" aria-hidden="true"><ArrowDownLeft size={16}/></div>
               {!mine && !grouped && <button type="button" className="chat-profile-avatar chat-profile-avatar-outside chat-profile-open" onClick={() => onOpenProfile(message.senderId)} aria-label={`فتح ملف ${message.senderName}`} title="عرض الملف الشخصي">
                 {message.senderPhotoURL ? <img src={message.senderPhotoURL} alt=""/> : senderInitial}
               </button>}
