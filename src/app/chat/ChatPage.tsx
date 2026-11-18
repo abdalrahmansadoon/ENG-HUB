@@ -1,6 +1,6 @@
 import { Fragment, useEffect, useMemo, useRef, useState, type FormEvent, type MouseEvent } from 'react';
 import {
-  AlertCircle, ArrowDownLeft, ArrowLeft, Check, CheckCircle2, ChevronLeft, ChevronRight, Clock3,
+  AlertCircle, ArrowDown, ArrowDownLeft, ArrowLeft, Check, CheckCircle2, ChevronLeft, ChevronRight, Clock3,
   Copy, Download, EyeOff, File, FileText, ImagePlus, Lock, Maximize, Megaphone,
   MessageCircle, Minus, MoreHorizontal, Paperclip, Pencil, Pin, Plus, Search, Send,
   ShieldCheck, Smile, Timer, Trash2, Unlock, Upload, Video, X,
@@ -11,7 +11,7 @@ import { uploadFile } from '../../lib/uploads';
 import {
   adminSoftDeleteGeneralChatMessage, clearChatBackground, clearGeneralChatLock, markChatRoomRead,
   createChatAnnouncement, createGeneralChatWarning, deleteChatAnnouncement,
-  deleteGeneralChatMessage, editGeneralChatMessage, getGeneralChatMuteStatus,
+  deleteGeneralChatMessage, deleteGeneralChatRoomMessages, editGeneralChatMessage, getGeneralChatMuteStatus,
   hideGeneralChatMessageForUser, joinGeneralChat, saveChatBackground,
   sendGeneralChatMessage, setGeneralChatLock, setGeneralChatMute, setGeneralChatSlowMode,
   softDeleteGeneralChatMessage, subscribeChatAnnouncements, subscribeChatBackground,
@@ -599,7 +599,6 @@ export function ChatPage({ user, cloudinarySettings, isDemo, isAdmin, roomId, ro
   const clearRoom = async () => {
     if (!isAdmin || !window.confirm(`سيتم حذف جميع رسائل ${roomTitle} نهائياً. هل تريد المتابعة؟`)) return;
     try {
-      const { deleteGeneralChatRoomMessages } = await import('../lib/chat');
       await deleteGeneralChatRoomMessages(roomId);
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : 'تعذر تفريغ المحادثة.');
