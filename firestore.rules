@@ -39,12 +39,29 @@ service cloud.firestore {
       allow create, update, delete: if false;
     }
 
+    match /publicProfiles/{userId} {
+      function hasOnlyPublicProfileFields() {
+        return request.resource.data.keys().hasOnly([
+          'uid', 'displayName', 'photoURL', 'bio', 'academicYear', 'term',
+          'profileVisibility', 'showBioOnPublicProfile', 'showAcademicInfoOnPublicProfile', 'updatedAt'
+        ])
+        && request.resource.data.uid == userId
+        && request.resource.data.displayName is string
+        && request.resource.data.profileVisibility in ['public', 'private'];
+      }
+      allow read: if activeUser() && (
+        owns(userId) || isAdmin() || resource.data.profileVisibility == 'public'
+      );
+      allow create, update: if owns(userId) && hasOnlyPublicProfileFields();
+      allow delete: if owns(userId) || isAdmin();
+    }
+
     match /users/{userId} {
       allow create: if owns(userId)
         && request.resource.data.role == 'student'
         && request.resource.data.status == 'active'
         && request.resource.data.profileCompleted == true;
-      allow read: if owns(userId) || isAdmin() || (activeUser() && (!('profileVisibility' in resource.data) || resource.data.profileVisibility == 'public'));
+      allow read: if owns(userId) || isAdmin();
       allow update: if owns(userId)
         && request.resource.data.role == resource.data.role
         && request.resource.data.status == resource.data.status
