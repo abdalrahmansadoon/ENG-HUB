@@ -509,7 +509,7 @@ function App() {
           onUpload={uploadAcademicAsset}
         />}
         {(page === 'courses' || page === 'lectures') && (!selectedSubjectId || !selectedSubjectCategory) && <AcademicHubPage
-          subjects={subjects} lecturers={lecturers} lectures={lectures} parts={lectureParts}
+          subjects={subjects} lecturers={lecturers} lectures={lectures} parts={lectureParts} files={files} exams={exams} tasks={tasks}
           selectedSubjectId={selectedSubjectId} selectedLecturerId={selectedLecturerId} selectedLectureId={selectedLectureId}
           subjectCategory={selectedSubjectCategory}
           canEdit={isAdmin}
@@ -867,8 +867,8 @@ function TaskActionsMenu({ task, onStatus, onDelete, canEdit }: {
   </details>;
 }
 
-function AcademicHubPage({ subjects, lecturers, lectures, parts, selectedSubjectId, selectedLecturerId, selectedLectureId, subjectCategory, canEdit, onSelectSubject, onSelectCategory, onSelectLecturer, onSelectLecture, onBack, onAddSubject, onAddLecturer, onAddLecture, onAddPart }: {
-  subjects: Subject[]; lecturers: Lecturer[]; lectures: Lecture[]; parts: LecturePart[];
+function AcademicHubPage({ subjects, lecturers, lectures, parts, files, exams, tasks, selectedSubjectId, selectedLecturerId, selectedLectureId, subjectCategory, canEdit, onSelectSubject, onSelectCategory, onSelectLecturer, onSelectLecture, onBack, onAddSubject, onAddLecturer, onAddLecture, onAddPart }: {
+  subjects: Subject[]; lecturers: Lecturer[]; lectures: Lecture[]; parts: LecturePart[]; files: LibraryFile[]; exams: Exam[]; tasks: StudyTask[];
   selectedSubjectId: string; selectedLecturerId: string; selectedLectureId: string; subjectCategory: SubjectCategory | ''; canEdit: boolean;
   onSelectSubject: (id: string) => void; onSelectCategory: (category: SubjectCategory) => void; onSelectLecturer: (id: string) => void; onSelectLecture: (id: string) => void; onBack: () => void;
   onAddSubject: () => void; onAddLecturer: () => void; onAddLecture: () => void; onAddPart: () => void;
@@ -938,12 +938,12 @@ function AcademicHubPage({ subjects, lecturers, lectures, parts, selectedSubject
       <div className="eh-subject-category-grid">
         {[
           {id:'lectures' as const,title:'المحاضرات',desc:'المدرسون والمحاضرات والفيديوهات',icon:Video,count:lectures.filter((x)=>x.subjectId===subject.id).length},
-          {id:'files' as const,title:'الملفات والمراجع',desc:'المذكرات والكتب والشرائح',icon:FileText,count:0},
-          {id:'exams' as const,title:'الاختبارات',desc:'اختبارات المادة والتدريبات',icon:ClipboardList,count:0},
-          {id:'assignments' as const,title:'الواجبات',desc:'التكليفات ومهام التسليم',icon:BookMarked,count:0},
+          {id:'files' as const,title:'الملفات والمراجع',desc:'المذكرات والكتب والشرائح',icon:FileText,count:files.filter((x)=>x.subjectName.trim().toLowerCase()===subject.name.trim().toLowerCase()).length},
+          {id:'exams' as const,title:'الاختبارات',desc:'اختبارات المادة والتدريبات',icon:ClipboardList,count:exams.filter((x)=>x.subjectName.trim().toLowerCase()===subject.name.trim().toLowerCase()).length},
+          {id:'assignments' as const,title:'الواجبات',desc:'التكليفات ومهام التسليم',icon:BookMarked,count:tasks.filter((x)=>x.subjectId===subject.id).length},
           {id:'resources' as const,title:'مصادر إضافية',desc:'روابط ومراجع ومصادر خارجية',icon:Link2,count:0},
           {id:'custom' as const,title:'مجلدات مخصصة',desc:'أي أقسام إضافية تحتاجها المادة',icon:FolderOpen,count:0},
-          {id:'chat' as const,title:'مناقشات المادة',desc:'غرفة نقاش خاصة بطلاب هذا المقرر',icon:MessageCircle,count:0},
+          {id:'chat' as const,title:'مناقشات المادة',desc:'غرفة نقاش خاصة بطلاب هذا المقرر',icon:MessageCircle,count:'مباشر'},
         ].map((item)=>{const Icon=item.icon;return <button type="button" key={item.id} className="eh-subject-category-card" onClick={()=>onSelectCategory(item.id)}>
           <span className="eh-subject-category-icon"><Icon size={23}/></span>
           <span className="eh-subject-category-copy"><b>{item.title}</b><small>{item.desc}</small></span>
