@@ -59,7 +59,7 @@ export function AppShell({
     .filter(Boolean) as AppNavItem[];
 
   return (
-    <div className={`eh-app ${dark ? 'eh-dark' : 'eh-light'}`} dir="rtl">
+    <div className={`eh-app ${dark ? 'eh-dark theme-dark' : 'eh-light theme-light'}`} dir="rtl">
       <aside className={`eh-sidebar ${mobileNav ? 'is-open' : ''}`} aria-label="القائمة الرئيسية">
         <div className="eh-brand">
           <div className="eh-brand-symbol">EH</div>
