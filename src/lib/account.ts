@@ -71,7 +71,7 @@ export async function deleteOwnAccountData(firestore: Firestore, uid: string): P
 
   // Remove the profile projection and account-scoped chat preferences before
   // deleting the private user document (which is needed for activeUser() checks).
-  for (const subcollection of ['hiddenChatMessages', 'chatBackgrounds']) {
+  for (const subcollection of ['hiddenChatMessages', 'chatBackgrounds', 'chatReadStates', 'chatSlowModeCooldowns']) {
     const snapshot = await getDocs(collection(firestore, 'users', uid, subcollection));
     await deleteSnapshot(firestore, snapshot);
   }
