@@ -1,4 +1,4 @@
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, type DocumentData, type DocumentSnapshot } from 'firebase/firestore';
 import { db } from './firebase';
 
 export interface PublicStudentProfile {
@@ -17,7 +17,7 @@ export interface PublicStudentProfile {
 export async function getPublicStudentProfile(uid: string): Promise<PublicStudentProfile> {
   if (!db) throw new Error('Firebase غير متصل.');
   if (!uid) throw new Error('رابط الملف الشخصي غير صالح.');
-  let snapshot;
+  let snapshot: DocumentSnapshot<DocumentData>;
   try {
     snapshot = await getDoc(doc(db, 'users', uid));
   } catch (error) {
