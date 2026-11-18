@@ -10,6 +10,8 @@ export interface PublicStudentProfile {
   academicYear?: string;
   term?: string;
   profileVisibility: 'public' | 'private';
+  showBioOnPublicProfile: boolean;
+  showAcademicInfoOnPublicProfile: boolean;
 }
 
 export async function getPublicStudentProfile(uid: string): Promise<PublicStudentProfile> {
@@ -33,9 +35,11 @@ export async function getPublicStudentProfile(uid: string): Promise<PublicStuden
     displayName: String(data.displayName ?? data.name ?? 'طالب هندسة'),
     username: typeof data.username === 'string' ? data.username : undefined,
     photoURL: typeof data.photoURL === 'string' ? data.photoURL : null,
-    bio: typeof data.bio === 'string' ? data.bio : '',
+    bio: data.showBioOnPublicProfile === false ? '' : (typeof data.bio === 'string' ? data.bio : ''),
     academicYear: typeof data.academicYear === 'string' ? data.academicYear : '',
     term: typeof data.term === 'string' ? data.term : '',
     profileVisibility: 'public',
+    showBioOnPublicProfile: data.showBioOnPublicProfile !== false,
+    showAcademicInfoOnPublicProfile: data.showAcademicInfoOnPublicProfile !== false,
   };
 }
