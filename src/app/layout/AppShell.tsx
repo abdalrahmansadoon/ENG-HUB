@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { useEffect, type ReactNode } from 'react';
 import {
   ArrowLeft, Bell, ChevronDown, ChevronLeft, CircleHelp, Command, Menu,
   Moon, Search, Settings, ShieldCheck, Sun, X, type LucideIcon,
@@ -47,6 +47,26 @@ export function AppShell({
 }: AppShellProps) {
   const initials = user.displayName.trim().slice(0, 1) || 'ط';
   const rootNav = [...navGroups.flatMap((group) => group.items), ...(isAdmin ? [{ id: 'admin', label: 'لوحة الإدارة', icon: ShieldCheck }] : [])];
+  useEffect(() => {
+    const handleShortcuts = (event: KeyboardEvent) => {
+      const key = event.key.toLowerCase();
+      if ((event.ctrlKey || event.metaKey) && key === 'k') {
+        event.preventDefault();
+        document.querySelector<HTMLInputElement>('.eh-search input')?.focus();
+      }
+      if (event.key === 'Escape') {
+        onCloseMobileNav();
+        const searchInput = document.querySelector<HTMLInputElement>('.eh-search input');
+        if (searchInput && document.activeElement === searchInput) {
+          onSearch('');
+          searchInput.blur();
+        }
+      }
+    };
+    window.addEventListener('keydown', handleShortcuts);
+    return () => window.removeEventListener('keydown', handleShortcuts);
+  }, [onCloseMobileNav, onSearch]);
+
   const mobileItems = ['home', 'courses', 'tasks', 'chat', 'profile']
     .map((id) => rootNav.find((item) => item.id === id) ?? (id === 'profile' ? { id, label: 'حسابي', icon: Settings } : null))
     .filter(Boolean) as AppNavItem[];
