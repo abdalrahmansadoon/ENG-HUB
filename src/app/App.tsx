@@ -1646,10 +1646,10 @@ function ChatPage({ user, cloudinarySettings, isDemo, isAdmin, onBack, onOpenPro
                 event.currentTarget.style.transform = '';
               }}
             >
-              {!mine && !grouped && <div className="chat-profile-avatar chat-profile-avatar-outside">
+              {!mine && !grouped && <button type="button" className="chat-profile-avatar chat-profile-avatar-outside chat-profile-open" onClick={() => onOpenProfile(message.senderId)} aria-label={`فتح ملف ${message.senderName}`} title="عرض الملف الشخصي">
                 {message.senderPhotoURL ? <img src={message.senderPhotoURL} alt=""/> : senderInitial}
-              </div>}
-              {!mine && !grouped && <div className="msg-header"><span>{message.senderName}</span>{message.pinned && <Pin size={11}/>}</div>}
+              </button>}
+              {!mine && !grouped && <div className="msg-header"><button type="button" className="chat-profile-name-link" onClick={() => onOpenProfile(message.senderId)}>{message.senderName}</button>{message.pinned && <Pin size={11}/>}</div>}
               {!message.deleted && message.replyTo && <button type="button" className="reply-block" onClick={() => jumpToMessage(message.replyTo!.id)}>
                 <span className="ru">{message.replyTo.senderName}</span><span className="rt">{messages.find((item) => item.id === message.replyTo!.id)?.deleted ? 'هذه الرسالة محذوفة' : message.replyTo.text}</span>
               </button>}
