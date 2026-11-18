@@ -19,6 +19,7 @@ import { readLocal, writeLocal } from '../lib/storage';
 import { createExamCloud, createLectureCloud, createLecturePartCloud, createLecturerCloud, createSubjectCloud, createTaskCloud, deleteTaskCloud, saveFileMetadataCloud, subscribeExams, subscribeFiles, subscribeLectureParts, subscribeLecturers, subscribeLectures, subscribeSubjects, subscribeTasks, updateTaskStatusCloud } from '../lib/cloudData';
 import { createGeneralChatWarning, deleteGeneralChatMessage, editGeneralChatMessage, getGeneralChatMuteStatus, joinGeneralChat, sendGeneralChatMessage, subscribeGeneralChat, subscribeGeneralChatMuteStatus, toggleGeneralChatMute, toggleGeneralChatPin, toggleGeneralChatReaction, type ChatAttachment, type ChatMessage, type ChatMuteStatus } from '../lib/chat';
 import type { AppNotification, AppUser, Exam, Lecture, LecturePart, Lecturer, LibraryFile, Priority, StudyTask, Subject, TaskStatus } from '../types';
+import { AppShell } from './layout/AppShell';
 
 const navGroups = [
   { title: 'مساحة الدراسة', items: [
@@ -269,86 +270,56 @@ function App() {
   if (!profileComplete) return <ProfileCompletionScreen themeClass={themeClass} user={user} cloudinarySettings={defaultCloudinarySettings} onComplete={completeProfile} />;
 
   return (
-    <div className={dark ? 'app-shell theme-dark' : 'app-shell theme-light'} dir="rtl">
-      <aside className={`sidebar ${mobileNav ? 'sidebar-open' : ''}`}>
-        <div className="brand-row">
-          <div className="brand-mark">EH</div>
-          <div className="brand-copy"><strong>ENG HUB</strong><span>CAIRO UNIVERSITY</span></div>
-          <button className="icon-button sidebar-close" onClick={() => setMobileNav(false)} aria-label="إغلاق القائمة"><X size={18}/></button>
-        </div>
-        <div className="semester-chip"><span className="live-dot"/> <span>السنة الإعدادية</span><ChevronDown size={14}/></div>
-        <nav className="side-nav">
-          {navGroups.map((group) => <div className="nav-group" key={group.title}>
-            <div className="nav-caption">{group.title}</div>
-            {group.items.map((item) => {
-              const Icon = item.icon;
-              return <button key={item.id} onClick={() => { setPage(item.id); setMobileNav(false); }} className={`nav-item ${page === item.id ? 'active' : ''}`}>
-                <Icon size={18}/><span>{item.label}</span>
-              </button>;
-            })}
-          </div>)}
-          {isAdmin && <div className="nav-group"><div className="nav-caption">إدارة المنصة</div><button onClick={() => { setPage('admin'); setMobileNav(false); }} className={`nav-item ${page === 'admin' ? 'active' : ''}`}><ShieldCheck size={18}/><span>لوحة الإدارة</span><span className="admin-dot"/></button></div>}
-        </nav>
-        <div className="sidebar-spacer"/>
-        <div className="sidebar-help"><div className="help-icon"><CircleHelp size={18}/></div><div><b>تحتاج إلى مساعدة؟</b><span>مركز المساعدة والدعم</span></div><ChevronLeft size={15}/></div>
-        <div className="sidebar-profile">
-          <div className="avatar avatar-purple">{activeUser.photoURL ? <img src={activeUser.photoURL} alt="" /> : activeUser.displayName.slice(0, 1)}</div>
-          <div className="profile-copy"><b>{activeUser.displayName}</b><span>{isAdmin ? 'مدير المنصة' : 'طالب هندسة'}</span></div>
-          <button className="icon-button" onClick={() => setPage('profile')} aria-label="إعدادات الملف الشخصي"><MoreHorizontal size={19}/></button>
-        </div>
-      </aside>
-      {mobileNav && <button className="mobile-scrim" onClick={() => setMobileNav(false)} aria-label="إغلاق القائمة"/>}
-
-      <main className="main-area">
-        <header className="topbar">
-          <div className="topbar-start">
-            <button className="icon-button mobile-menu" onClick={() => setMobileNav(true)} aria-label="فتح القائمة"><Menu size={20}/></button>
-            <div className="breadcrumb"><span>ENG HUB</span><ChevronLeft size={13}/><b>{pageTitle(page)}</b></div>
-          </div>
-          <div className="topbar-actions">
-            <div className="global-search-wrap"><div className="global-search"><Search size={17}/><input placeholder="ابحث عن مادة، محاضرة، مهمة..." value={search} onChange={(event) => setSearch(event.target.value)} /><kbd>⌘ K</kbd></div>{search.trim() && <div className="global-search-results">{quickResults.length ? quickResults.map((result) => <button key={`${result.page}-${result.id}`} onClick={() => { setPage(result.page); setSearch(''); }}><Search size={13}/><span><b>{result.title}</b><small>{result.sub}</small></span><ArrowLeft size={13}/></button>) : <div className="search-empty">لا توجد نتائج مطابقة</div>}</div>}</div>
-            <button className="icon-button theme-toggle" onClick={() => setThemePreference(dark ? 'light' : 'dark')} aria-label="تغيير المظهر">{dark ? <Sun size={18}/> : <Moon size={18}/>}</button>
-            <button className="icon-button notification-button" onClick={() => setPage('notifications')} aria-label="الإشعارات"><Bell size={18}/>{unreadCount > 0 && <i/>}</button>
-            <button className="top-avatar" onClick={() => setPage('profile')}>{activeUser.photoURL ? <img src={activeUser.photoURL} alt="" /> : activeUser.displayName.slice(0, 1)}</button>
-          </div>
-        </header>
-
-        <div className="page-wrap">
-          {page === 'home' && <Dashboard userName={activeUser.displayName} tasks={tasks} subjects={subjects} exams={exams} lectures={lectures} onGo={setPage} onNewTask={() => setTaskModal(true)} onStatus={changeTaskStatus} canCreateTask={isAdmin}/>}
-          {page === 'tasks' && <TasksPage tasks={tasks} onNew={() => setTaskModal(true)} onStatus={changeTaskStatus} onDelete={(id) => void removeTask(id)} canEdit={isAdmin}/>}
-          {(page === 'courses' || page === 'lectures') && <AcademicHubPage
-            subjects={subjects} lecturers={lecturers} lectures={lectures} parts={lectureParts}
-            selectedSubjectId={selectedSubjectId} selectedLecturerId={selectedLecturerId} selectedLectureId={selectedLectureId}
-            canEdit={isAdmin}
-            onSelectSubject={(id) => { setSelectedSubjectId(id); setSelectedLecturerId(''); setSelectedLectureId(''); }}
-            onSelectLecturer={(id) => { setSelectedLecturerId(id); setSelectedLectureId(''); }}
-            onSelectLecture={setSelectedLectureId}
-            onBack={() => { if (selectedLectureId) setSelectedLectureId(''); else if (selectedLecturerId) setSelectedLecturerId(''); else setSelectedSubjectId(''); }}
-            onAddSubject={() => setSubjectModal(true)}
-            onAddLecturer={() => setLecturerModal(true)}
-            onAddLecture={() => setLectureModal(true)}
-            onAddPart={() => setLecturePartModal(true)}
-          />}
-          {page === 'exams' && <ExamsPage exams={exams} setExams={setExams} canEdit={isAdmin} onAdd={() => setExamModal(true)}/>}
-          {page === 'files' && <FilesPage files={files} onUpload={addFile} cloudinaryReady={isCloudinaryConfigured(cloudinarySettings)} isDemo={isDemo} />}
-          {page === 'chat' && <ChatPage user={activeUser} cloudinarySettings={cloudinarySettings} isDemo={isDemo} isAdmin={isAdmin} onBack={() => setPage('home')}/>}
-          {page === 'planner' && <PlannerPage tasks={tasks} />}
-          {page === 'analytics' && <AnalyticsPage tasks={tasks} subjects={subjects} lectures={lectures} />}
-          {page === 'notifications' && <NotificationsPage items={notifications} setItems={setNotifications} />}
-          {page === 'admin' && <AdminPage tasks={tasks} subjects={subjects} lecturers={lecturers} lectures={lectures} exams={exams} files={files} currentUser={activeUser} cloudinarySettings={cloudinarySettings} onNewTask={() => setTaskModal(true)} onAddSubject={() => setSubjectModal(true)} onAddLecturer={() => { setPage('courses'); setSelectedSubjectId(''); setSelectedLecturerId(''); setSelectedLectureId(''); }} onAddLecture={() => setLectureModal(true)} onAddExam={() => setExamModal(true)} onSaved={() => setToast('تم حفظ إعدادات Cloudinary في Firestore')} onError={(message) => setToast(message)} />}
-          {page === 'profile' && <ProfilePage user={activeUser} isDemo={isDemo} onToggleRole={toggleDemoRole} onLogout={logout} onDeleteAccount={deleteAccount} onSaveProfile={saveProfile} themePreference={themePreference} onThemeChange={setThemePreference} cloudinarySettings={cloudinarySettings} onToggleTheme={() => setThemePreference(dark ? 'light' : 'dark')} dark={dark} />}
-        </div>
-      </main>
-
+    <AppShell
+      user={activeUser}
+      page={page}
+      pageTitle={pageTitle(page)}
+      navGroups={navGroups}
+      isAdmin={isAdmin}
+      dark={dark}
+      search={search}
+      searchResults={quickResults}
+      unreadCount={unreadCount}
+      mobileNav={mobileNav}
+      onSearch={setSearch}
+      onNavigate={(target) => { setPage(target); setMobileNav(false); }}
+      onToggleTheme={() => setThemePreference(dark ? 'light' : 'dark')}
+      onOpenMobileNav={() => setMobileNav(true)}
+      onCloseMobileNav={() => setMobileNav(false)}
+    >
+      <div className={`eh-page-view ${page === 'chat' ? 'eh-chat-page' : ''}`}>
+        {page === 'home' && <Dashboard userName={activeUser.displayName} tasks={tasks} subjects={subjects} exams={exams} lectures={lectures} onGo={setPage} onNewTask={() => setTaskModal(true)} onStatus={changeTaskStatus} canCreateTask={isAdmin}/>}
+        {page === 'tasks' && <TasksPage tasks={tasks} onNew={() => setTaskModal(true)} onStatus={changeTaskStatus} onDelete={(id) => void removeTask(id)} canEdit={isAdmin}/>}
+        {(page === 'courses' || page === 'lectures') && <AcademicHubPage
+          subjects={subjects} lecturers={lecturers} lectures={lectures} parts={lectureParts}
+          selectedSubjectId={selectedSubjectId} selectedLecturerId={selectedLecturerId} selectedLectureId={selectedLectureId}
+          canEdit={isAdmin}
+          onSelectSubject={(id) => { setSelectedSubjectId(id); setSelectedLecturerId(''); setSelectedLectureId(''); }}
+          onSelectLecturer={(id) => { setSelectedLecturerId(id); setSelectedLectureId(''); }}
+          onSelectLecture={setSelectedLectureId}
+          onBack={() => { if (selectedLectureId) setSelectedLectureId(''); else if (selectedLecturerId) setSelectedLecturerId(''); else setSelectedSubjectId(''); }}
+          onAddSubject={() => setSubjectModal(true)}
+          onAddLecturer={() => setLecturerModal(true)}
+          onAddLecture={() => setLectureModal(true)}
+          onAddPart={() => setLecturePartModal(true)}
+        />}
+        {page === 'exams' && <ExamsPage exams={exams} setExams={setExams} canEdit={isAdmin} onAdd={() => setExamModal(true}/>}
+        {page === 'files' && <FilesPage files={files} onUpload={addFile} cloudinaryReady={isCloudinaryConfigured(cloudinarySettings)} isDemo={isDemo}/>}
+        {page === 'chat' && <ChatPage user={activeUser} cloudinarySettings={cloudinarySettings} isDemo={isDemo} isAdmin={isAdmin} onBack={() => setPage('home')}/>}
+        {page === 'planner' && <PlannerPage tasks={tasks}/>}
+        {page === 'analytics' && <AnalyticsPage tasks={tasks} subjects={subjects} lectures={lectures}/>}
+        {page === 'notifications' && <NotificationsPage items={notifications} setItems={setNotifications}/>}
+        {page === 'admin' && <AdminPage tasks={tasks} subjects={subjects} lecturers={lecturers} lectures={lectures} exams={exams} files={files} currentUser={activeUser} cloudinarySettings={cloudinarySettings} onNewTask={() => setTaskModal(true)} onAddSubject={() => setSubjectModal(true)} onAddLecturer={() => { setPage('courses'); setSelectedSubjectId(''); setSelectedLecturerId(''); setSelectedLectureId(''); }} onAddLecture={() => setLectureModal(true)} onAddExam={() => setExamModal(true)} onSaved={() => setToast('تم حفظ إعدادات Cloudinary في Firestore')} onError={(message) => setToast(message)}/>}
+        {page === 'profile' && <ProfilePage user={activeUser} isDemo={isDemo} onToggleRole={toggleDemoRole} onLogout={logout} onDeleteAccount={deleteAccount} onSaveProfile={saveProfile} themePreference={themePreference} onThemeChange={setThemePreference} cloudinarySettings={cloudinarySettings} onToggleTheme={() => setThemePreference(dark ? 'light' : 'dark')} dark={dark}/>}
+      </div>
       {taskModal && <TaskModal subjects={subjects} userId={activeUser.uid} onClose={() => setTaskModal(false)} onSave={addTask}/>}
       {subjectModal && <SubjectModal onClose={() => setSubjectModal(false)} onSave={addSubject}/>}
       {lecturerModal && <LecturerModal subject={subjects.find((item) => item.id === selectedSubjectId) ?? null} onClose={() => setLecturerModal(false)} onSave={addLecturer}/>}
       {lectureModal && <LectureModal lecturers={lecturers} selectedLecturerId={selectedLecturerId} onClose={() => setLectureModal(false)} onSave={addLecture}/>}
       {lecturePartModal && <LecturePartModal nextOrder={lectureParts.length + 1} onClose={() => setLecturePartModal(false)} onSave={addLecturePart}/>}
       {examModal && <ExamModal subjects={subjects} onClose={() => setExamModal(false)} onSave={addExam}/>}
-      {toast && <div className="toast"><CheckCircle2 size={17}/>{toast}</div>}
-    </div>
-  );
+      {toast && <div className="eh-toast"><CheckCircle2 size={17}/>{toast}</div>}
+    </AppShell>
 }
 
 function AuthScreen({ onLogin, onGoogle, themeClass }: { onLogin: (email: string, password: string, name?: string) => Promise<void>; onGoogle: () => Promise<void>; themeClass: 'theme-dark' | 'theme-light' }) {
