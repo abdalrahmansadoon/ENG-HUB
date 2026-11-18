@@ -167,6 +167,7 @@ export function subscribeGeneralChat(
   onMessages: (messages: ChatMessage[]) => void,
   onError: (error: Error) => void,
   roomId = GENERAL_CHAT_ID,
+  onReady?: () => void,
 ): Unsubscribe {
   const firestore = requireDb();
   const normalizedRoomId = normalizeRoomId(roomId);
@@ -198,6 +199,7 @@ export function subscribeGeneralChat(
       } as ChatMessage;
     }).reverse();
     emit();
+    onReady?.();
   }, onError);
   const stopHidden = onSnapshot(hiddenRef, (snapshot) => {
     const ids = snapshot.exists() && Array.isArray(snapshot.data().messageIds)
