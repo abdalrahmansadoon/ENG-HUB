@@ -1,4 +1,4 @@
-export type SubjectCategory = 'lectures' | 'files' | 'exams' | 'assignments' | 'resources' | 'custom';
+export type SubjectCategory = 'lectures' | 'files' | 'exams' | 'assignments' | 'resources' | 'custom' | 'chat';
 
 export interface EngHubRoute {
   page: string;
