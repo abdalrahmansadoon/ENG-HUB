@@ -37,13 +37,14 @@ interface Props {
   activeNodeId: string;
   isAdmin: boolean;
   onNavigate: (category: AcademicContentCategory, nodeId?: string) => void;
+  onBackToSubject: () => void;
   onCreate: (input: CreateAcademicContentInput) => Promise<void>;
   onDelete: (node: AcademicContentNode) => Promise<void>;
   onUpload: (file: File) => Promise<{ url: string; mimeType: string }>;
 }
 
 export function AcademicContentArea({
-  subject, nodes, category, activeNodeId, isAdmin, onNavigate, onCreate, onDelete, onUpload,
+  subject, nodes, category, activeNodeId, isAdmin, onNavigate, onBackToSubject, onCreate, onDelete, onUpload,
 }: Props) {
   const [search, setSearch] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
@@ -72,6 +73,7 @@ export function AcademicContentArea({
         <p>{subject.code} · مساحة محتوى قابلة للتشكيل حسب طبيعة المادة</p>
       </div>
       <div className="eh-content-studio-actions">
+        <button type="button" className="eh-button eh-content-subject-back" onClick={onBackToSubject}><ArrowUpLeft size={15}/> أقسام المادة</button>
         <label className="eh-content-search"><Search size={16}/><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="ابحث داخل هذا القسم"/></label>
         {isAdmin && <button type="button" className="eh-button primary" onClick={openAdd}><Plus size={16}/> إضافة محتوى</button>}
       </div>
