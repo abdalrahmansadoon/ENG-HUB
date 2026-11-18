@@ -1219,6 +1219,7 @@ function PlannerPage({ tasks, userId }: { tasks: StudyTask[]; userId: string }) 
   const [taskOrder,setTaskOrder]=useState<string[]>(()=>{
     try{return JSON.parse(window.localStorage.getItem('enghub-task-priority-order:'+userId)||'[]') as string[];}catch{return [];}
   });
+  useEffect(()=>{ try { setTaskOrder(JSON.parse(window.localStorage.getItem('enghub-task-priority-order:'+userId)||'[]') as string[]); } catch { setTaskOrder([]); } },[userId]);
   useEffect(()=>{
     if(!running)return;
     const timer=window.setInterval(()=>setSeconds(value=>{
