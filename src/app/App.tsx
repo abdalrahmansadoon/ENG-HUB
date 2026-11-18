@@ -835,7 +835,10 @@ function ChatPage({ user, cloudinarySettings, isDemo, isAdmin, onBack }: {
   const [emojiOpen, setEmojiOpen] = useState(false);
   const [contextMessage, setContextMessage] = useState<ChatMessage | null>(null);
   const [contextPosition, setContextPosition] = useState({ x: 0, y: 0 });
-  const [lightbox, setLightbox] = useState<ChatAttachment | null>(null);
+  const [lightboxItems, setLightboxItems] = useState<ChatAttachment[]>([]);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
+  const [lightboxScale, setLightboxScale] = useState(1);
+  const lightbox = lightboxItems[lightboxIndex] ?? null;
   const [muteState, setMuteState] = useState<ChatMuteStatus>({ muted: false, mutedUntil: null });
   const [contextMuted, setContextMuted] = useState(false);
   const [notice, setNotice] = useState('');
@@ -914,13 +917,32 @@ function ChatPage({ user, cloudinarySettings, isDemo, isAdmin, onBack }: {
     const close = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         setContextMessage(null);
-        setLightbox(null);
+        setLightboxItems([]); setLightboxIndex(0); setLightboxScale(1);
         setEmojiOpen(false);
+      } else if (lightboxItems.length > 1 && event.key === 'ArrowLeft') {
+        setLightboxIndex((index) => (index + 1) % lightboxItems.length);
+        setLightboxScale(1);
+      } else if (lightboxItems.length > 1 && event.key === 'ArrowRight') {
+        setLightboxIndex((index) => (index - 1 + lightboxItems.length) % lightboxItems.length);
+        setLightboxScale(1);
       }
     };
     window.addEventListener('keydown', close);
     return () => window.removeEventListener('keydown', close);
-  }, []);
+  }, [lightboxItems.length]);
+
+  const openMessageGallery = (attachments: ChatAttachment[], selected: ChatAttachment) => {
+    const images = attachments.filter((item) => item.mimeType.startsWith('image/'));
+    const index = images.findIndex((item) => item.url === selected.url);
+    setLightboxItems(images.length ? images : [selected]);
+    setLightboxIndex(Math.max(0, index));
+    setLightboxScale(1);
+  };
+  const closeMessageGallery = () => {
+    setLightboxItems([]);
+    setLightboxIndex(0);
+    setLightboxScale(1);
+  };
 
   const visibleMessages = messages.filter((message) =>
     (message.text + ' ' + message.senderName + ' ' + message.attachments.map((item) => item.name).join(' '))
@@ -1191,7 +1213,7 @@ function ChatPage({ user, cloudinarySettings, isDemo, isAdmin, onBack }: {
                   const videoFile = attachment.mimeType.startsWith('video/');
                   return imageFile
                     ? <figure className="chat-media-item" key={attachment.url + attachmentIndex}>
-                        <button type="button" className="chat-media-frame" onClick={() => setLightbox(attachment)} aria-label={'عرض ' + attachment.name}>
+                        <button type="button" className="chat-media-frame" onClick={() => openMessageGallery(message.attachments, attachment)} aria-label={'عرض ' + attachment.name}>
                           <img src={attachment.url} alt={attachment.name} loading="lazy" decoding="async"/>
                         </button>
                         <figcaption>{attachment.name}</figcaption>
@@ -1282,10 +1304,23 @@ function ChatPage({ user, cloudinarySettings, isDemo, isAdmin, onBack }: {
       </div>
     </div>}
 
-    {lightbox && <div className="chat-image-lightbox" role="dialog" aria-modal="true" aria-label={lightbox.name} onClick={() => setLightbox(null)}>
-      <button type="button" onClick={() => setLightbox(null)} aria-label="إغلاق الصورة"><X size={22}/></button>
-      <img src={lightbox.url} alt={lightbox.name} onClick={(event) => event.stopPropagation()}/>
-      <span>{lightbox.name}</span>
+    {lightbox && <div className="chat-image-lightbox" role="dialog" aria-modal="true" aria-label={lightbox.name} onClick={closeMessageGallery}>
+      <div className="chat-lightbox-topbar" onClick={(event) => event.stopPropagation()}>
+        <div><b>{lightbox.name}</b><small>{lightboxIndex + 1} / {lightboxItems.length}</small></div>
+        <div className="chat-lightbox-tools">
+          <button type="button" onClick={() => setLightboxScale((value) => Math.max(1, Math.min(3, value - .25)))} aria-label="تصغير الصورة"><Minus size={17}/></button>
+          <span>{Math.round(lightboxScale * 100)}%</span>
+          <button type="button" onClick={() => setLightboxScale((value) => Math.min(3, value + .25))} aria-label="تكبير الصورة"><Plus size={17}/></button>
+          <button type="button" onClick={() => setLightboxScale(1)} aria-label="الحجم الطبيعي"><Maximize size={17}/></button>
+          <button type="button" onClick={closeMessageGallery} aria-label="إغلاق الصورة"><X size={20}/></button>
+        </div>
+      </div>
+      <div className="chat-lightbox-stage" onClick={(event) => event.stopPropagation()}>
+        {lightboxItems.length > 1 && <button type="button" className="chat-lightbox-prev" onClick={() => { setLightboxIndex((index) => (index - 1 + lightboxItems.length) % lightboxItems.length); setLightboxScale(1); }} aria-label="الصورة السابقة"><ChevronRight size={22}/></button>}
+        <img src={lightbox.url} alt={lightbox.name} style={{transform:`scale(${lightboxScale})`}} onDoubleClick={() => setLightboxScale((value) => value === 1 ? 2 : 1)} onWheel={(event) => { event.preventDefault(); setLightboxScale((value) => Math.max(1, Math.min(3, value + (event.deltaY < 0 ? .12 : -.12)))); }}/>
+        {lightboxItems.length > 1 && <button type="button" className="chat-lightbox-next" onClick={() => { setLightboxIndex((index) => (index + 1) % lightboxItems.length); setLightboxScale(1); }} aria-label="الصورة التالية"><ChevronLeft size={22}/></button>}
+      </div>
+      {lightboxItems.length > 1 && <div className="chat-lightbox-thumbs" onClick={(event) => event.stopPropagation()}>{lightboxItems.map((item,index) => <button type="button" key={item.url} className={index===lightboxIndex?'active':''} onClick={() => { setLightboxIndex(index); setLightboxScale(1); }}><img src={item.url} alt=""/></button>)}</div>}
     </div>}
   </section>;
 }
