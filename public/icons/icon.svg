@@ -1,20 +1,7 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none" role="img" aria-labelledby="title">
-  <title id="title">ENG HUB</title>
-  <defs>
-    <linearGradient id="bg" x1="48" y1="30" x2="466" y2="493" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#172B4B"/><stop offset="1" stop-color="#0C172B"/>
-    </linearGradient>
-    <linearGradient id="blue" x1="90" y1="90" x2="260" y2="420" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#7FA3FF"/><stop offset="1" stop-color="#426EE8"/>
-    </linearGradient>
-    <linearGradient id="teal" x1="270" y1="92" x2="431" y2="416" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#91F0E4"/><stop offset="1" stop-color="#16AFA5"/>
-    </linearGradient>
-  </defs>
-  <rect width="512" height="512" rx="132" fill="url(#bg)"/>
-  <rect x="4" y="4" width="504" height="504" rx="128" stroke="#A9C1FF" stroke-opacity=".18" stroke-width="8"/>
-  <path d="M102 140H236M102 140V372M102 256H224M102 372H236" stroke="url(#blue)" stroke-width="38" stroke-linecap="round" stroke-linejoin="round"/>
-  <path d="M276 140V372M276 256H394M394 140V372" stroke="url(#teal)" stroke-width="38" stroke-linecap="round" stroke-linejoin="round"/>
-  <circle cx="404" cy="91" r="20" fill="#5CE0D0"/>
-  <path d="M88 422H424" stroke="#5CE0D0" stroke-opacity=".42" stroke-width="9" stroke-linecap="round"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none" role="img" aria-labelledby="title desc">
+<title id="title">ENG HUB</title><desc id="desc">ENG HUB engineering monogram</desc>
+<defs><linearGradient id="tile" x1="42" y1="30" x2="470" y2="490" gradientUnits="userSpaceOnUse"><stop stop-color="#1C3558"/><stop offset="1" stop-color="#0B172A"/></linearGradient><linearGradient id="mark" x1="100" y1="110" x2="410" y2="410" gradientUnits="userSpaceOnUse"><stop stop-color="#F7FAFF"/><stop offset="1" stop-color="#BFD3F7"/></linearGradient><linearGradient id="accent" x1="290" y1="90" x2="430" y2="420" gradientUnits="userSpaceOnUse"><stop stop-color="#5CE0D0"/><stop offset="1" stop-color="#35AFC3"/></linearGradient></defs>
+<rect x="12" y="12" width="488" height="488" rx="132" fill="url(#tile)"/><rect x="16" y="16" width="480" height="480" rx="128" stroke="#9DB9E8" stroke-opacity=".24" stroke-width="8"/>
+<path d="M118 142H250M118 142V370M118 256H226M118 370H250" stroke="url(#mark)" stroke-width="38" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M292 142V370M292 256H394M394 142V370" stroke="url(#accent)" stroke-width="38" stroke-linecap="round" stroke-linejoin="round"/><path d="M250 256H292" stroke="#5CE0D0" stroke-width="23" stroke-linecap="round"/><circle cx="414" cy="94" r="20" fill="#5CE0D0"/>
 </svg>
