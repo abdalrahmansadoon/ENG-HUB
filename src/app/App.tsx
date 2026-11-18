@@ -1363,7 +1363,7 @@ function NotificationsPage({ items, setItems }: { items: AppNotification[]; setI
   </div>;
 }
 
-function AdminPage({ tasks, subjects, lecturers, lectures, exams, files, currentUser, cloudinarySettings, onNewTask, onAddSubject, onAddLecturer, onAddLecture, onAddExam, onSaved, onError }: {
+function AdminPage({ tasks, subjects, lecturers, lectures, exams, files, currentUser, cloudinarySettings, academicCalendar, onSaveAcademicCalendar, onNewTask, onAddSubject, onAddLecturer, onAddLecture, onAddExam, onSaved, onError }: {
   tasks: StudyTask[];
   subjects: Subject[];
   lecturers: Lecturer[];
@@ -1372,6 +1372,8 @@ function AdminPage({ tasks, subjects, lecturers, lectures, exams, files, current
   files: LibraryFile[];
   currentUser: AppUser;
   cloudinarySettings: CloudinarySettings;
+  academicCalendar: AcademicCalendarSettings;
+  onSaveAcademicCalendar: (settings: AcademicCalendarSettings) => Promise<void>;
   onNewTask: () => void;
   onAddSubject: () => void;
   onAddLecturer: () => void;
@@ -1388,6 +1390,24 @@ function AdminPage({ tasks, subjects, lecturers, lectures, exams, files, current
   const [maxVideoMB, setMaxVideoMB] = useState(String(cloudinarySettings.maxVideoMB));
   const [maxDocumentMB, setMaxDocumentMB] = useState(String(cloudinarySettings.maxDocumentMB));
   const [savingCloudinary, setSavingCloudinary] = useState(false);
+  const [academicYearDraft, setAcademicYearDraft] = useState('');
+  const [termDraft, setTermDraft] = useState('');
+  const [calendarSaving, setCalendarSaving] = useState(false);
+  const [calendarDraft, setCalendarDraft] = useState<AcademicCalendarSettings>(academicCalendar);
+  useEffect(() => setCalendarDraft(academicCalendar), [academicCalendar]);
+  const addCalendarValue = (kind: 'years' | 'terms') => {
+    const value = (kind === 'years' ? academicYearDraft : termDraft).trim();
+    if (!value) return;
+    setCalendarDraft(current => ({...current,[kind]:Array.from(new Set([...current[kind],value]))}));
+    if (kind === 'years') setAcademicYearDraft(''); else setTermDraft('');
+  };
+  const saveCalendar = async () => {
+    if (!calendarDraft.years.length || !calendarDraft.terms.length) { onError('أضف سنة دراسية وفصلاً دراسياً واحداً على الأقل.'); return; }
+    setCalendarSaving(true);
+    try { await onSaveAcademicCalendar(calendarDraft); }
+    catch (error) { onError(error instanceof Error ? error.message : 'تعذر حفظ التقويم الدراسي.'); }
+    finally { setCalendarSaving(false); }
+  };
 
   useEffect(() => {
     setCloudName(cloudinarySettings.cloudName);
@@ -1425,7 +1445,24 @@ function AdminPage({ tasks, subjects, lecturers, lectures, exams, files, current
 
   return <>
     <PageHeader eyebrow="MANAGEMENT CENTER" title="لوحة إدارة المنصة" description="انشر المحتوى الأكاديمي واضبط خدمات المنصة من مكان واحد." action={<span className="admin-status"><i/> وضع الإدارة</span>}/>
-    <div className="admin-tabs">{[{ id: 'overview', label: 'نظرة عامة' }, { id: 'academic', label: 'المحتوى الأكاديمي' }, { id: 'tasks', label: 'إدارة المهام' }, { id: 'users', label: 'المستخدمون والصلاحيات' }, { id: 'cloudinary', label: 'إعدادات Cloudinary' }].map((item) => <button key={item.id} onClick={() => setTab(item.id)} className={tab === item.id ? 'active' : ''}>{item.label}</button>)}</div>
+    <div className="admin-tabs">{[{ id: 'overview', label: 'نظرة عامة' }, { id: 'academic', label: 'المحتوى الأكاديمي' }, { id: 'tasks', label: 'إدارة المهام' }, { id: 'users', label: 'المستخدمون والصلاحيات' }, { id: 'academic-calendar', label: 'السنوات والفصول' }, { id: 'cloudinary', label: 'إعدادات Cloudinary' }].map((item) => <button key={item.id} onClick={() => setTab(item.id)} className={tab === item.id ? 'active' : ''}>{item.label}</button>)}</div>
+    {tab === 'academic-calendar' && <section className="panel admin-content-list eh-calendar-admin">
+      <div className="panel-head"><div><h3>إدارة السنوات والفصول الدراسية</h3><span>تظهر الاختيارات الحالية لجميع الطلاب في القائمة الجانبية.</span></div><span className="admin-status"><i/> إعدادات عامة</span></div>
+      <div className="eh-calendar-current">
+        <label>السنة الدراسية الحالية<select value={calendarDraft.activeYear} onChange={event=>setCalendarDraft(current=>({...current,activeYear:event.target.value}))}>{calendarDraft.years.map(value=><option key={value} value={value}>{value}</option>)}</select></label>
+        <label>الفصل الدراسي الحالي<select value={calendarDraft.activeTerm} onChange={event=>setCalendarDraft(current=>({...current,activeTerm:event.target.value}))}>{calendarDraft.terms.map(value=><option key={value} value={value}>{value}</option>)}</select></label>
+      </div>
+      <div className="eh-calendar-columns">
+        <div><h4>السنوات الدراسية</h4><div className="eh-calendar-add"><input value={academicYearDraft} onChange={event=>setAcademicYearDraft(event.target.value)} placeholder="مثال: السنة الأولى"/><button type="button" className="btn btn-primary btn-small" onClick={()=>addCalendarValue('years')}><Plus size={14}/> إضافة</button></div>
+          {calendarDraft.years.map(value=><div className="eh-calendar-item" key={value}><span>{value}</span>{calendarDraft.activeYear===value?<b>الحالية</b>:<button type="button" onClick={()=>setCalendarDraft(current=>({...current,years:current.years.filter(item=>item!==value)}))}>حذف</button>}</div>)}
+        </div>
+        <div><h4>الفصول الدراسية</h4><div className="eh-calendar-add"><input value={termDraft} onChange={event=>setTermDraft(event.target.value)} placeholder="مثال: الترم الصيفي"/><button type="button" className="btn btn-primary btn-small" onClick={()=>addCalendarValue('terms')}><Plus size={14}/> إضافة</button></div>
+          {calendarDraft.terms.map(value=><div className="eh-calendar-item" key={value}><span>{value}</span>{calendarDraft.activeTerm===value?<b>الحالي</b>:<button type="button" onClick={()=>setCalendarDraft(current=>({...current,terms:current.terms.filter(item=>item!==value)}))}>حذف</button>}</div>)}
+        </div>
+      </div>
+      <div className="eh-calendar-save"><button type="button" className="btn btn-primary" onClick={()=>void saveCalendar()} disabled={calendarSaving}>{calendarSaving?<span className="spinner"/>:<Check size={16}/>} حفظ وتطبيق على المنصة</button></div>
+      <p className="eh-calendar-note"><Info size={14}/> تغيير الفصل الحالي يحدّث عنوان الفصل الظاهر للطلاب. لا يتم حذف محتوى الفصول السابقة عند التغيير.</p>
+    </section>}
     {tab === 'overview' && <>
       <div className="admin-stats">
         <StatCard label="المواد الدراسية" value={subjects.length.toString()} detail="مواد منشورة" icon={<BookOpen size={18}/>} tone="blue"/>
