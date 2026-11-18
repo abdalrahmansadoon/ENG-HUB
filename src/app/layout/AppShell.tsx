@@ -1,6 +1,6 @@
 import { useEffect, type ReactNode } from 'react';
 import {
-  ArrowLeft, Bell, ChevronDown, ChevronLeft, CircleHelp, Command, Menu,
+  ArrowLeft, Bell, ChevronDown, ChevronLeft, CircleHelp, Command, Copy, Menu,
   Moon, Search, Settings, ShieldCheck, Sun, X, type LucideIcon,
 } from 'lucide-react';
 import type { AppUser } from '../../types';
@@ -75,8 +75,8 @@ export function AppShell({
     <div className={`eh-app ${dark ? 'eh-dark theme-dark' : 'eh-light theme-light'}`} dir="rtl">
       <aside className={`eh-sidebar ${mobileNav ? 'is-open' : ''}`} aria-label="القائمة الرئيسية">
         <div className="eh-brand">
-          <div className="eh-brand-symbol">EH</div>
-          <div className="eh-brand-copy"><strong>ENG HUB</strong><span>CAIRO UNIVERSITY</span></div>
+          <div className="eh-brand-symbol"><img src={`${import.meta.env.BASE_URL}brand/enghub-mark.svg`} alt="ENG HUB"/></div>
+          <div className="eh-brand-copy"><strong>ENG HUB</strong><span>ENGINEERING LEARNING SPACE</span></div>
           <button type="button" className="eh-icon-btn eh-sidebar-close" onClick={onCloseMobileNav} aria-label="إغلاق القائمة"><X size={19}/></button>
         </div>
 
@@ -148,6 +148,7 @@ export function AppShell({
                 )) : <div className="eh-search-empty">لا توجد نتائج مطابقة</div>}
               </div>}
             </div>
+            <button type="button" className="eh-icon-btn eh-copy-page-link" onClick={() => { if (navigator.clipboard?.writeText) void navigator.clipboard.writeText(window.location.href); }} title="نسخ رابط الصفحة الحالية" aria-label="نسخ رابط الصفحة الحالية"><Copy size={18}/></button>
             <button type="button" className="eh-icon-btn" onClick={onToggleTheme} aria-label={dark ? 'تفعيل الوضع الفاتح' : 'تفعيل الوضع الداكن'}>{dark ? <Sun size={19}/> : <Moon size={19}/>}</button>
             <button type="button" className="eh-icon-btn eh-notification-btn" onClick={() => onNavigate('notifications')} aria-label="الإشعارات"><Bell size={19}/>{unreadCount > 0 && <i/>}</button>
             <button type="button" className="eh-avatar eh-top-avatar" onClick={() => onNavigate('profile')} aria-label="الملف الشخصي">{user.photoURL ? <img src={user.photoURL} alt=""/> : initials}</button>
