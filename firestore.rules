@@ -49,7 +49,7 @@ service cloud.firestore {
         && request.resource.data.role == resource.data.role
         && request.resource.data.status == resource.data.status
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
-          'displayName', 'username', 'photoURL', 'bio', 'phone', 'profileVisibility', 'profileCompleted',
+          'displayName', 'username', 'photoURL', 'bio', 'phone', 'profileVisibility', 'showBioOnPublicProfile', 'showAcademicInfoOnPublicProfile', 'profileCompleted',
           'academicYear', 'term', 'locale', 'theme', 'notificationPreferences',
           'privacy', 'updatedAt'
         ])
