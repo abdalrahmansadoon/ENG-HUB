@@ -1,4 +1,4 @@
-const CACHE_NAME = 'eng-hub-shell-v8';
+const CACHE_NAME = 'eng-hub-shell-v9';
 const BASE_PATH = new URL(self.registration.scope).pathname;
 const APP_SHELL = [BASE_PATH, `${BASE_PATH}manifest.json`, `${BASE_PATH}icons/icon.svg`];
 
