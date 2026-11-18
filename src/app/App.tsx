@@ -835,39 +835,70 @@ function VideoPlayer({ source, title }: { source: string; title: string }) {
 }
 
 function ExamsPage({ exams, setExams, canEdit, onAdd }: {
-  exams: Exam[];
-  setExams: (fn: (items: Exam[]) => Exam[]) => void;
-  canEdit: boolean;
-  onAdd: () => void;
+  exams: Exam[]; setExams: (fn: (items: Exam[]) => Exam[]) => void; canEdit: boolean; onAdd: () => void;
 }) {
-  const upcoming = exams.filter((exam) => exam.status === 'upcoming').sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-  return <>
-    <PageHeader eyebrow="ASSESSMENTS" title="الاختبارات والامتحانات" description="مواعيد الاختبارات التي ينشرها مدير المنصة." action={canEdit ? <button className="btn btn-primary" onClick={onAdd}><Plus size={16}/> إضافة اختبار</button> : undefined}/>
-    <div className="exam-highlight"><div className="exam-highlight-icon"><AlarmClock size={23}/></div><div><span>الاختبار القادم</span><h2>{upcoming[0]?.title ?? 'لا يوجد اختبار قادم'}</h2><p>{upcoming[0] ? upcoming[0].subjectName + ' · ' + new Date(upcoming[0].date).toLocaleDateString('ar-EG') : 'ستظهر المواعيد هنا عند نشر الاختبارات.'}</p></div><div className="exam-countdown"><b>{upcoming.length}</b><span>اختبارات قادمة</span></div></div>
-    <div className="section-title-row exam-list-title"><div><h2>كل الاختبارات</h2><p>الاختبارات المنشورة في حسابك</p></div></div>
-    <div className="exam-list">{exams.map((exam) => <div className="exam-row" key={exam.id}><div className={'exam-type-icon ' + exam.status}><ClipboardList size={20}/></div><div className="exam-row-copy"><b>{exam.title}</b><span>{exam.subjectName} <i>•</i> {exam.questions} سؤال <i>•</i> {exam.duration}</span></div><div className="exam-date"><b>{new Date(exam.date).toLocaleDateString('ar-EG', { day: 'numeric', month: 'short' })}</b><span>{new Date(exam.date).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })}</span></div><span className={'exam-status ' + exam.status}>{exam.status === 'upcoming' ? 'قادم' : exam.status === 'available' ? 'متاح الآن' : 'مكتمل'}</span></div>)}</div>
-    {exams.length === 0 && <EmptyState title="لا توجد اختبارات بعد" body={canEdit ? 'انشر أول اختبار من زر إضافة اختبار.' : 'سيضيف مدير المنصة مواعيد الاختبارات هنا.'}/>}
-  </>;
+  const [filter,setFilter]=useState<'all'|'upcoming'|'available'|'completed'>('all');
+  const ordered=[...exams].sort((a,b)=>new Date(a.date).getTime()-new Date(b.date).getTime());
+  const upcoming=ordered.filter((exam)=>exam.status==='upcoming');
+  const available=ordered.filter((exam)=>exam.status==='available');
+  const completed=ordered.filter((exam)=>exam.status==='completed');
+  const filtered=ordered.filter((exam)=>filter==='all'||exam.status===filter);
+  const next=upcoming[0]||available[0];
+  return <div className="eh-exams-page">
+    <PageHeader eyebrow="ASSESSMENT CENTER" title="الاختبارات والامتحانات" description="تابع مواعيد التقييمات والاستعداد لاختباراتك." action={canEdit?<button type="button" className="eh-button primary" onClick={onAdd}><Plus size={17}/> إضافة اختبار</button>:null}/>
+    <section className="eh-next-exam">
+      <div className="eh-next-exam-copy"><span className="eh-eyebrow">NEXT ASSESSMENT</span><h2>{next?.title||'لا يوجد اختبار قادم'}</h2><p>{next?next.subjectName+' · '+new Date(next.date).toLocaleDateString('ar-EG',{weekday:'long',day:'numeric',month:'long'}):'ستظهر هنا أقرب مواعيد الاختبارات التي ينشرها مدير المنصة.'}</p></div>
+      <div className="eh-next-exam-symbol"><CalendarClock size={27}/></div>
+      <div className="eh-next-exam-count"><b>{upcoming.length}</b><span>اختبارات قادمة</span></div>
+    </section>
+    <section className="eh-exam-metrics">
+      <div><span>كل الاختبارات</span><b>{exams.length}</b></div>
+      <div><span>قادمة</span><b>{upcoming.length}</b></div>
+      <div><span>متاحة الآن</span><b>{available.length}</b></div>
+      <div><span>مكتملة</span><b>{completed.length}</b></div>
+    </section>
+    <section className="eh-surface-card eh-exam-list">
+      <div className="eh-exam-toolbar">
+        <div><span className="eh-eyebrow">EXAM SCHEDULE</span><h2>جدول الاختبارات</h2><p>المواعيد المسجلة في حسابك</p></div>
+        <div className="eh-exam-filters">{([{id:'all',label:'الكل'},{id:'upcoming',label:'قادم'},{id:'available',label:'متاح'},{id:'completed',label:'مكتمل'}] as const).map(item=><button type="button" key={item.id} className={filter===item.id?'active':''} onClick={()=>setFilter(item.id)}>{item.label}</button>)}</div>
+      </div>
+      {filtered.map((exam,index)=><article className="eh-exam-card" key={exam.id}>
+        <span className={'eh-exam-icon '+exam.status}><ClipboardList size={20}/></span>
+        <div className="eh-exam-card-copy"><small>{exam.subjectName} · {exam.questions} سؤال</small><b>{exam.title}</b><span><Clock3 size={13}/>{exam.duration}</span></div>
+        <div className="eh-exam-date"><b>{new Date(exam.date).toLocaleDateString('ar-EG',{day:'numeric',month:'short'})}</b><small>{new Date(exam.date).toLocaleTimeString('ar-EG',{hour:'2-digit',minute:'2-digit'})}</small></div>
+        <span className={'eh-exam-status '+exam.status}>{exam.status==='upcoming'?'قادم':exam.status==='available'?'متاح الآن':'مكتمل'}</span>
+      </article>)}
+      {filtered.length===0&&<EmptyState title={exams.length===0?'لا توجد اختبارات منشورة':'لا توجد اختبارات بهذه الحالة'} body={exams.length===0?'سيضيف مدير المنصة مواعيد الاختبارات إلى هذه الصفحة.':'اختر حالة أخرى لعرض الاختبارات.'}/>}
+    </section>
+  </div>;
 }
 
 function FilesPage({ files, onUpload, cloudinaryReady, isDemo }: { files: LibraryFile[]; onUpload: (file: File) => Promise<void>; cloudinaryReady: boolean; isDemo: boolean }) {
-  const inputRef = useRef<HTMLInputElement>(null);
-  const [query, setQuery] = useState('');
-  const [uploading, setUploading] = useState(false);
-  const filtered = files.filter((file) => file.name.toLowerCase().includes(query.toLowerCase()) || file.subjectName.toLowerCase().includes(query.toLowerCase()));
-  const handleFile = async (file?: File) => {
-    if (!file) return;
+  const inputRef=useRef<HTMLInputElement>(null);
+  const [query,setQuery]=useState('');
+  const [filter,setFilter]=useState<'all'|'PDF'|'DOC'|'PPT'|'IMAGE'|'VIDEO'>('all');
+  const [uploading,setUploading]=useState(false);
+  const filtered=files.filter(file=>(filter==='all'||file.type===filter)&&(file.name+' '+file.subjectName).toLowerCase().includes(query.toLowerCase()));
+  const counts=(type:string)=>files.filter(file=>type==='all'||file.type===type).length;
+  const handleFile=async(file?:File)=>{
+    if(!file)return;
     setUploading(true);
-    try { await onUpload(file); } finally { setUploading(false); if (inputRef.current) inputRef.current.value = ''; }
+    try{await onUpload(file);}finally{setUploading(false);if(inputRef.current)inputRef.current.value='';}
   };
-  return <>
-    <PageHeader eyebrow="RESOURCE CENTER" title="مكتبة الملفات" description="الملفات التي ترفعها أو ينشرها مدير المنصة." action={<><input ref={inputRef} type="file" accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.csv,.txt,.zip,.png,.jpg,.jpeg,.webp,.gif,.mp4,.mov,.webm" className="visually-hidden" onChange={(event) => void handleFile(event.target.files?.[0])}/><button className="btn btn-primary" onClick={() => inputRef.current?.click()} disabled={uploading || (!isDemo && !cloudinaryReady)}>{uploading ? <span className="spinner"/> : <Upload size={16}/>} رفع ملف</button></>}/>
-    <div className="file-storage-banner"><div className="storage-icon"><CloudUpload size={23}/></div><div><b>{files.length} ملف</b><span>{isDemo ? 'وضع تجريبي — لن يتم حفظ الملفات على الخادم.' : cloudinaryReady ? 'تُرفع الملفات إلى Cloudinary وتُحفظ روابطها وبياناتها في Firestore.' : 'Cloudinary غير مهيأ. افتح إعدادات Cloudinary في لوحة الإدارة قبل رفع الملفات.'}</span></div></div>
-    <div className="panel file-panel"><div className="file-toolbar"><div className="file-count-label">{files.length} ملف</div><div className="inline-search"><Search size={15}/><input placeholder="ابحث عن ملف..." value={query} onChange={(event) => setQuery(event.target.value)}/></div></div>
-      <div className="file-grid">{filtered.map((file) => <div className="file-card" key={file.id}><div className={'file-type-icon type-' + file.type.toLowerCase()}>{file.type === 'IMAGE' ? <FileImage size={22}/> : file.type === 'VIDEO' ? <Video size={22}/> : <FileText size={22}/>}<span>{file.type}</span></div><div className="file-card-copy"><b>{file.name}</b><span>{file.subjectName}</span><small>{file.size} <i>•</i> {file.updatedAt}</small></div><button className="icon-button" onClick={() => file.url ? window.open(file.url, '_blank', 'noopener,noreferrer') : undefined} aria-label="فتح الملف"><Download size={16}/></button></div>)}</div>
-      {filtered.length === 0 && <EmptyState title={files.length === 0 ? 'لا توجد ملفات بعد' : 'لا توجد نتائج مطابقة'} body={files.length === 0 ? 'ستظهر الملفات هنا بعد رفعها إلى مكتبة المنصة.' : 'جرّب تغيير كلمة البحث.'}/>}
-    </div>
-  </>;
+  return <div className="eh-files-page">
+    <PageHeader eyebrow="RESOURCE LIBRARY" title="مكتبة الملفات" description="كل المذكرات والملفات والصور ومقاطع الفيديو في مكتبة واحدة." action={<><input ref={inputRef} type="file" accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.csv,.txt,.zip,.png,.jpg,.jpeg,.webp,.gif,.mp4,.mov,.webm" className="visually-hidden" onChange={(event)=>void handleFile(event.target.files?.[0])}/><button type="button" className="eh-button primary" onClick={()=>inputRef.current?.click()} disabled={uploading||(!isDemo&&!cloudinaryReady)}>{uploading?<span className="spinner"/>:<Upload size={16}/>} رفع ملف جديد</button></>}/>
+    <section className="eh-files-overview"><div className="eh-files-overview-main"><span className="eh-files-icon"><FolderOpen size={25}/></span><div><span className="eh-eyebrow">YOUR STUDY LIBRARY</span><h2>{files.length} ملف في مكتبتك</h2><p>{isDemo?'وضع تجريبي — الملفات لا تُحفظ على الخادم.':cloudinaryReady?'تُرفع الملفات إلى Cloudinary، وتُحفظ بياناتها في Firestore.':'يلزم إعداد Cloudinary قبل رفع الملفات.'}</p></div></div><div className="eh-files-breakdown"><div><b>{counts('PDF')}</b><span>PDF</span></div><div><b>{counts('DOC')}</b><span>مستندات</span></div><div><b>{counts('VIDEO')}</b><span>فيديو</span></div><div><b>{counts('IMAGE')}</b><span>صور</span></div></div></section>
+    <section className="eh-surface-card eh-files-board">
+      <div className="eh-files-toolbar"><div><span className="eh-eyebrow">ALL RESOURCES</span><h2>الملفات المحفوظة</h2></div><label className="eh-inline-search"><Search size={15}/><input value={query} onChange={(event)=>setQuery(event.target.value)} placeholder="ابحث باسم الملف أو المادة"/></label></div>
+      <div className="eh-files-filters">{([{id:'all',label:'الكل'},{id:'PDF',label:'PDF'},{id:'DOC',label:'مستندات'},{id:'PPT',label:'عروض'},{id:'IMAGE',label:'صور'},{id:'VIDEO',label:'فيديو'}] as const).map(item=><button type="button" key={item.id} className={filter===item.id?'active':''} onClick={()=>setFilter(item.id)}>{item.label}<small>{counts(item.id)}</small></button>)}</div>
+      <div className="eh-files-grid">{filtered.map(file=><article className="eh-file-card" key={file.id}>
+        <div className={'eh-file-kind kind-'+file.type.toLowerCase()}>{file.type==='IMAGE'?<FileImage size={23}/>:file.type==='VIDEO'?<Video size={23}/>:file.type==='PPT'?<Grid2X2 size={23}/>:<FileText size={23}/>}<small>{file.type}</small></div>
+        <div className="eh-file-copy"><b title={file.name}>{file.name}</b><span>{file.subjectName}</span><small>{file.size} · {file.updatedAt}</small></div>
+        <button type="button" className="eh-file-open" onClick={()=>file.url?window.open(file.url,'_blank','noopener,noreferrer'):undefined} disabled={!file.url} aria-label="فتح الملف"><Download size={17}/></button>
+      </article>)}</div>
+      {filtered.length===0&&<EmptyState title={files.length===0?'المكتبة فارغة حالياً':'لا توجد نتائج مطابقة'} body={files.length===0?'ارفع أول ملف لتجميع مادتك الدراسية في مكان واحد.':'جرّب تغيير البحث أو نوع الملف.'}/>}
+    </section>
+  </div>;
 }
 
 function ChatPage({ user, cloudinarySettings, isDemo, isAdmin, onBack }: {
