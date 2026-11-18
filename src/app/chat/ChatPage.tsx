@@ -736,6 +736,7 @@ export function ChatPage({ user, cloudinarySettings, isDemo, isAdmin, roomId, ro
           <div><b>{roomTitle}</b><span><i className="live-dot"/> {courseId ? 'طلاب هذا المقرر · نقاش ومشاركة' : 'المجتمع العام لطلاب ENG HUB'}</span></div>
         </div>
         <div className="chat-topbar-actions">
+          <button type="button" className="chat-topbar-btn chat-profile-link" onClick={() => onOpenProfile(user.uid)} aria-label="الملف الشخصي" title="الملف الشخصي">{user.photoURL ? <img src={user.photoURL} alt="" /> : <span>{user.displayName.trim().slice(0,1) || "ط"}</span>}</button>
           <div className="chat-topbar-search"><Search size={15}/><input placeholder="ابحث داخل المحادثة" value={search} onChange={(event) => setSearch(event.target.value)}/></div>
           <button type="button" className="chat-topbar-btn" onClick={() => backgroundFileInput.current?.click()} disabled={backgroundBusy} title="اختيار خلفية المحادثة">{backgroundBusy ? <span className="spinner"/> : <ImagePlus size={16}/>}</button>
           {chatBackgroundUrl && <button type="button" className="chat-topbar-btn" onClick={() => void resetChatBackground()} title="إزالة الخلفية"><X size={15}/></button>}
@@ -774,12 +775,7 @@ export function ChatPage({ user, cloudinarySettings, isDemo, isAdmin, roomId, ro
         </article>)}
       </section>}
 
-      <div className="chat-pinned-strip">
-        <div className="chat-pinned-strip-label"><Pin size={15}/><span>المثبتة</span></div>
-        {pinnedMessages.length === 0
-          ? <span className="chat-pinned-strip-empty">لا توجد رسائل مثبتة</span>
-          : <div className="chat-pinned-strip-list">{pinnedMessages.slice(0,3).map((message) => <button type="button" key={message.id} onClick={() => jumpToMessage(message.id)}><b>{message.senderName}</b><span>{message.text || message.attachments[0]?.name || 'مرفق'}</span></button>)}</div>}
-      </div>
+      {pinnedMessages.length > 0 && <div className="chat-pinned-strip"><div className="chat-pinned-strip-label"><Pin size={15}/><span>الرسائل المثبتة</span></div><div className="chat-pinned-strip-list">{pinnedMessages.slice(0,3).map((message) => <button type="button" key={message.id} onClick={() => jumpToMessage(message.id)}><b>{message.senderName}</b><span>{message.text || message.attachments[0]?.name || "مرفق"}</span></button>)}</div></div>}
 
       {showUnreadJump && unreadMessages.length > 0 && <button type="button" className="chat-unread-jump" onClick={jumpToLatest}>
         <span>{unreadMessages.length} {unreadMessages.length === 1 ? 'رسالة جديدة' : 'رسائل جديدة'}</span><ArrowDown size={15}/>
