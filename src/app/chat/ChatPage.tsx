@@ -3,7 +3,7 @@ import {
   AlertCircle, ArrowDownLeft, ArrowLeft, Check, CheckCircle2, ChevronLeft, ChevronRight,
   Copy, Download, EyeOff, File, FileText, ImagePlus, Lock, Maximize, Megaphone,
   MessageCircle, Minus, MoreHorizontal, Paperclip, Pencil, Pin, Plus, Search, Send,
-  ShieldCheck, Smile, Trash2, Unlock, Upload, Video, X,
+  ShieldCheck, Smile, Timer, Trash2, Unlock, Upload, Video, X,
 } from 'lucide-react';
 import type { AppUser } from '../../types';
 import { isCloudinaryConfigured, type CloudinarySettings } from '../../lib/cloudinary';
@@ -13,17 +13,18 @@ import {
   createChatAnnouncement, createGeneralChatWarning, deleteChatAnnouncement,
   deleteGeneralChatMessage, editGeneralChatMessage, getGeneralChatMuteStatus,
   hideGeneralChatMessageForUser, joinGeneralChat, saveChatBackground,
-  sendGeneralChatMessage, setGeneralChatLock, setGeneralChatMute,
+  sendGeneralChatMessage, setGeneralChatLock, setGeneralChatMute, setGeneralChatSlowMode,
   softDeleteGeneralChatMessage, subscribeChatAnnouncements, subscribeChatBackground,
-  subscribeGeneralChat, subscribeGeneralChatLockStatus, subscribeGeneralChatMuteStatus,
+  subscribeGeneralChat, subscribeGeneralChatLockStatus, subscribeGeneralChatMuteStatus, subscribeGeneralChatSlowMode, subscribeGeneralChatSlowModeCooldown,
   subscribeGeneralChatWarnings, toggleGeneralChatPin, toggleGeneralChatReaction,
   unmuteGeneralChatUser, updateChatAnnouncement, type ChatAnnouncement, type ChatAttachment,
-  type ChatLockStatus, type ChatMessage, type ChatMuteStatus, type ChatWarning,
+  type ChatLockStatus, type ChatMessage, type ChatMuteStatus, type ChatSlowModeStatus, type ChatWarning,
 } from '../../lib/chat';
 import { ChatLockModal } from './ChatLockModal';
 import { ChatMuteModal } from './ChatMuteModal';
 import { ChatWarningModal } from './ChatWarningModal';
 import { ChatAnnouncementModal } from './ChatAnnouncementModal';
+import { ChatSlowModeModal } from './ChatSlowModeModal';
 
 export function ChatPage({ user, cloudinarySettings, isDemo, isAdmin, roomId, roomTitle, courseId, onBack, onOpenProfile }: {
   user: AppUser;
@@ -52,7 +53,13 @@ export function ChatPage({ user, cloudinarySettings, isDemo, isAdmin, roomId, ro
   const [lightboxIndex, setLightboxIndex] = useState(0);
   const [lightboxScale, setLightboxScale] = useState(1);
   const lightbox = lightboxItems[lightboxIndex] ?? null;
+  const slowRemainingSeconds = slowMode.enabled && !isAdmin && slowCooldownUntil
+    ? Math.max(0, Math.ceil((slowCooldownUntil.getTime() - slowNow) / 1000)) : 0;
   const [muteState, setMuteState] = useState<ChatMuteStatus>({ muted: false, mutedUntil: null, reason: '' });
+  const [slowMode, setSlowMode] = useState<ChatSlowModeStatus>({ enabled: false, seconds: 0 });
+  const [slowCooldownUntil, setSlowCooldownUntil] = useState<Date | null>(null);
+  const [slowNow, setSlowNow] = useState(Date.now());
+  const [slowModeSettingsOpen, setSlowModeSettingsOpen] = useState(false);
   const [lockState, setLockState] = useState<ChatLockStatus>({ locked: false, startAt: null, endAt: null, reason: '', autoExpire: false });
   const [warnings, setWarnings] = useState<ChatWarning[]>([]);
   const [announcements, setAnnouncements] = useState<ChatAnnouncement[]>([]);
@@ -107,6 +114,24 @@ export function ChatPage({ user, cloudinarySettings, isDemo, isAdmin, roomId, ro
     if (isDemo) { setMuteState({ muted: false, mutedUntil: null, reason: '' }); return; }
     return subscribeGeneralChatMuteStatus(user.uid, setMuteState, (reason) => setError(reason.message), roomId);
   }, [user.uid, isDemo, roomId]);
+
+  useEffect(() => {
+    if (isDemo) { setSlowMode({ enabled: false, seconds: 0 }); return; }
+    return subscribeGeneralChatSlowMode(setSlowMode, (reason) => setError(reason.message), roomId);
+  }, [isDemo, roomId]);
+
+  useEffect(() => {
+    if (isDemo || !slowMode.enabled || isAdmin) { setSlowCooldownUntil(null); return; }
+    return subscribeGeneralChatSlowModeCooldown(user.uid, setSlowCooldownUntil, (reason) => setError(reason.message), roomId);
+  }, [isDemo, isAdmin, slowMode.enabled, user.uid, roomId]);
+
+  useEffect(() => {
+    if (!slowCooldownUntil) { setSlowNow(Date.now()); return; }
+    const timer = window.setInterval(() => setSlowNow(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, [slowCooldownUntil]);
+
+
 
   useEffect(() => {
     if (isDemo) {
@@ -244,6 +269,10 @@ export function ChatPage({ user, cloudinarySettings, isDemo, isAdmin, roomId, ro
   const send = async (event?: FormEvent) => {
     event?.preventDefault();
     if (sending) return;
+    if (slowRemainingSeconds > 0) {
+      setError(`الوضع البطيء مفعّل. يمكنك الإرسال بعد ${slowRemainingSeconds} ثانية.`);
+      return;
+    }
     if (lockState.locked && !isAdmin) {
       setError('المحادثة مغلقة مؤقتاً من الإدارة. يمكنك قراءة الرسائل لكن لا يمكنك الإرسال الآن.');
       return;
@@ -281,6 +310,7 @@ export function ChatPage({ user, cloudinarySettings, isDemo, isAdmin, roomId, ro
         senderId: user.uid,
         senderName: user.displayName,
         senderPhotoURL: user.photoURL,
+        isModerator: isAdmin,
         attachments,
         replyTo: replyTo ? {
           id: replyTo.id,
@@ -399,6 +429,20 @@ export function ChatPage({ user, cloudinarySettings, isDemo, isAdmin, roomId, ro
       setMuteTarget(null);
     } catch (reasonError) {
       setError(reasonError instanceof Error ? reasonError.message : 'تعذر كتم الطالب.');
+    } finally {
+      setModerationBusy(false);
+    }
+  };
+
+  const saveSlowMode = async (enabled: boolean, seconds: number) => {
+    setModerationBusy(true);
+    setError('');
+    try {
+      await setGeneralChatSlowMode(roomId, user.uid, enabled, seconds);
+      setSlowModeSettingsOpen(false);
+      setNotice(enabled ? `تم تفعيل الوضع البطيء: رسالة كل ${seconds} ثانية.` : 'تم إيقاف الوضع البطيء.');
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : 'تعذر حفظ إعدادات الوضع البطيء.');
     } finally {
       setModerationBusy(false);
     }
@@ -584,6 +628,7 @@ export function ChatPage({ user, cloudinarySettings, isDemo, isAdmin, roomId, ro
             <div role="menu">
               <button type="button" onClick={(event) => { event.currentTarget.closest('details')?.removeAttribute('open'); setAnnouncementTarget(null); setAnnouncementModalOpen(true); }}><Megaphone size={15}/> نشر تعميم</button>
               <button type="button" onClick={(event) => { event.currentTarget.closest('details')?.removeAttribute('open'); lockState.locked ? void unlockChat() : setLockSettingsOpen(true); }} disabled={moderationBusy}>{lockState.locked ? <Unlock size={15}/> : <Lock size={15}/>} {lockState.locked ? 'فتح المحادثة' : 'قفل / جدولة القفل'}</button>
+              <button type="button" onClick={(event) => { event.currentTarget.closest('details')?.removeAttribute('open'); setSlowModeSettingsOpen(true); }} disabled={moderationBusy}><Timer size={15}/> {slowMode.enabled ? 'تعديل الوضع البطيء' : 'تفعيل الوضع البطيء'}</button>
               <button type="button" className="danger" onClick={(event) => { event.currentTarget.closest('details')?.removeAttribute('open'); void clearRoom(); }}><Trash2 size={15}/> تفريغ رسائل الغرفة</button>
             </div>
           </details>}
@@ -592,6 +637,8 @@ export function ChatPage({ user, cloudinarySettings, isDemo, isAdmin, roomId, ro
       <input ref={backgroundFileInput} type="file" accept="image/*" className="visually-hidden" onChange={(event) => void changeChatBackground(event.target.files?.[0])}/>
 
       {notice && <div className="chat-inline-notice" role="status"><CheckCircle2 size={15}/><span>{notice}</span><button type="button" onClick={() => setNotice('')} aria-label="إغلاق"><X size={14}/></button></div>}
+      {slowMode.enabled && <div className="chat-slow-mode-banner"><Timer size={15}/><span>الوضع البطيء مفعّل: يمكن للطالب إرسال رسالة كل {slowMode.seconds} ثانية.</span></div>}
+      {slowRemainingSeconds > 0 && <div className="chat-slow-mode-countdown"><Clock3 size={15}/><span>يمكنك إرسال الرسالة التالية بعد <b>{slowRemainingSeconds}</b> ثانية.</span></div>}
       {lockState.locked && <div className="chat-lock-banner"><Lock size={16}/><span><b>المحادثة مقفلة مؤقتاً.</b> {lockState.reason || 'تم إيقاف إرسال الطلاب بقرار من الإدارة.'} {lockState.endAt ? `موعد الفتح: ${lockState.endAt.toLocaleString('ar-EG', { dateStyle: 'short', timeStyle: 'short' })}` : 'سيتم فتحها يدوياً من الإدارة.'}</span>{isAdmin && <small>المدير يستطيع الإرسال</small>}</div>}
       {muteState.muted && <div className="chat-lock-banner"><ShieldCheck size={16}/><span><b>تم كتم حسابك في هذه الغرفة.</b> {muteState.reason ? muteState.reason + ' · ' : ''}{muteState.mutedUntil ? `حتى ${muteState.mutedUntil.toLocaleString('ar-EG', { dateStyle: 'short', timeStyle: 'short' })}` : 'حتى إلغاء الكتم من الإدارة'}.</span></div>}
       {warnings.length > 0 && <div className="chat-warning-strip"><ShieldCheck size={15}/><span><b>تنبيه من إدارة المحادثة:</b> {warnings[0].reason}</span><small>{warnings[0].createdAt?.toLocaleDateString('ar-EG') || ''}</small>{warnings[0].messageId && messages.some((item) => item.id === warnings[0].messageId) && <button type="button" onClick={() => jumpToMessage(warnings[0].messageId!)}>الانتقال للرسالة</button>}</div>}
@@ -811,5 +858,6 @@ export function ChatPage({ user, cloudinarySettings, isDemo, isAdmin, roomId, ro
     {muteTarget && <ChatMuteModal userName={muteTarget.senderName} onClose={() => setMuteTarget(null)} onSave={saveMuteDuration} busy={moderationBusy}/>}
     {warningTarget && <ChatWarningModal userName={warningTarget.senderName} onClose={() => setWarningTarget(null)} onSave={saveWarning} busy={moderationBusy}/>}
     {announcementModalOpen && <ChatAnnouncementModal initialText={announcementTarget?.text ?? ''} onClose={() => { if (!moderationBusy) { setAnnouncementModalOpen(false); setAnnouncementTarget(null); } }} onSave={saveAnnouncement} busy={moderationBusy}/>}
+    {slowModeSettingsOpen && <ChatSlowModeModal initial={slowMode} onClose={() => { if (!moderationBusy) setSlowModeSettingsOpen(false); }} onSave={saveSlowMode} busy={moderationBusy}/ >}
   </section>;
 }
