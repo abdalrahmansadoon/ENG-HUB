@@ -54,6 +54,19 @@ export function AcademicContentArea({
   const [editTarget, setEditTarget] = useState<AcademicContentNode | null>(null);
   const [busy, setBusy] = useState(false);
   const activeNode = nodes.find((node) => node.id === activeNodeId) ?? null;
+  const ancestorTrail = useMemo(() => {
+    const trail: AcademicContentNode[] = [];
+    const visited = new Set<string>();
+    let cursor = activeNode;
+    while (cursor?.parentId && !visited.has(cursor.parentId)) {
+      visited.add(cursor.parentId);
+      const parentNode = nodes.find((node) => node.id === cursor!.parentId);
+      if (!parentNode) break;
+      trail.unshift(parentNode);
+      cursor = parentNode;
+    }
+    return trail;
+  }, [activeNode, nodes]);
   const children = useMemo(
     () => nodes.filter((node) => node.parentId === (activeNodeId || null) && (activeNodeId ? true : node.category === category))
       .filter((node) => (node.title + ' ' + node.description).toLowerCase().includes(search.trim().toLowerCase())),
@@ -91,9 +104,13 @@ export function AcademicContentArea({
       <button type="button" onClick={() => onNavigate(category)}><BookOpen size={15}/> {subject.name}</button>
       <ChevronLeft size={14}/>
       <button type="button" className={!activeNode ? 'active' : ''} onClick={() => onNavigate(category)}>{categories.find((item) => item.id === category)?.title ?? 'المحتوى'}</button>
+      {ancestorTrail.map((ancestor) => <span className="eh-content-ancestor" key={ancestor.id}>
+        <ChevronLeft size={14}/>
+        <button type="button" onClick={() => onNavigate(category, ancestor.id)}>{ancestor.title}</button>
+      </span>)}
       {activeNode && <>
         <ChevronLeft size={14}/>
-        <span>{activeNode.title}</span>
+        <span className="active">{activeNode.title}</span>
       </>}
       {activeNode && <button type="button" className="eh-content-back" onClick={() => onNavigate(category, activeNode.parentId || undefined)}><ArrowDown size={14}/> رجوع</button>}
     </nav>
