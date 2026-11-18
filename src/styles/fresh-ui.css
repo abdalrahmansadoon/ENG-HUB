@@ -2818,3 +2818,36 @@ body { font-family:"IBM Plex Sans Arabic","Cairo",system-ui,sans-serif; }
   .eh-app .eh-content-detail { padding:14px; }
   .eh-app .eh-content-detail-actions .eh-button { flex:1 1 auto; }
 }
+
+
+/* Flexible custom content types */
+.eh-app .eh-custom-kind-fields {
+  display:grid;gap:13px;padding:15px;border:1px solid var(--border);
+  border-radius:15px;background:var(--surface2);
+}
+.eh-app .eh-custom-kind-heading { display:grid;gap:3px; }
+.eh-app .eh-custom-kind-heading b { color:var(--text);font-size:13px;font-weight:850; }
+.eh-app .eh-custom-kind-heading small,.eh-app .eh-custom-type-presets>span { color:var(--muted);font-size:10px;line-height:1.8; }
+.eh-app .eh-custom-type-presets { display:grid;gap:7px; }
+.eh-app .eh-custom-type-presets>div { display:flex;flex-wrap:wrap;gap:7px; }
+.eh-app .eh-custom-type-presets button {
+  min-height:34px;padding:5px 10px;border:1px solid var(--border2);border-radius:9px;
+  background:var(--surface);color:var(--text);font-size:11px;font-weight:700;
+}
+.eh-app .eh-custom-type-presets button:hover,.eh-app .eh-custom-type-presets button.new-type {
+  border-color:var(--purple);color:var(--purple);background:var(--accent-wash,var(--surface));
+}
+.eh-app .eh-custom-kind-fields input[type="color"] { width:100%;height:40px;padding:4px;cursor:pointer; }
+.eh-app .eh-custom-container-toggle {
+  display:flex;align-items:flex-start;gap:10px;padding:11px;border:1px solid var(--border);
+  border-radius:11px;background:var(--surface);
+}
+.eh-app .eh-custom-container-toggle input { width:17px;height:17px;margin-top:3px;flex:0 0 auto; }
+.eh-app .eh-custom-container-toggle span { display:grid;gap:3px; }
+.eh-app .eh-custom-container-toggle b { color:var(--text);font-size:11px; }
+.eh-app .eh-custom-container-toggle small { color:var(--muted);font-size:10px;line-height:1.8; }
+.eh-app .eh-custom-kind-symbol { font-size:22px;line-height:1; }
+@media(max-width:620px) {
+  .eh-app .eh-content-kind-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .eh-app .eh-custom-kind-fields { padding:11px; }
+}
