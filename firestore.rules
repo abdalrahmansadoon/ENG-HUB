@@ -78,6 +78,14 @@ service cloud.firestore {
       match /chatBackgrounds/{roomId} {
         allow read, create, update, delete: if owns(userId) && activeUser();
       }
+      match /chatReadStates/{roomId} {
+        allow read: if owns(userId) && activeUser();
+        allow create, update: if owns(userId) && activeUser()
+          && request.resource.data.keys().hasOnly(['lastReadAt', 'updatedAt'])
+          && request.resource.data.lastReadAt == request.time
+          && request.resource.data.updatedAt == request.time;
+        allow delete: if owns(userId) && activeUser();
+      }
       match /chatSlowModeCooldowns/{roomId} {
         allow read: if owns(userId) && activeUser();
         allow create: if owns(userId) && activeUser()
