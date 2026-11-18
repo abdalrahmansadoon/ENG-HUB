@@ -1,4 +1,4 @@
-import { useEffect, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import {
   ArrowLeft, Bell, ChevronDown, ChevronLeft, CircleHelp, Command, Copy, Menu,
   Moon, Search, Settings, ShieldCheck, Sun, X, type LucideIcon,
@@ -46,6 +46,7 @@ export function AppShell({
   onOpenMobileNav, onCloseMobileNav,
 }: AppShellProps) {
   const initials = user.displayName.trim().slice(0, 1) || 'ط';
+  const [linkCopied, setLinkCopied] = useState(false);
   const rootNav = [...navGroups.flatMap((group) => group.items), ...(isAdmin ? [{ id: 'admin', label: 'لوحة الإدارة', icon: ShieldCheck }] : [])];
   useEffect(() => {
     const handleShortcuts = (event: KeyboardEvent) => {
@@ -148,7 +149,21 @@ export function AppShell({
                 )) : <div className="eh-search-empty">لا توجد نتائج مطابقة</div>}
               </div>}
             </div>
-            <button type="button" className="eh-icon-btn eh-copy-page-link" onClick={() => { if (navigator.clipboard?.writeText) void navigator.clipboard.writeText(window.location.href); }} title="نسخ رابط الصفحة الحالية" aria-label="نسخ رابط الصفحة الحالية"><Copy size={18}/></button>
+            <button type="button" className="eh-icon-btn eh-copy-page-link" onClick={async () => {
+              try {
+                const value = window.location.href;
+                if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(value);
+                else {
+                  const temporary = document.createElement('textarea');
+                  temporary.value = value; temporary.setAttribute('readonly', '');
+                  temporary.style.position = 'fixed'; temporary.style.opacity = '0';
+                  document.body.appendChild(temporary); temporary.select();
+                  const copied = document.execCommand('copy'); temporary.remove();
+                  if (!copied) throw new Error('clipboard-unavailable');
+                }
+                setLinkCopied(true); window.setTimeout(() => setLinkCopied(false), 1800);
+              } catch { setLinkCopied(false); }
+            }} title={linkCopied ? 'تم نسخ الرابط' : 'نسخ رابط الصفحة الحالية'} aria-label="نسخ رابط الصفحة الحالية" aria-live="polite">{linkCopied ? <Check size={18}/> : <Copy size={18}/>}</button>
             <button type="button" className="eh-icon-btn" onClick={onToggleTheme} aria-label={dark ? 'تفعيل الوضع الفاتح' : 'تفعيل الوضع الداكن'}>{dark ? <Sun size={19}/> : <Moon size={19}/>}</button>
             <button type="button" className="eh-icon-btn eh-notification-btn" onClick={() => onNavigate('notifications')} aria-label="الإشعارات"><Bell size={19}/>{unreadCount > 0 && <i/>}</button>
             <button type="button" className="eh-avatar eh-top-avatar" onClick={() => onNavigate('profile')} aria-label="الملف الشخصي">{user.photoURL ? <img src={user.photoURL} alt=""/> : initials}</button>
