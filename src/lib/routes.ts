@@ -32,8 +32,9 @@ export function readEngHubRoute(hash = window.location.hash): EngHubRoute {
     if (parts[5] === 'lecture') base.lectureId = parts[6] || '';
   } else if (parts[2] === 'category') {
     const category = parts[3] || '';
-    if (['lectures','files','exams','assignments','resources','custom'].includes(category)) {
+    if (['lectures','files','exams','assignments','resources','custom','chat'].includes(category)) {
       base.category = category as SubjectCategory;
+      if (category === 'chat') base.page = 'chat';
     }
     if (parts[4] === 'node') base.contentNodeId = parts[5] || '';
   }
@@ -42,6 +43,7 @@ export function readEngHubRoute(hash = window.location.hash): EngHubRoute {
 
 export function buildEngHubHash(route: EngHubRoute): string {
   if (route.page === 'student-profile') return route.profileUid ? '#/students/' + encode(route.profileUid) : '#/students';
+  if (route.page === 'chat' && route.subjectId) return '#/courses/' + encode(route.subjectId) + '/category/chat';
   if (route.page !== 'courses') return '#/' + encode(route.page || 'home');
   if (!route.subjectId) return '#/courses';
   const root = '#/courses/' + encode(route.subjectId);
