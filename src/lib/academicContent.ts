@@ -92,7 +92,7 @@ export async function createAcademicContentNode(
 export async function updateAcademicContentNode(
   subjectId: string,
   nodeId: string,
-  patch: Partial<Pick<AcademicContentNode, 'title' | 'description' | 'url' | 'duration' | 'parentId' | 'category' | 'linkedNodeIds' | 'publicationStatus' | 'sortOrder'>>,
+  patch: Partial<Pick<AcademicContentNode, 'kind' | 'title' | 'description' | 'url' | 'mimeType' | 'duration' | 'parentId' | 'category' | 'linkedNodeIds' | 'publicationStatus' | 'sortOrder'>>,
 ) {
   const allowed: Record<string, unknown> = { ...patch, updatedAt: serverTimestamp() };
   if (typeof patch.title === 'string') allowed.title = patch.title.trim();
