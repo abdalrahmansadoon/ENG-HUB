@@ -131,7 +131,7 @@ export function AcademicContentArea({
         <span><Layers3 size={28}/></span>
         <b>{search ? 'لا توجد نتائج' : 'هذا القسم جاهز لإضافة محتواه'}</b>
         <p>{isAdmin ? 'أضف مجلداً أو محاضرة أو فيديو أو ملفاً أو اختباراً، ويمكنك ربط العناصر ببعضها.' : 'سيظهر المحتوى هنا عندما ينشره مدير المادة.'}</p>
-        {isAdmin && <button type="button" className="eh-button primary" onClick={openAdd}><Plus size={16}/> إنشاء أول عنصر</button>}
+        {isAdmin && (!activeNode || isAcademicContentContainer(activeNode)) && <button type="button" className="eh-button primary" onClick={openAdd}><Plus size={16}/> إنشاء أول عنصر</button>}
       </div>}
     </section>
 
@@ -143,7 +143,7 @@ export function AcademicContentArea({
       {activeNode.kind === 'note' && <div className="eh-content-note">{activeNode.description || activeNode.title}</div>}
       {activeNode.kind === 'folder' && <p className="eh-content-note">افتح العناصر الموجودة داخل هذا المجلد من القائمة أعلاه.</p>}
       {activeNode.kind === 'custom' && <p className="eh-content-note">{activeNode.canContainChildren ? 'هذا نوع مجلد مخصص. يمكنك إضافة أي أنواع من المحتوى بداخله.' : (activeNode.description || 'هذا عنصر من نوع مخصص.')}</p>}
-      {activeNode.kind === 'custom' && activeNode.url && <AcademicVideo url={activeNode.url} title={activeNode.title}/>}
+      {activeNode.kind === 'custom' && activeNode.url && <AcademicCustomAttachment url={activeNode.url} title={activeNode.title} mimeType={activeNode.mimeType}/>}
       {['exam','assignment'].includes(activeNode.kind) && !activeNode.url && <div className="eh-content-note">{activeNode.description || 'تفاصيل هذا العنصر متاحة في صفحة المحتوى المرتبط.'}</div>}
       {activeNode.kind === 'file' && !activeNode.url && <div className="eh-content-note">لم يعد رابط الملف متاحاً. تواصل مع مدير المادة لإعادة رفعه.</div>}
       {activeNode.kind === 'lecture' && <p className="eh-content-note">هذه مساحة للمحاضرة. أضف تحتها أي عدد من الفيديوهات والملفات والاختبارات أو المجلدات الفرعية.</p>
@@ -173,6 +173,20 @@ export function AcademicContentArea({
       busy={busy}
     />}
   </div>;
+}
+
+function AcademicCustomAttachment({ url, title, mimeType }: { url: string; title: string; mimeType?: string }) {
+  const type = mimeType?.toLowerCase() ?? '';
+  const isVideo = type.startsWith('video/') || /\.(mp4|webm|mov)(?:[?#].*)?$/i.test(url)
+    || /(?:youtube\.com|youtu\.be|vimeo\.com)/i.test(url);
+  if (isVideo) return <AcademicVideo url={url} title={title}/>;
+  if (type.startsWith('audio/')) return <div className="eh-custom-audio"><audio src={url} controls preload="metadata">{'متصفحك لا يدعم تشغيل الصوت.'}</audio></div>;
+  if (type.startsWith('image/')) return <a className="eh-custom-image-link" href={url} target="_blank" rel="noreferrer" aria-label={'فتح ' + title}><img src={url} alt={title} loading="lazy"/></a>;
+  return <a className="eh-related-content-link" href={url} target="_blank" rel="noreferrer">
+    <Download size={17}/>
+    <span><b>{type.includes('pdf') || type.includes('document') || type.includes('spreadsheet') || type.includes('presentation') ? 'فتح أو تنزيل المرفق' : 'فتح المصدر المرتبط'}</b><small>{mimeType || url}</small></span>
+    <ExternalLink size={15}/>
+  </a>;
 }
 
 function AcademicVideo({ url, title }: { url: string; title: string }) {
