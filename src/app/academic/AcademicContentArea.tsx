@@ -303,7 +303,7 @@ function AcademicContentModal({ category, parent, initialNode, nodes, onClose, o
           <label className="eh-custom-container-toggle"><input type="checkbox" checked={canContainChildren} onChange={(event) => setCanContainChildren(event.target.checked)}/><span><b>اجعل هذا النوع مجلداً قابلاً للتداخل</b><small>عند التفعيل يمكنك إضافة مجلدات ومحاضرات وملفات وفيديوهات واختبارات داخله، وعند الإلغاء يصبح عنصراً مستقلاً.</small></span></label>
         </section>}
         <div className="form-row">
-          <label>القسم<select value={itemCategory} onChange={(event) => setItemCategory(event.target.value as AcademicContentCategory)}>{categories.map((item) => <option value={item.id} key={item.id}>{item.title}</option>)}</select></label>
+          <label>القسم<select value={itemCategory} disabled={Boolean(initialNode?.parentId || parent?.id)} onChange={(event) => setItemCategory(event.target.value as AcademicContentCategory)}>{categories.map((item) => <option value={item.id} key={item.id}>{item.title}</option>)}</select>{(initialNode?.parentId || parent?.id) && <small>يرتبط هذا العنصر بالقسم الأصلي للمجلد الأعلى حتى يبقى مسار التنقل ثابتاً.</small>}</label>
           <label>حالة النشر<select value={publicationStatus} onChange={(event) => setPublicationStatus(event.target.value as 'published'|'draft')}><option value="published">منشور للطلاب</option><option value="draft">مسودة للمدير</option></select></label>
         </div>
         {(needsUrl || kind === 'custom') && <label>{kind === 'custom' ? 'رابط أو مصدر خارجي (اختياري)' : 'الرابط'}<input type="url" dir="ltr" value={url} onChange={(event) => setUrl(event.target.value)} placeholder="https://..."/></label>}
