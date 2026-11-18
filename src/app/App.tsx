@@ -1246,9 +1246,9 @@ function ChatPage({ user, cloudinarySettings, isDemo, isAdmin, roomId, roomTitle
       setLoading(true);
       setError('');
       try {
-        await joinGeneralChat({ uid: user.uid, displayName: user.displayName, photoURL: user.photoURL });
+        await joinGeneralChat({ uid: user.uid, displayName: user.displayName, photoURL: user.photoURL }, roomId, roomTitle, courseId);
         if (cancelled) return;
-        unsubscribe = subscribeGeneralChat(user.uid, setMessages, (reason) => setError(reason.message));
+        unsubscribe = subscribeGeneralChat(user.uid, setMessages, (reason) => setError(reason.message), roomId);
       } catch (reason) {
         setError(reason instanceof Error ? reason.message : 'تعذر فتح المحادثة العامة.');
       } finally {
@@ -1260,12 +1260,12 @@ function ChatPage({ user, cloudinarySettings, isDemo, isAdmin, roomId, roomTitle
       cancelled = true;
       unsubscribe?.();
     };
-  }, [user.uid, user.displayName, user.photoURL, isDemo]);
+  }, [user.uid, user.displayName, user.photoURL, isDemo, roomId, roomTitle, courseId]);
 
   useEffect(() => {
     if (isDemo) { setMuteState({ muted: false, mutedUntil: null }); return; }
-    return subscribeGeneralChatMuteStatus(user.uid, setMuteState, (reason) => setError(reason.message));
-  }, [user.uid, isDemo]);
+    return subscribeGeneralChatMuteStatus(user.uid, setMuteState, (reason) => setError(reason.message), roomId);
+  }, [user.uid, isDemo, roomId]);
 
   useEffect(() => {
     if (isDemo) {
@@ -1273,10 +1273,10 @@ function ChatPage({ user, cloudinarySettings, isDemo, isAdmin, roomId, roomTitle
       setWarnings([]);
       return;
     }
-    const stopLock = subscribeGeneralChatLockStatus(setLockState, (reason) => setError(reason.message));
-    const stopWarnings = subscribeGeneralChatWarnings(user.uid, setWarnings, (reason) => setError(reason.message));
+    const stopLock = subscribeGeneralChatLockStatus(setLockState, (reason) => setError(reason.message), roomId);
+    const stopWarnings = subscribeGeneralChatWarnings(user.uid, setWarnings, (reason) => setError(reason.message), roomId);
     return () => { stopLock(); stopWarnings(); };
-  }, [user.uid, isDemo]);
+  }, [user.uid, isDemo, roomId]);
 
   useEffect(() => {
     if (!lockState.locked || !lockState.endAt) return;
@@ -1300,13 +1300,13 @@ function ChatPage({ user, cloudinarySettings, isDemo, isAdmin, roomId, roomTitle
   useEffect(() => {
     if (!contextMessage || !isAdmin || contextMessage.senderId === user.uid) { setContextMuted(false); return; }
     let cancelled = false;
-    void getGeneralChatMuteStatus(contextMessage.senderId).then((status) => {
+    void getGeneralChatMuteStatus(contextMessage.senderId, roomId).then((status) => {
       if (!cancelled) setContextMuted(status.muted);
     }).catch((reason) => {
       if (!cancelled) setError(reason instanceof Error ? reason.message : 'تعذر قراءة حالة كتم الطالب.');
     });
     return () => { cancelled = true; };
-  }, [contextMessage?.id, contextMessage?.senderId, isAdmin, user.uid]);
+  }, [contextMessage?.id, contextMessage?.senderId, isAdmin, user.uid, roomId]);
 
   useEffect(() => {
     const next = files.map((file, index) => ({
@@ -1406,7 +1406,7 @@ function ChatPage({ user, cloudinarySettings, isDemo, isAdmin, roomId, roomTitle
       setSending(true);
       setError('');
       try {
-        await editGeneralChatMessage(editingMessage.id, user.uid, draft);
+        await editGeneralChatMessage(editingMessage.id, user.uid, draft, roomId);
         cancelComposerMode();
       } catch (reason) {
         setError(reason instanceof Error ? reason.message : 'تعذر تعديل الرسالة.');
@@ -1436,7 +1436,7 @@ function ChatPage({ user, cloudinarySettings, isDemo, isAdmin, roomId, roomTitle
           text: replyTo.text || (replyTo.attachments[0]?.name ?? 'مرفق'),
           senderName: replyTo.senderName,
         } : null,
-      });
+      }, roomId);
       cancelComposerMode();
       setEmojiOpen(false);
     } catch (reason) {
@@ -1453,7 +1453,7 @@ function ChatPage({ user, cloudinarySettings, isDemo, isAdmin, roomId, roomTitle
     setContextMessage(null);
     setError('');
     try {
-      await softDeleteGeneralChatMessage(message.id, user.uid);
+      await softDeleteGeneralChatMessage(message.id, user.uid, roomId);
       if (replyTo?.id === message.id) setReplyTo(null);
       setNotice('تم حذف رسالتك لدى جميع المشاركين.');
     } catch (reason) {
@@ -1464,7 +1464,7 @@ function ChatPage({ user, cloudinarySettings, isDemo, isAdmin, roomId, roomTitle
   const hideMessageForMe = async (message: ChatMessage) => {
     setContextMessage(null);
     try {
-      await hideGeneralChatMessageForUser(user.uid, message.id);
+      await hideGeneralChatMessageForUser(user.uid, message.id, roomId);
       setNotice('تم إخفاء الرسالة من حسابك فقط.');
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : 'تعذر إخفاء الرسالة من حسابك.');
@@ -1476,7 +1476,7 @@ function ChatPage({ user, cloudinarySettings, isDemo, isAdmin, roomId, roomTitle
     if (!window.confirm('سيتم حذف محتوى الرسالة لدى جميع المشاركين مع الاحتفاظ بعلامة توضح أنها حُذفت. هل تريد المتابعة؟')) return;
     setContextMessage(null);
     try {
-      await adminSoftDeleteGeneralChatMessage(message.id, user.uid);
+      await adminSoftDeleteGeneralChatMessage(message.id, user.uid, roomId);
       setNotice('تم حذف الرسالة لدى جميع المشاركين.');
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : 'تعذر حذف الرسالة.');
@@ -1489,7 +1489,7 @@ function ChatPage({ user, cloudinarySettings, isDemo, isAdmin, roomId, roomTitle
     if (!confirmed) return;
     setContextMessage(null);
     try {
-      await deleteGeneralChatMessage(message.id);
+      await deleteGeneralChatMessage(message.id, roomId);
       setNotice('تم حذف الرسالة نهائياً من المحادثة.');
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : 'تعذر حذف الرسالة نهائياً.');
@@ -1499,7 +1499,7 @@ function ChatPage({ user, cloudinarySettings, isDemo, isAdmin, roomId, roomTitle
   const handleReaction = async (message: ChatMessage, emoji: string) => {
     setContextMessage(null);
     try {
-      await toggleGeneralChatReaction(message.id, user.uid, emoji);
+      await toggleGeneralChatReaction(message.id, user.uid, emoji, roomId);
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : 'تعذر تسجيل التفاعل.');
     }
@@ -1508,7 +1508,7 @@ function ChatPage({ user, cloudinarySettings, isDemo, isAdmin, roomId, roomTitle
   const handlePin = async (message: ChatMessage) => {
     setContextMessage(null);
     try {
-      await toggleGeneralChatPin(message.id, user.uid, !message.pinned);
+      await toggleGeneralChatPin(message.id, user.uid, !message.pinned, roomId);
       setNotice(message.pinned ? 'تم إلغاء تثبيت الرسالة.' : 'تم تثبيت الرسالة أعلى المحادثة.');
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : 'تعذر تثبيت الرسالة.');
@@ -1520,7 +1520,7 @@ function ChatPage({ user, cloudinarySettings, isDemo, isAdmin, roomId, roomTitle
     setContextMessage(null);
     if (contextMuted) {
       try {
-        await unmuteGeneralChatUser(message.senderId, user.uid);
+        await unmuteGeneralChatUser(message.senderId, user.uid, roomId);
         setNotice(`تم إلغاء كتم ${message.senderName}.`);
       } catch (reason) {
         setError(reason instanceof Error ? reason.message : 'تعذر إلغاء كتم الطالب.');
@@ -1534,7 +1534,7 @@ function ChatPage({ user, cloudinarySettings, isDemo, isAdmin, roomId, roomTitle
     if (!isAdmin || !muteTarget) return;
     setModerationBusy(true);
     try {
-      await setGeneralChatMute(muteTarget.senderId, user.uid, minutes);
+      await setGeneralChatMute(muteTarget.senderId, user.uid, minutes, roomId);
       setNotice(minutes ? `تم كتم ${muteTarget.senderName} لمدة ${minutes >= 1440 ? Math.round(minutes / 1440) + ' يوم' : minutes >= 60 ? Math.round(minutes / 60) + ' ساعة' : minutes + ' دقيقة'}.` : `تم كتم ${muteTarget.senderName} حتى إلغاء الكتم يدوياً.`);
       setMuteTarget(null);
     } catch (reason) {
@@ -1548,7 +1548,7 @@ function ChatPage({ user, cloudinarySettings, isDemo, isAdmin, roomId, roomTitle
     if (!isAdmin) return;
     setModerationBusy(true);
     try {
-      await setGeneralChatLock(user.uid, { startAt, endAt, reason, autoExpire });
+      await setGeneralChatLock(user.uid, { startAt, endAt, reason, autoExpire }, roomId);
       setLockSettingsOpen(false);
       setNotice(autoExpire && endAt ? 'تم جدولة قفل المحادثة وفتحها تلقائياً في الموعد المحدد.' : 'تم إعداد قفل المحادثة حتى يفتحه المدير يدوياً.');
     } catch (reasonError) {
@@ -1562,7 +1562,7 @@ function ChatPage({ user, cloudinarySettings, isDemo, isAdmin, roomId, roomTitle
     if (!isAdmin || !window.confirm('هل تريد فتح المحادثة للطلاب الآن؟')) return;
     setModerationBusy(true);
     try {
-      await clearGeneralChatLock(user.uid);
+      await clearGeneralChatLock(user.uid, roomId);
       setNotice('تم فتح المحادثة للطلاب.');
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : 'تعذر فتح المحادثة.');
@@ -1581,7 +1581,7 @@ function ChatPage({ user, cloudinarySettings, isDemo, isAdmin, roomId, roomTitle
     if (!isAdmin || !warningTarget) return;
     setModerationBusy(true);
     try {
-      await createGeneralChatWarning(warningTarget.senderId, user.uid, reason);
+      await createGeneralChatWarning(warningTarget.senderId, user.uid, reason, roomId);
       setNotice(`تم تسجيل تحذير إداري لـ ${warningTarget.senderName}.`);
       setWarningTarget(null);
     } catch (errorReason) {
@@ -1595,7 +1595,7 @@ function ChatPage({ user, cloudinarySettings, isDemo, isAdmin, roomId, roomTitle
     if (!isAdmin || !window.confirm('سيتم حذف جميع رسائل المحادثة العامة نهائياً. هل تريد المتابعة؟')) return;
     try {
       const { deleteGeneralChatRoomMessages } = await import('../lib/chat');
-      await deleteGeneralChatRoomMessages();
+      await deleteGeneralChatRoomMessages(roomId);
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : 'تعذر تفريغ المحادثة.');
     }
@@ -1653,7 +1653,7 @@ function ChatPage({ user, cloudinarySettings, isDemo, isAdmin, roomId, roomTitle
         <button type="button" className="chat-topbar-btn" onClick={onBack} aria-label="العودة للرئيسية"><ArrowDownLeft size={18}/></button>
         <div className="chat-topbar-room">
           <div className="chat-topbar-avatar"><MessageCircle size={20}/></div>
-          <div><b>المحادثة العامة</b><span><i className="live-dot"/> مجتمع طلاب ENG HUB · رسائل مباشرة</span></div>
+          <div><b>{roomTitle}</b><span><i className="live-dot"/> {courseId ? 'طلاب هذا المقرر · نقاش ومشاركة' : 'المجتمع العام لطلاب ENG HUB'}</span></div>
         </div>
         <div className="chat-topbar-actions">
           <div className="chat-topbar-search"><Search size={15}/><input placeholder="ابحث داخل المحادثة" value={search} onChange={(event) => setSearch(event.target.value)}/></div>
