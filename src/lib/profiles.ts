@@ -15,7 +15,14 @@ export interface PublicStudentProfile {
 export async function getPublicStudentProfile(uid: string): Promise<PublicStudentProfile> {
   if (!db) throw new Error('Firebase غير متصل.');
   if (!uid) throw new Error('رابط الملف الشخصي غير صالح.');
-  const snapshot = await getDoc(doc(db, 'users', uid));
+  let snapshot;
+  try {
+    snapshot = await getDoc(doc(db, 'users', uid));
+  } catch (error) {
+    const code = (error as { code?: string })?.code ?? '';
+    if (code === 'permission-denied') throw new Error('هذا الملف الشخصي خاص ولا يمكن عرضه للطلاب الآخرين.');
+    throw error;
+  }
   if (!snapshot.exists()) throw new Error('الملف الشخصي غير موجود.');
   const data = snapshot.data();
   if (data.profileVisibility === 'private') {
