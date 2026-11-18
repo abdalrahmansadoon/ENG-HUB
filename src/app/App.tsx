@@ -7,7 +7,7 @@ import {
   MessageCircle, MoreHorizontal, Paperclip, Pause, Play, Plus, Search, Send, Settings, ShieldCheck,
   SlidersHorizontal, Sparkles, Sun, Moon, Target, Timer, TrendingUp, Upload, Users,
   Video, X, Zap, ClipboardList, CalendarClock, BookMarked, ListChecks, ChartNoAxesCombined,
-  ImagePlus, Volume2, VolumeX, Maximize, Trash2, Pencil, Monitor, Smartphone,
+  ImagePlus, Volume2, VolumeX, Maximize, Trash2, Pencil, Monitor, Smartphone, Unlock,
   Copy, Pin, Smile, CheckCheck, Flag, Minus, Info, RotateCcw,
 } from 'lucide-react';
 import { useAuth, registerAccount } from './AuthContext';
@@ -1559,12 +1559,15 @@ function ChatPage({ user, cloudinarySettings, isDemo, isAdmin, onBack }: {
         </div>
         <div className="chat-topbar-actions">
           <div className="chat-topbar-search"><Search size={15}/><input placeholder="ابحث داخل المحادثة" value={search} onChange={(event) => setSearch(event.target.value)}/></div>
+          {isAdmin && <button type="button" className="chat-topbar-btn" onClick={() => lockState.locked ? void unlockChat() : setLockSettingsOpen(true)} disabled={moderationBusy} title={lockState.locked ? 'فتح المحادثة للطلاب' : 'جدولة قفل المحادثة'}>{lockState.locked ? <Unlock size={16}/> : <Lock size={16}/>}</button>}
           {isAdmin && <button type="button" className="chat-topbar-btn chat-admin-clear" onClick={() => void clearRoom()} title="تفريغ المحادثة"><Trash2 size={16}/></button>}
         </div>
       </header>
 
       {notice && <div className="chat-inline-notice" role="status"><CheckCircle2 size={15}/><span>{notice}</span><button type="button" onClick={() => setNotice('')} aria-label="إغلاق"><X size={14}/></button></div>}
-      {muteState.muted && <div className="chat-lock-banner"><ShieldCheck size={16}/><span>تم إيقاف الإرسال مؤقتاً حتى {muteState.mutedUntil?.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }) || 'إلغاء الكتم من الإدارة'}.</span></div>}
+      {lockState.locked && <div className="chat-lock-banner"><Lock size={16}/><span><b>المحادثة مقفلة مؤقتاً.</b> {lockState.reason || 'تم إيقاف إرسال الطلاب بقرار من الإدارة.'} {lockState.endAt ? `موعد الفتح: ${lockState.endAt.toLocaleString('ar-EG', { dateStyle: 'short', timeStyle: 'short' })}` : 'سيتم فتحها يدوياً من الإدارة.'}</span>{isAdmin && <small>المدير يستطيع الإرسال</small>}</div>}
+      {muteState.muted && <div className="chat-lock-banner"><ShieldCheck size={16}/><span>تم إيقاف الإرسال لحسابك {muteState.mutedUntil ? `حتى ${muteState.mutedUntil.toLocaleString('ar-EG', { dateStyle: 'short', timeStyle: 'short' })}` : 'حتى إلغاء الكتم من الإدارة'}.</span></div>}
+      {warnings.length > 0 && <div className="chat-warning-strip"><ShieldCheck size={15}/><span><b>تنبيه من إدارة المحادثة:</b> {warnings[0].reason}</span><small>{warnings[0].createdAt?.toLocaleDateString('ar-EG') || ''}</small></div>}
 
       <div className="chat-pinned-strip">
         <div className="chat-pinned-strip-label"><Pin size={15}/><span>المثبتة</span></div>
@@ -1700,8 +1703,8 @@ function ChatPage({ user, cloudinarySettings, isDemo, isAdmin, onBack }: {
         </div>}
         {emojiOpen && <div className="chat-reference-emoji-panel">{emojis.concat(['🎉','🔥','✅','🤝','📚','💡','✨','💯']).map((emoji) => <button type="button" key={emoji} onClick={() => appendEmoji(emoji)}>{emoji}</button>)}</div>}
         <form className="chat-input-group" onSubmit={(event) => void send(event)}>
-          <button type="button" className="chat-composer-btn" onClick={() => setEmojiOpen((value) => !value)} disabled={muteState.muted || sending} aria-label="اختيار رمز تعبيري" title="رموز تعبيرية"><Smile size={20}/></button>
-          <button type="button" className="chat-composer-btn" onClick={() => fileInput.current?.click()} disabled={muteState.muted || sending} aria-label="إرفاق ملف أو صورة" title="إرفاق ملف"><Paperclip size={20}/></button>
+          <button type="button" className="chat-composer-btn" onClick={() => setEmojiOpen((value) => !value)} disabled={muteState.muted || (lockState.locked && !isAdmin) || sending} aria-label="اختيار رمز تعبيري" title="رموز تعبيرية"><Smile size={20}/></button>
+          <button type="button" className="chat-composer-btn" onClick={() => fileInput.current?.click()} disabled={muteState.muted || (lockState.locked && !isAdmin) || sending} aria-label="إرفاق ملف أو صورة" title="إرفاق ملف"><Paperclip size={20}/></button>
           <input ref={fileInput} type="file" multiple accept="image/*,video/*,.pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.zip,.txt" className="visually-hidden" onChange={(event) => {
             const picked = Array.from(event.target.files ?? []);
             setFiles((current) => {
@@ -1712,7 +1715,7 @@ function ChatPage({ user, cloudinarySettings, isDemo, isAdmin, onBack }: {
             if (fileInput.current) fileInput.current.value = '';
           }}/>
           <div className="chat-input-wrap">
-            <textarea ref={composerRef} rows={1} maxLength={5000} value={draft} disabled={muteState.muted || sending} onChange={(event) => setDraft(event.target.value)} placeholder={muteState.muted ? 'تم إيقاف الإرسال مؤقتاً' : editingMessage ? 'عدّل نص الرسالة...' : 'اكتب رسالتك هنا...'} aria-label="نص الرسالة" onKeyDown={(event) => {
+            <textarea ref={composerRef} rows={1} maxLength={5000} value={draft} disabled={muteState.muted || (lockState.locked && !isAdmin) || sending} onChange={(event) => setDraft(event.target.value)} placeholder={muteState.muted ? 'تم إيقاف الإرسال مؤقتاً' : lockState.locked && !isAdmin ? 'المحادثة مقفلة مؤقتاً' : editingMessage ? 'عدّل نص الرسالة...' : 'اكتب رسالتك هنا...'} aria-label="نص الرسالة" onKeyDown={(event) => {
               if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) {
                 event.preventDefault();
                 void send();
@@ -1720,7 +1723,7 @@ function ChatPage({ user, cloudinarySettings, isDemo, isAdmin, onBack }: {
             }}/>
             <span className="chat-composer-counter">{draft.length}/5000</span>
           </div>
-          <button type="submit" className="chat-send-btn" disabled={muteState.muted || sending || (!draft.trim() && files.length === 0)} aria-label={editingMessage ? 'حفظ التعديل' : 'إرسال'}>
+          <button type="submit" className="chat-send-btn" disabled={muteState.muted || (lockState.locked && !isAdmin) || sending || (!draft.trim() && files.length === 0)} aria-label={editingMessage ? 'حفظ التعديل' : 'إرسال'}>
             {sending ? <span className="spinner"/> : editingMessage ? <Check size={19}/> : <Send size={18}/>}
           </button>
         </form>
@@ -1763,6 +1766,8 @@ function ChatPage({ user, cloudinarySettings, isDemo, isAdmin, onBack }: {
       </div>
       {lightboxItems.length > 1 && <div className="chat-lightbox-thumbs" onClick={(event) => event.stopPropagation()}>{lightboxItems.map((item,index) => <button type="button" key={item.url} className={index===lightboxIndex?'active':''} onClick={() => { setLightboxIndex(index); setLightboxScale(1); }}><img src={item.url} alt=""/></button>)}</div>}
     </div>}
+    {lockSettingsOpen && <ChatLockModal onClose={() => setLockSettingsOpen(false)} onSave={saveChatLock} busy={moderationBusy}/>}
+    {muteTarget && <ChatMuteModal userName={muteTarget.senderName} onClose={() => setMuteTarget(null)} onSave={saveMuteDuration} busy={moderationBusy}/>}
   </section>;
 }
 
