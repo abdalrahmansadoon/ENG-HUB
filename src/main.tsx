@@ -24,7 +24,7 @@ if ('serviceWorker' in navigator && import.meta.env.PROD) {
         window.location.reload();
       });
     }
-    void navigator.serviceWorker.register(`${import.meta.env.BASE_URL}sw.js?v=4`)
+    void navigator.serviceWorker.register(`${import.meta.env.BASE_URL}sw.js?v=5`)
       .then((registration) => registration.update())
       .catch((error) => console.warn('ENG HUB service worker registration failed.', error));
   });
