@@ -8,6 +8,7 @@ import {
   SlidersHorizontal, Sparkles, Sun, Moon, Target, Timer, TrendingUp, Upload, Users,
   Video, X, Zap, ClipboardList, CalendarClock, BookMarked, ListChecks, ChartNoAxesCombined,
   ImagePlus, Volume2, VolumeX, Maximize, Trash2, Pencil, Monitor, Smartphone,
+  Copy, Smile, MoreVertical,
 } from 'lucide-react';
 import { useAuth, registerAccount } from './AuthContext';
 import { defaultCloudinarySettings, isCloudinaryConfigured, saveCloudinarySettings, subscribeCloudinarySettings, type CloudinarySettings } from '../lib/cloudinary';
@@ -263,8 +264,8 @@ function App() {
   };
 
   if (loading) return <div className="boot-screen"><div className="brand-mark">EH</div><span>جاري تجهيز ENG HUB...</span></div>;
-  if (!user) return <AuthScreen onLogin={login} onGoogle={loginWithGoogle} />;
-  if (!profileComplete) return <ProfileCompletionScreen user={user} cloudinarySettings={defaultCloudinarySettings} onComplete={completeProfile} />;
+  if (!user) return <AuthScreen onLogin={login} onGoogle={loginWithGoogle} dark={dark} />;
+  if (!profileComplete) return <ProfileCompletionScreen user={user} cloudinarySettings={defaultCloudinarySettings} dark={dark} onComplete={completeProfile} />;
 
   return (
     <div className={dark ? 'app-shell theme-dark' : 'app-shell theme-light'} dir="rtl">
@@ -349,7 +350,7 @@ function App() {
   );
 }
 
-function AuthScreen({ onLogin, onGoogle }: { onLogin: (email: string, password: string, name?: string) => Promise<void>; onGoogle: () => Promise<void> }) {
+function AuthScreen({ onLogin, onGoogle, dark }: { onLogin: (email: string, password: string, name?: string) => Promise<void>; onGoogle: () => Promise<void>; dark: boolean }) {
   const [mode, setMode] = useState<'login' | 'register'>('login');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -374,13 +375,14 @@ function AuthScreen({ onLogin, onGoogle }: { onLogin: (email: string, password: 
       setBusy(false);
     }
   };
-  return <div className="auth-screen" dir="rtl"><div className="auth-visual"><div className="auth-brand"><div className="brand-mark">EH</div><div><b>ENG HUB</b><span>CAIRO UNIVERSITY · FACULTY OF ENGINEERING</span></div></div><div className="auth-visual-copy"><div className="eyebrow">YOUR ENGINEERING JOURNEY</div><h1>كل أدوات دراستك،<br/><span>في مساحة واحدة.</span></h1><p>نظّم محاضراتك، تابع مهامك، وذاكر بتركيز أكبر مع مجتمع هندسة القاهرة.</p><div className="auth-feature-list"><span><CheckCircle2 size={15}/> تنظيم المواد والمحاضرات</span><span><CheckCircle2 size={15}/> متابعة المهام والتسليمات</span><span><CheckCircle2 size={15}/> تعاون ومشاركة مع زملائك</span></div></div><div className="auth-orbit"/><div className="auth-foot">ENG HUB · STUDY SMARTER, BUILD BETTER</div></div><div className="auth-form-side"><form className="auth-form" onSubmit={submit}><div className="auth-mobile-brand"><div className="brand-mark">EH</div><b>ENG HUB</b></div><div className="eyebrow">WELCOME TO ENG HUB</div><h2>{mode === 'login' ? 'مرحباً بعودتك' : 'أنشئ حسابك'}</h2><p>{mode === 'login' ? 'سجل دخولك للوصول إلى مساحة دراستك.' : 'انضم إلى مساحة طلاب هندسة القاهرة.'}</p>{mode === 'register' && <label>الاسم بالكامل<input required value={name} onChange={(e) => setName(e.target.value)} placeholder="اسمك كما تحب أن يظهر"/></label>}<label>البريد الإلكتروني<input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="name@example.com"/></label><label>كلمة المرور<input type="password" required minLength={6} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="6 أحرف على الأقل"/></label>{error && <div className="auth-error"><AlertCircle size={15}/>{error}</div>}<button type="submit" className="btn btn-primary auth-submit" disabled={busy}>{busy ? <span className="spinner"/> : null}{mode === 'login' ? 'تسجيل الدخول' : 'إنشاء الحساب'} <ArrowLeft size={16}/></button><div className="auth-divider"><span>أو</span></div><button type="button" className="btn btn-outline google-btn" onClick={() => void continueWithGoogle()} disabled={busy}><span className="google-g">G</span> المتابعة باستخدام Google</button><div className="auth-switch">{mode === 'login' ? 'ليس لديك حساب؟' : 'لديك حساب بالفعل؟'} <button type="button" onClick={() => { setMode(mode === 'login' ? 'register' : 'login'); setError(''); }}>{mode === 'login' ? 'إنشاء حساب' : 'تسجيل الدخول'}</button></div><div className="auth-foot-mobile">بالاستمرار، أنت توافق على شروط الاستخدام وسياسة الخصوصية.</div></form></div></div>;
+  return <div className={`auth-screen ${dark ? 'theme-dark' : 'theme-light'}`} dir="rtl"><div className="auth-visual"><div className="auth-brand"><div className="brand-mark">EH</div><div><b>ENG HUB</b><span>CAIRO UNIVERSITY · FACULTY OF ENGINEERING</span></div></div><div className="auth-visual-copy"><div className="eyebrow">YOUR ENGINEERING JOURNEY</div><h1>كل أدوات دراستك،<br/><span>في مساحة واحدة.</span></h1><p>نظّم محاضراتك، تابع مهامك، وذاكر بتركيز أكبر مع مجتمع هندسة القاهرة.</p><div className="auth-feature-list"><span><CheckCircle2 size={15}/> تنظيم المواد والمحاضرات</span><span><CheckCircle2 size={15}/> متابعة المهام والتسليمات</span><span><CheckCircle2 size={15}/> تعاون ومشاركة مع زملائك</span></div></div><div className="auth-orbit"/><div className="auth-foot">ENG HUB · STUDY SMARTER, BUILD BETTER</div></div><div className="auth-form-side"><form className="auth-form" onSubmit={submit}><div className="auth-mobile-brand"><div className="brand-mark">EH</div><b>ENG HUB</b></div><div className="eyebrow">WELCOME TO ENG HUB</div><h2>{mode === 'login' ? 'مرحباً بعودتك' : 'أنشئ حسابك'}</h2><p>{mode === 'login' ? 'سجل دخولك للوصول إلى مساحة دراستك.' : 'انضم إلى مساحة طلاب هندسة القاهرة.'}</p>{mode === 'register' && <label>الاسم بالكامل<input required value={name} onChange={(e) => setName(e.target.value)} placeholder="اسمك كما تحب أن يظهر"/></label>}<label>البريد الإلكتروني<input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="name@example.com"/></label><label>كلمة المرور<input type="password" required minLength={6} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="6 أحرف على الأقل"/></label>{error && <div className="auth-error"><AlertCircle size={15}/>{error}</div>}<button type="submit" className="btn btn-primary auth-submit" disabled={busy}>{busy ? <span className="spinner"/> : null}{mode === 'login' ? 'تسجيل الدخول' : 'إنشاء الحساب'} <ArrowLeft size={16}/></button><div className="auth-divider"><span>أو</span></div><button type="button" className="btn btn-outline google-btn" onClick={() => void continueWithGoogle()} disabled={busy}><span className="google-g">G</span> المتابعة باستخدام Google</button><div className="auth-switch">{mode === 'login' ? 'ليس لديك حساب؟' : 'لديك حساب بالفعل؟'} <button type="button" onClick={() => { setMode(mode === 'login' ? 'register' : 'login'); setError(''); }}>{mode === 'login' ? 'إنشاء حساب' : 'تسجيل الدخول'}</button></div><div className="auth-foot-mobile">بالاستمرار، أنت توافق على شروط الاستخدام وسياسة الخصوصية.</div></form></div></div>;
 }
 
-function ProfileCompletionScreen({ user, cloudinarySettings, onComplete }: {
+function ProfileCompletionScreen({ user, cloudinarySettings, onComplete, dark }: {
   user: AppUser;
   cloudinarySettings: CloudinarySettings;
   onComplete: (profile: { displayName: string; photoURL?: string | null; phone?: string; bio?: string }) => Promise<void>;
+  dark: boolean;
 }) {
   const [displayName, setDisplayName] = useState(user.displayName || '');
   const [phone, setPhone] = useState(user.phone || '');
@@ -411,7 +413,7 @@ function ProfileCompletionScreen({ user, cloudinarySettings, onComplete }: {
     }
   };
 
-  return <div className="profile-onboarding" dir="rtl">
+  return <div className={`profile-onboarding ${dark ? 'theme-dark' : 'theme-light'}`} dir="rtl">
     <div className="profile-onboarding-card panel">
       <div className="brand-row onboarding-brand"><div className="brand-mark">EH</div><div className="brand-copy"><strong>ENG HUB</strong><span>CAIRO UNIVERSITY</span></div></div>
       <div className="eyebrow">COMPLETE YOUR ACCOUNT</div>
@@ -758,12 +760,22 @@ function ChatPage({ user, cloudinarySettings, isDemo, isAdmin }: {
   const [draft, setDraft] = useState('');
   const [files, setFiles] = useState<File[]>([]);
   const [replyTo, setReplyTo] = useState<ChatMessage | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
+  const [contextMenu, setContextMenu] = useState<{ id: string; x: number; y: number } | null>(null);
+  const [lightbox, setLightbox] = useState<ChatAttachment | null>(null);
+  const [highlightedId, setHighlightedId] = useState('');
   const fileInput = useRef<HTMLInputElement>(null);
+  const composerRef = useRef<HTMLTextAreaElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const messageRefs = useRef<Map<string, HTMLElement>>(new Map());
+  const longPressTimer = useRef<number | null>(null);
+  const previewUrls = useMemo(() => files.map((file) => URL.createObjectURL(file)), [files]);
+
+  useEffect(() => () => previewUrls.forEach((url) => URL.revokeObjectURL(url)), [previewUrls]);
 
   useEffect(() => {
     if (isDemo) {
@@ -797,21 +809,156 @@ function ChatPage({ user, cloudinarySettings, isDemo, isAdmin }: {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
   }, [messages.length]);
 
+  useEffect(() => {
+    if (!contextMenu) return;
+    const close = () => setContextMenu(null);
+    const onKeyDown = (event: KeyboardEvent) => { if (event.key === 'Escape') close(); };
+    window.addEventListener('scroll', close, true);
+    window.addEventListener('keydown', onKeyDown);
+    return () => {
+      window.removeEventListener('scroll', close, true);
+      window.removeEventListener('keydown', onKeyDown);
+    };
+  }, [contextMenu]);
+
   const visibleMessages = messages.filter((message) =>
     (message.text + ' ' + message.senderName + ' ' + message.attachments.map((item) => item.name).join(' '))
       .toLowerCase().includes(search.trim().toLowerCase()),
   );
 
-  const send = async (event: FormEvent) => {
-    event.preventDefault();
-    if ((!draft.trim() && files.length === 0) || sending) return;
+  const formatTime = (date: Date | null) => date
+    ? date.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })
+    : 'الآن';
+  const formatDay = (date: Date | null) => {
+    if (!date) return 'اليوم';
+    const today = new Date();
+    if (date.toDateString() === today.toDateString()) return 'اليوم';
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    if (date.toDateString() === yesterday.toDateString()) return 'أمس';
+    return date.toLocaleDateString('ar-EG', { weekday: 'long', day: 'numeric', month: 'long' });
+  };
+  const dayKey = (date: Date | null) => date ? date.toDateString() : 'unknown';
+
+  const openContextMenu = (message: ChatMessage, x: number, y: number) => {
+    const menuWidth = 238;
+    const menuHeight = 310;
+    setContextMenu({
+      id: message.id,
+      x: Math.max(10, Math.min(x, window.innerWidth - menuWidth - 10)),
+      y: Math.max(74, Math.min(y, window.innerHeight - menuHeight - 10)),
+    });
+  };
+
+  const clearLongPress = () => {
+    if (longPressTimer.current !== null) {
+      window.clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+  };
+  const handlePointerDown = (event: React.PointerEvent<HTMLElement>, message: ChatMessage) => {
+    if (event.pointerType !== 'touch') return;
+    const target = event.target as HTMLElement;
+    if (target.closest('button,a,input,textarea,video')) return;
+    clearLongPress();
+    longPressTimer.current = window.setTimeout(() => openContextMenu(message, event.clientX, event.clientY), 560);
+  };
+  const canEditMessage = (message: ChatMessage) =>
+    message.senderId === user.uid && !!message.createdAt && Date.now() - message.createdAt.getTime() <= 15 * 60 * 1000;
+
+  const startReply = (message: ChatMessage) => {
+    setReplyTo(message);
+    setEditingId(null);
+    setContextMenu(null);
+    window.setTimeout(() => composerRef.current?.focus(), 0);
+  };
+
+  const jumpToMessage = (messageId: string) => {
+    const element = messageRefs.current.get(messageId);
+    if (!element) {
+      setError('الرسالة الأصلية غير موجودة ضمن آخر الرسائل المحمّلة.');
+      return;
+    }
+    element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    setHighlightedId(messageId);
+    window.setTimeout(() => setHighlightedId((current) => current === messageId ? '' : current), 1800);
+  };
+
+  const copyMessage = async (message: ChatMessage) => {
+    const text = message.text || message.attachments.map((item) => item.name).join('، ');
+    try {
+      await navigator.clipboard.writeText(text);
+      setContextMenu(null);
+    } catch {
+      setError('لم يتمكن المتصفح من نسخ الرسالة. تحقق من صلاحية الحافظة.');
+    }
+  };
+
+  const editMessage = (message: ChatMessage) => {
+    if (!canEditMessage(message)) {
+      setError('يمكن تعديل الرسالة خلال أول 15 دقيقة من إرسالها فقط.');
+      setContextMenu(null);
+      return;
+    }
+    setDraft(message.text);
+    setEditingId(message.id);
+    setReplyTo(null);
+    setContextMenu(null);
+    window.setTimeout(() => {
+      composerRef.current?.focus();
+      composerRef.current?.setSelectionRange(message.text.length, message.text.length);
+    }, 0);
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setDraft('');
+  };
+
+  const removeMessage = async (message: ChatMessage) => {
+    const mine = message.senderId === user.uid;
+    if (!mine && !isAdmin) return;
+    const prompt = mine ? 'هل تريد حذف هذه الرسالة من المحادثة للجميع؟' : 'أنت تحذف رسالة طالب من المحادثة. هل تريد المتابعة؟';
+    if (!window.confirm(prompt)) return;
+    setContextMenu(null);
+    try {
+      await deleteGeneralChatMessage(message.id);
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : 'تعذر حذف الرسالة.');
+    }
+  };
+
+  const reactToMessage = async (message: ChatMessage, emoji: string) => {
+    setContextMenu(null);
+    try {
+      await toggleGeneralChatReaction(message.id, emoji, user.uid);
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : 'تعذر إضافة التفاعل.');
+    }
+  };
+
+  const send = async (event?: FormEvent<HTMLFormElement>) => {
+    event?.preventDefault();
+    if (!draft.trim() && files.length === 0) return;
+    if (sending) return;
     setSending(true);
     setError('');
     try {
+      if (editingId) {
+        await updateGeneralChatMessage(editingId, draft);
+        setEditingId(null);
+        setDraft('');
+        return;
+      }
       const attachments: ChatAttachment[] = [];
       for (const file of files) {
         const url = await uploadFile(file, cloudinarySettings);
-        attachments.push({ name: file.name, url, mimeType: file.type || 'application/octet-stream', size: file.size });
+        attachments.push({
+          name: file.name,
+          url,
+          mimeType: file.type || 'application/octet-stream',
+          size: file.size,
+        });
       }
       await sendGeneralChatMessage({
         text: draft,
@@ -829,6 +976,7 @@ function ChatPage({ user, cloudinarySettings, isDemo, isAdmin }: {
       setFiles([]);
       setReplyTo(null);
       if (fileInput.current) fileInput.current.value = '';
+      if (composerRef.current) composerRef.current.style.height = 'auto';
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : 'تعذر إرسال الرسالة.');
     } finally {
@@ -836,16 +984,8 @@ function ChatPage({ user, cloudinarySettings, isDemo, isAdmin }: {
     }
   };
 
-  const removeMessage = async (messageId: string) => {
-    try {
-      await deleteGeneralChatMessage(messageId);
-    } catch (reason) {
-      setError(reason instanceof Error ? reason.message : 'تعذر حذف الرسالة.');
-    }
-  };
-
   const clearRoom = async () => {
-    if (!isAdmin || !window.confirm('سيتم حذف جميع رسائل المحادثة العامة. هل تريد المتابعة؟')) return;
+    if (!isAdmin || !window.confirm('سيتم حذف جميع رسائل المحادثة العامة نهائياً. هل تريد المتابعة؟')) return;
     try {
       const { deleteGeneralChatRoomMessages } = await import('../lib/chat');
       await deleteGeneralChatRoomMessages();
@@ -854,61 +994,209 @@ function ChatPage({ user, cloudinarySettings, isDemo, isAdmin }: {
     }
   };
 
+  const addFiles = (newFiles: FileList | null) => {
+    if (!newFiles?.length) return;
+    setFiles((all) => [...all, ...Array.from(newFiles)]);
+    if (fileInput.current) fileInput.current.value = '';
+  };
+
+  const replyText = (message: ChatMessage) => message.text || message.attachments[0]?.name || 'مرفق';
+  const reactions = ['👍', '❤️', '😂', '👏', '🔥'];
+  const activeMenuMessage = contextMenu ? messages.find((item) => item.id === contextMenu.id) ?? null : null;
+
   return <>
-    <PageHeader eyebrow="STUDY TOGETHER" title="المحادثات" description="تواصل مع زملائك في مساحة مشتركة، وأرسل الرسائل والمرفقات الدراسية."/>
-    <div className="chat-layout panel chat-layout-live">
-      <aside className="chat-list">
-        <div className="chat-list-header"><b>المحادثات</b><span className="chat-room-count">غرفة واحدة</span></div>
-        <div className="chat-search"><Search size={15}/><input placeholder="ابحث في الرسائل" value={search} onChange={(event) => setSearch(event.target.value)}/></div>
-        <div className="chat-contact active">
-          <div className="avatar avatar-cyan"><MessageCircle size={17}/></div>
-          <div><b>المحادثة العامة</b><span>غرفة طلاب ENG HUB</span></div>
+    <PageHeader
+      eyebrow="STUDY TOGETHER"
+      title="المحادثات"
+      description="مساحة مشتركة للنقاش، تبادل الملفات، والرد على رسائل زملائك."
+    />
+    <div className="chat-layout panel chat-layout-live chat-redesign">
+      <aside className="chat-list chat-sidebar">
+        <div className="chat-sidebar-heading">
+          <div><span className="eyebrow">MESSAGES</span><b>المحادثات</b></div>
+          <span className="chat-room-count">1 غرفة</span>
+        </div>
+        <div className="chat-search"><Search size={16}/><input placeholder="ابحث في المحادثة" value={search} onChange={(event) => setSearch(event.target.value)}/></div>
+        <button type="button" className="chat-contact active">
+          <div className="chat-room-avatar"><MessageCircle size={20}/></div>
+          <div><b>المحادثة العامة</b><span>طلاب هندسة القاهرة</span></div>
           <span className="live-dot"/>
-        </div>
-        <div className="chat-list-note"><Users size={15}/><span>كل مستخدم مسجل في المنصة يستطيع الانضمام إلى هذه الغرفة.</span></div>
+        </button>
+        <div className="chat-sidebar-note"><Users size={16}/><span>تواصل مع زملائك في غرفة عامة واحدة.</span></div>
+        <div className="chat-sidebar-foot"><span className="live-dot"/> المزامنة المباشرة مفعّلة</div>
       </aside>
+
       <section className="chat-conversation chat-conversation-live">
-        <div className="chat-top">
-          <div className="avatar avatar-cyan"><MessageCircle size={17}/></div>
-          <div className="chat-top-copy"><b>المحادثة العامة</b><span><i className="live-dot"/> رسائل مباشرة عبر Firestore</span></div>
-          {isAdmin && <button className="btn btn-outline btn-small" type="button" onClick={() => void clearRoom()}><Trash2 size={14}/> تفريغ المحادثة</button>}
+        <header className="chat-top chat-top-redesign">
+          <div className="chat-room-avatar"><MessageCircle size={20}/></div>
+          <div className="chat-top-copy">
+            <b>المحادثة العامة</b>
+            <span><i className="live-dot"/> رسائل متزامنة مباشرة</span>
+          </div>
+          <div className="chat-header-actions">
+            <span className="chat-encrypted-label"><span className="live-dot"/> متصل</span>
+            {isAdmin && <button className="btn btn-outline btn-small" type="button" onClick={() => void clearRoom()}><Trash2 size={14}/> تفريغ المحادثة</button>}
+          </div>
+        </header>
+
+        <div className="chat-feed-caption">
+          <span>مرحباً بك في مساحة النقاش العامة</span>
+          <small>تذكّر أن تحافظ على احترام الجميع</small>
         </div>
-        <div className="chat-messages chat-messages-live" aria-live="polite">
-          {loading && <EmptyState title="جاري فتح المحادثة" body="يتم الاتصال بغرفة الدردشة المشتركة."/>}
-          {!loading && visibleMessages.length === 0 && <EmptyState title={messages.length === 0 ? 'لا توجد رسائل بعد' : 'لا توجد نتائج مطابقة'} body={messages.length === 0 ? 'ابدأ المحادثة بإرسال أول رسالة إلى زملائك.' : 'جرّب كلمة بحث أخرى.'}/>}
-          {visibleMessages.map((message) => {
+
+        <div className="chat-messages chat-messages-live chat-feed" aria-live="polite">
+          {loading && <div className="chat-loading-state"><span className="spinner"/><b>جاري الاتصال بالمحادثة</b><small>يتم تحميل آخر الرسائل</small></div>}
+          {!loading && visibleMessages.length === 0 && (
+            <EmptyState
+              title={messages.length === 0 ? 'ابدأ أول محادثة' : 'لا توجد نتائج مطابقة'}
+              body={messages.length === 0 ? 'اكتب رسالة أو شارك ملفاً دراسياً لتبدأ الحوار.' : 'جرّب كلمة بحث أخرى.'}
+            />
+          )}
+          {visibleMessages.map((message, index) => {
             const mine = message.senderId === user.uid;
-            return <article className={'chat-msg ' + (mine ? 'sent' : 'received')} key={message.id}>
-              <div className="msg-header">
-                <span className="chat-sender">{mine ? 'أنت' : message.senderName}</span>
-                <time className="msg-time">{message.createdAt ? message.createdAt.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }) : 'الآن'}</time>
-              </div>
-              {message.replyTo && <div className="reply-block"><span className="ru">{message.replyTo.senderName}</span><span className="rt">{message.replyTo.text}</span></div>}
-              {message.text && <p className="chat-message-text">{message.text}</p>}
-              {message.attachments.length > 0 && <div className="chat-attachments">
-                {message.attachments.map((attachment, index) => attachment.mimeType.startsWith('image/')
-                  ? <a href={attachment.url} target="_blank" rel="noreferrer" className="chat-image-attachment" key={attachment.url + index}><img src={attachment.url} alt={attachment.name}/><span>{attachment.name}</span></a>
-                  : <a href={attachment.url} target="_blank" rel="noreferrer" className="chat-file-attachment" key={attachment.url + index}><FileText size={18}/><span><b>{attachment.name}</b><small>{(attachment.size / 1024 / 1024).toFixed(1)} MB</small></span><Download size={15}/></a>)}
-              </div>}
-              <div className="msg-actions">
-                <button type="button" onClick={() => setReplyTo(message)} title="الرد على الرسالة"><ArrowDownLeft size={14}/> رد</button>
-                {mine && <button type="button" onClick={() => void removeMessage(message.id)} title="حذف الرسالة"><Trash2 size={14}/> حذف</button>}
-              </div>
-            </article>;
+            const previous = visibleMessages[index - 1];
+            const showDay = !previous || dayKey(previous.createdAt) !== dayKey(message.createdAt);
+            const myReactions = message.reactions ?? {};
+            return <div className="chat-message-group" key={message.id}>
+              {showDay && <div className="chat-date-divider"><span>{formatDay(message.createdAt)}</span></div>}
+              <article
+                ref={(element) => { if (element) messageRefs.current.set(message.id, element); else messageRefs.current.delete(message.id); }}
+                className={'chat-msg ' + (mine ? 'sent' : 'received') + (highlightedId === message.id ? ' message-highlighted' : '')}
+                onContextMenu={(event) => { event.preventDefault(); openContextMenu(message, event.clientX, event.clientY); }}
+                onPointerDown={(event) => handlePointerDown(event, message)}
+                onPointerUp={clearLongPress}
+                onPointerCancel={clearLongPress}
+                onPointerMove={clearLongPress}
+              >
+                {!mine && <div className="chat-message-avatar">{message.senderPhotoURL ? <img src={message.senderPhotoURL} alt=""/> : message.senderName.trim().slice(0, 1) || <Users size={15}/>}</div>}
+                <div className="chat-message-body">
+                  <div className="msg-header">
+                    <span className="chat-sender">{mine ? 'أنت' : message.senderName}</span>
+                    <div className="chat-message-meta">
+                      {message.edited && <span className="chat-edited-label">معدلة</span>}
+                      <time className="msg-time">{formatTime(message.createdAt)}</time>
+                    </div>
+                  </div>
+                  {message.replyTo && (
+                    <button type="button" className="reply-block reply-block-clickable" onClick={() => jumpToMessage(message.replyTo!.id)}>
+                      <span className="ru">{message.replyTo.senderName}</span>
+                      <span className="rt">{message.replyTo.text}</span>
+                    </button>
+                  )}
+                  {message.text && <p className="chat-message-text">{message.text}</p>}
+                  {message.attachments.length > 0 && <div className="chat-attachments">
+                    {message.attachments.map((attachment, attachmentIndex) => {
+                      const key = attachment.url + attachmentIndex;
+                      if (attachment.mimeType.startsWith('image/')) {
+                        return <button type="button" className="chat-image-attachment chat-image-button" key={key} onClick={() => setLightbox(attachment)} aria-label={'عرض ' + attachment.name}>
+                          <img src={attachment.url} alt={attachment.name}/>
+                          <span>{attachment.name}</span>
+                        </button>;
+                      }
+                      if (attachment.mimeType.startsWith('video/')) {
+                        return <div className="chat-video-attachment" key={key}>
+                          <video src={attachment.url} controls preload="metadata"/>
+                          <a href={attachment.url} target="_blank" rel="noreferrer"><b>{attachment.name}</b><Download size={14}/></a>
+                        </div>;
+                      }
+                      return <a href={attachment.url} target="_blank" rel="noreferrer" className="chat-file-attachment" key={key}>
+                        <FileText size={20}/>
+                        <span><b>{attachment.name}</b><small>{(attachment.size / 1024 / 1024).toFixed(1)} MB</small></span>
+                        <Download size={16}/>
+                      </a>;
+                    })}
+                  </div>}
+                  {Object.entries(myReactions).some(([, ids]) => ids.length > 0) && (
+                    <div className="chat-reaction-list">
+                      {Object.entries(myReactions).filter(([, ids]) => ids.length > 0).map(([emoji, ids]) => (
+                        <button type="button" key={emoji} className={ids.includes(user.uid) ? 'chat-reaction-chip active' : 'chat-reaction-chip'} onClick={() => void reactToMessage(message, emoji)}>
+                          <span>{emoji}</span><b>{ids.length}</b>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  <div className="msg-actions chat-message-actions">
+                    <button type="button" onClick={() => startReply(message)} title="الرد على الرسالة"><ArrowDownLeft size={15}/> رد</button>
+                    <button type="button" onClick={() => openContextMenu(message, Math.min(window.innerWidth - 245, 200), Math.min(window.innerHeight - 320, 220))} title="المزيد من الخيارات" aria-label="المزيد من خيارات الرسالة"><MoreVertical size={16}/></button>
+                    <div className="chat-quick-reactions">
+                      <button type="button" title="إعجاب" onClick={() => void reactToMessage(message, '👍')}>👍</button>
+                      <button type="button" title="قلب" onClick={() => void reactToMessage(message, '❤️')}>❤️</button>
+                    </div>
+                  </div>
+                </div>
+              </article>
+            </div>;
           })}
           <div ref={bottomRef}/>
         </div>
-        {error && <div className="chat-error" role="alert"><AlertCircle size={14}/>{error}</div>}
-        <form className="chat-composer chat-composer-live" onSubmit={send}>
-          {replyTo && <div className="reply-indicator active"><div className="ri-text"><strong>الرد على {replyTo.senderName}</strong><span>{replyTo.text || replyTo.attachments[0]?.name || 'مرفق'}</span></div><button type="button" className="ri-close" onClick={() => setReplyTo(null)} aria-label="إلغاء الرد"><X size={15}/></button></div>}
-          {files.length > 0 && <div className="chat-selected-files">{files.map((file, index) => <span key={file.name + index}><Paperclip size={13}/>{file.name}<button type="button" onClick={() => setFiles((all) => all.filter((_, i) => i !== index))} aria-label="إزالة المرفق"><X size={12}/></button></span>)}</div>}
-          <button type="button" className="icon-button chat-attach-button" onClick={() => fileInput.current?.click()} aria-label="إرفاق ملف"><Paperclip size={18}/></button>
-          <input ref={fileInput} type="file" multiple accept="image/*,video/mp4,video/webm,.pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.zip,.txt" className="visually-hidden" onChange={(event) => setFiles((all) => [...all, ...Array.from(event.target.files ?? [])])}/>
-          <textarea rows={1} value={draft} onChange={(event) => setDraft(event.target.value)} placeholder="اكتب رسالتك هنا..." aria-label="نص الرسالة" onKeyDown={(event) => { if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); void send(event as unknown as FormEvent); } }}/>
-          <button type="submit" className="send-button" aria-label="إرسال الرسالة" disabled={sending || (!draft.trim() && files.length === 0)}>{sending ? <span className="spinner"/> : <Send size={17}/>}</button>
+
+        {error && <div className="chat-error" role="alert"><AlertCircle size={15}/><span>{error}</span><button type="button" onClick={() => setError('')} aria-label="إغلاق التنبيه"><X size={14}/></button></div>}
+
+        <form className="chat-composer chat-composer-live chat-composer-redesign" onSubmit={(event) => void send(event)}>
+          {replyTo && <div className="reply-indicator active">
+            <div className="reply-indicator-mark"/>
+            <div className="ri-text"><strong>الرد على {replyTo.senderName}</strong><span>{replyText(replyTo)}</span></div>
+            <button type="button" className="ri-close" onClick={() => setReplyTo(null)} aria-label="إلغاء الرد"><X size={16}/></button>
+          </div>}
+          {editingId && <div className="chat-edit-indicator">
+            <Pencil size={15}/><span>تعديل رسالتك — متاح خلال 15 دقيقة من الإرسال</span>
+            <button type="button" onClick={cancelEdit} aria-label="إلغاء التعديل"><X size={15}/></button>
+          </div>}
+          {files.length > 0 && <div className="chat-selected-files chat-selected-files-preview">
+            {files.map((file, index) => <div className="chat-selected-file-card" key={file.name + file.size + index}>
+              {file.type.startsWith('image/') ? <img src={previewUrls[index]} alt=""/> : file.type.startsWith('video/') ? <div className="chat-file-preview-icon"><Video size={19}/></div> : <div className="chat-file-preview-icon"><FileText size={19}/></div>}
+              <span><b>{file.name}</b><small>{(file.size / 1024 / 1024).toFixed(1)} MB</small></span>
+              <button type="button" onClick={() => setFiles((all) => all.filter((_, i) => i !== index))} aria-label="إزالة المرفق"><X size={14}/></button>
+            </div>)}
+          </div>}
+          <div className="chat-composer-controls">
+            <button type="button" className="icon-button chat-attach-button" onClick={() => fileInput.current?.click()} aria-label="إرفاق صور أو ملفات"><Paperclip size={20}/></button>
+            <input ref={fileInput} type="file" multiple accept="image/*,video/mp4,video/webm,video/quicktime,.pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.zip,.txt" className="visually-hidden" onChange={(event) => addFiles(event.target.files)}/>
+            <textarea
+              ref={composerRef}
+              rows={1}
+              value={draft}
+              onChange={(event) => {
+                setDraft(event.target.value);
+                event.currentTarget.style.height = 'auto';
+                event.currentTarget.style.height = Math.min(event.currentTarget.scrollHeight, 132) + 'px';
+              }}
+              placeholder={editingId ? 'عدّل نص رسالتك...' : 'اكتب رسالتك هنا...'}
+              aria-label="نص الرسالة"
+              onKeyDown={(event) => {
+                if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) {
+                  event.preventDefault();
+                  void send();
+                }
+              }}
+            />
+            <button type="submit" className="send-button chat-send-button" aria-label={editingId ? 'حفظ التعديل' : 'إرسال الرسالة'} disabled={sending || (!draft.trim() && files.length === 0)}>
+              {sending ? <span className="spinner"/> : editingId ? <Check size={18}/> : <Send size={18}/>}
+            </button>
+          </div>
+          <div className="chat-composer-foot"><span>Enter للإرسال · Shift + Enter لسطر جديد</span><span>{files.length > 0 ? files.length + ' مرفق' : 'رسائل ومرفقات دراسية'}</span></div>
         </form>
       </section>
     </div>
+
+    {contextMenu && activeMenuMessage && <>
+      <button type="button" className="chat-context-scrim" aria-label="إغلاق قائمة الرسالة" onClick={() => setContextMenu(null)}/>
+      <div className="chat-context-menu" style={{ left: contextMenu.x, top: contextMenu.y }} role="menu">
+        <div className="chat-context-title">تفاعل مع الرسالة</div>
+        <div className="chat-context-reactions">{reactions.map((emoji) => <button type="button" key={emoji} onClick={() => void reactToMessage(activeMenuMessage, emoji)}>{emoji}</button>)}</div>
+        <div className="chat-context-divider"/>
+        <button type="button" role="menuitem" onClick={() => startReply(activeMenuMessage)}><ArrowDownLeft size={16}/> الرد على الرسالة</button>
+        <button type="button" role="menuitem" onClick={() => void copyMessage(activeMenuMessage)}><Copy size={16}/> نسخ النص</button>
+        {canEditMessage(activeMenuMessage) && <button type="button" role="menuitem" onClick={() => editMessage(activeMenuMessage)}><Pencil size={16}/> تعديل الرسالة</button>}
+        {(activeMenuMessage.senderId === user.uid || isAdmin) && <button type="button" role="menuitem" className="danger-action" onClick={() => void removeMessage(activeMenuMessage)}><Trash2 size={16}/> حذف الرسالة</button>}
+      </div>
+    </>}
+
+    {lightbox && <div className="chat-image-lightbox" role="presentation" onClick={() => setLightbox(null)}>
+      <button type="button" className="chat-lightbox-close" onClick={() => setLightbox(null)} aria-label="إغلاق الصورة"><X size={22}/></button>
+      <img src={lightbox.url} alt={lightbox.name} onClick={(event) => event.stopPropagation()}/>
+      <a href={lightbox.url} target="_blank" rel="noreferrer" onClick={(event) => event.stopPropagation()}><Download size={16}/> فتح الصورة الأصلية</a>
+    </div>}
   </>;
 }
 
