@@ -2150,3 +2150,50 @@ body { overflow-x:hidden; }
 @media(prefers-reduced-motion:reduce) {
   .eh-app .eh-sidebar,.eh-app .eh-nav-link,.eh-app .chat-msg,.eh-app .eh-button { transition:none!important; }
 }
+
+
+/* Type scale, focus and control polish */
+.eh-app { font-size:14px;line-height:1.75; }
+.eh-app .eh-page-heading h1 { font-size:clamp(27px,2.5vw,36px);letter-spacing:-.35px; }
+.eh-app .eh-page-heading p { font-size:13px; }
+.eh-app .eh-eyebrow { font-size:10px;letter-spacing:.8px; }
+.eh-app .eh-button { min-height:44px;font-size:12px;font-weight:700; }
+.eh-app .eh-icon-btn { width:42px;height:42px;flex-basis:42px; }
+.eh-app .eh-help-card {
+  width:100%;min-height:62px;display:flex;align-items:center;gap:11px;
+  padding:10px 12px;border:1px solid var(--border);text-align:right;color:var(--text);
+  cursor:pointer;transition:border-color .18s ease,background .18s ease;
+}
+.eh-app .eh-help-card:hover { border-color:var(--purple);background:var(--surface3); }
+.eh-app .eh-help-card>span:nth-child(2) { min-width:0;flex:1;display:flex;flex-direction:column;gap:2px; }
+.eh-app .eh-help-card b { color:var(--text);font-size:11px; }
+.eh-app .eh-help-card small { color:var(--muted);font-size:9px; }
+.eh-app .eh-help-card>span:first-child { width:34px;height:34px;flex:0 0 34px;display:grid;place-items:center;border-radius:10px;background:color-mix(in srgb,var(--purple) 12%,var(--surface));color:var(--purple); }
+.eh-app .eh-account-mini { width:100%;display:flex;align-items:center;gap:10px;padding:11px 4px;border-right:0;border-bottom:0;border-left:0;border-radius:0;background:transparent;color:var(--muted);text-align:right; }
+.eh-app .eh-account-mini:hover { color:var(--purple); }
+.eh-app .eh-avatar { width:39px;height:39px;flex:0 0 39px;display:grid;place-items:center;overflow:hidden;border-radius:50%;background:linear-gradient(145deg,#8878f4,#5948d2);color:#fff;font-size:14px;font-weight:800; }
+.eh-app .eh-account-copy b { font-size:11px; }
+.eh-app .eh-account-copy small { font-size:9px; }
+.eh-app .eh-nav-group h2 { font-size:11px; }
+.eh-app .eh-nav-link { min-height:46px;font-size:12px; }
+.eh-app .eh-search input { font-size:12px; }
+.eh-app .eh-topbar { border-bottom-color:var(--border);box-shadow:0 3px 18px rgba(8,17,35,.025); }
+.eh-app .eh-mobile-menu { display:none; }
+.eh-app .chat-pinned-strip-list button { min-height:32px; }
+.eh-app .chat-composer-shell { box-shadow:0 -8px 24px rgba(0,0,0,.025); }
+.eh-app .chat-input-group:focus-within { border-color:color-mix(in srgb,var(--purple) 55%,var(--border2));box-shadow:0 0 0 3px color-mix(in srgb,var(--purple) 10%,transparent); }
+.eh-app .chat-send-btn:hover:not(:disabled) { transform:translateY(-1px);filter:brightness(1.06); }
+.eh-app .chat-send-btn:active:not(:disabled) { transform:scale(.96); }
+.eh-app .chat-msg:focus-within { outline:2px solid color-mix(in srgb,var(--purple) 30%,transparent);outline-offset:2px; }
+@media(max-width:1080px) {
+  .eh-app .eh-mobile-menu { display:grid!important; }
+}
+@media(max-width:600px) {
+  .eh-app .eh-page-heading h1 { font-size:24px; }
+  .eh-app .eh-page-heading p { font-size:11px; }
+  .eh-app .eh-button { min-height:42px;font-size:11px; }
+  .eh-app .eh-icon-btn { width:37px;height:37px;flex-basis:37px; }
+  .eh-app .eh-mobile-nav { min-height:calc(68px + env(safe-area-inset-bottom)); }
+  .eh-app .eh-content { padding-bottom:calc(76px + env(safe-area-inset-bottom)); }
+  .eh-app .eh-page-view.eh-chat-page { height:calc(100dvh - 62px - 76px - env(safe-area-inset-bottom)); }
+}
