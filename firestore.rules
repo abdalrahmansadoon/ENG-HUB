@@ -108,6 +108,9 @@ service cloud.firestore {
           && request.resource.data.lastSentAt == request.time
           && request.resource.data.updatedAt == request.time;
         allow delete: if false;
+      match /completedContent/{contentId} {
+        allow read, create, update, delete: if owns(userId) && activeUser();
+      }
       }
     }
 
