@@ -1666,6 +1666,7 @@ function ChatPage({ user, cloudinarySettings, isDemo, isAdmin, roomId, roomTitle
 
   const changeChatBackground = async (file?: File) => {
     if (!file) return;
+    if (isDemo) { setError('تخصيص خلفية المحادثة يحتاج إلى حساب Firebase فعلي.'); return; }
     if (!file.type.startsWith('image/')) { setError('اختر صورة صالحة لخلفية المحادثة.'); return; }
     if (file.size > 8 * 1024 * 1024) { setError('حجم صورة الخلفية يجب ألا يتجاوز 8 MB.'); return; }
     if (!isCloudinaryConfigured(cloudinarySettings)) { setError('إعدادات Cloudinary غير مكتملة لرفع الخلفية.'); return; }
