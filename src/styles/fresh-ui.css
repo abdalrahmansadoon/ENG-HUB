@@ -2911,3 +2911,10 @@ body { font-family:"IBM Plex Sans Arabic","Cairo",system-ui,sans-serif; }
 .eh-app .eh-video-completion button{min-height:38px;flex:0 0 auto;padding:0 13px;border:0;border-radius:10px;background:var(--purple);color:#fff;font-size:10px;font-weight:800}
 .eh-app .eh-video-completion button.is-complete{background:color-mix(in srgb,var(--green) 15%,var(--surface));color:var(--green);border:1px solid color-mix(in srgb,var(--green) 30%,var(--border))}
 @media(max-width:600px){.eh-app .eh-video-completion{align-items:stretch;flex-direction:column}.eh-app .eh-video-completion button{width:100%}}
+
+.eh-app .eh-onboarding-progress{display:grid;gap:8px;margin:18px 0 22px;padding:13px 14px;border:1px solid var(--border);border-radius:13px;background:var(--surface2)}
+.eh-app .eh-onboarding-progress>div:first-child{display:flex;justify-content:space-between;gap:10px;font-size:11px;color:var(--text);font-weight:800}
+.eh-app .eh-onboarding-progress>div:first-child b{color:var(--purple);font:800 12px Inter,sans-serif}
+.eh-app .eh-onboarding-progress-track{height:6px;overflow:hidden;border-radius:20px;background:var(--surface3)}
+.eh-app .eh-onboarding-progress-track span{display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,#4169e1,#35c4b0);transition:width .25s ease}
+.eh-app .eh-onboarding-progress small{font-size:9px;color:var(--muted)}
