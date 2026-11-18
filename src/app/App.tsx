@@ -471,7 +471,7 @@ function App() {
     <AppShell
       user={activeUser}
       page={page}
-      pageTitle={pageTitle(page)}
+      pageTitle={page === 'chat' && selectedSubjectId ? `مناقشات ${subjects.find((item) => item.id === selectedSubjectId)?.name ?? 'المادة'}` : pageTitle(page)}
       navGroups={navGroups}
       isAdmin={isAdmin}
       dark={dark}
@@ -480,7 +480,16 @@ function App() {
       unreadCount={unreadCount}
       mobileNav={mobileNav}
       onSearch={setSearch}
-      onNavigate={(target) => { setPage(target); setMobileNav(false); }}
+      onNavigate={(target) => {
+        if (target === 'chat' || target === 'courses') {
+          setSelectedSubjectId('');
+          setSelectedSubjectCategory('');
+          setSelectedContentNodeId('');
+          setSelectedLecturerId('');
+          setSelectedLectureId('');
+        }
+        setPage(target); setMobileNav(false);
+      }}
       onToggleTheme={() => setThemePreference(dark ? 'light' : 'dark')}
       onOpenMobileNav={() => setMobileNav(true)}
       onCloseMobileNav={() => setMobileNav(false)}
@@ -521,7 +530,20 @@ function App() {
         />}
         {page === 'exams' && <ExamsPage exams={exams} setExams={setExams} canEdit={isAdmin} onAdd={() => setExamModal(true)}/>}
         {page === 'files' && <FilesPage files={files} onUpload={addFile} cloudinaryReady={isCloudinaryConfigured(cloudinarySettings)} isDemo={isDemo}/>}
-        {page === 'chat' && <ChatPage user={activeUser} cloudinarySettings={cloudinarySettings} isDemo={isDemo} isAdmin={isAdmin} onBack={() => setPage('home')} onOpenProfile={(uid) => { setPublicProfileUid(uid); setPage('student-profile'); }}/>}
+                {page === 'chat' && <ChatPage
+          user={activeUser}
+          cloudinarySettings={cloudinarySettings}
+          isDemo={isDemo}
+          isAdmin={isAdmin}
+          roomId={selectedSubjectId ? `course_${selectedSubjectId}` : 'general'}
+          roomTitle={selectedSubjectId ? `مناقشات ${subjects.find((item) => item.id === selectedSubjectId)?.name ?? 'المادة'}` : 'المحادثة العامة'}
+          courseId={selectedSubjectId || undefined}
+          onBack={() => {
+            if (selectedSubjectId) { setPage('courses'); setSelectedSubjectCategory(''); setSelectedContentNodeId(''); }
+            else setPage('home');
+          }}
+          onOpenProfile={(uid) => { setPublicProfileUid(uid); setPage('student-profile'); }}
+        />}
         {page === 'student-profile' && <PublicStudentProfilePage uid={publicProfileUid} currentUid={activeUser.uid} onBack={() => setPage('chat')}/>}
         {page === 'planner' && <PlannerPage tasks={tasks}/>}
         {page === 'analytics' && <AnalyticsPage tasks={tasks} subjects={subjects} lectures={lectures}/>}
@@ -1168,11 +1190,14 @@ function FilesPage({ files, onUpload, cloudinaryReady, isDemo }: { files: Librar
   </div>;
 }
 
-function ChatPage({ user, cloudinarySettings, isDemo, isAdmin, onBack, onOpenProfile }: {
+function ChatPage({ user, cloudinarySettings, isDemo, isAdmin, roomId, roomTitle, courseId, onBack, onOpenProfile }: {
   user: AppUser;
   cloudinarySettings: CloudinarySettings;
   isDemo: boolean;
   isAdmin: boolean;
+  roomId: string;
+  roomTitle: string;
+  courseId?: string;
   onBack: () => void;
   onOpenProfile: (uid: string) => void;
 }) {
