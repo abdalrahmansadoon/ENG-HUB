@@ -1228,6 +1228,11 @@ function ChatPage({ user, cloudinarySettings, isDemo, isAdmin, roomId, roomTitle
   const [muteState, setMuteState] = useState<ChatMuteStatus>({ muted: false, mutedUntil: null });
   const [lockState, setLockState] = useState<ChatLockStatus>({ locked: false, startAt: null, endAt: null, reason: '', autoExpire: false });
   const [warnings, setWarnings] = useState<ChatWarning[]>([]);
+  const [announcements, setAnnouncements] = useState<ChatAnnouncement[]>([]);
+  const [announcementTarget, setAnnouncementTarget] = useState<ChatAnnouncement | null>(null);
+  const [announcementModalOpen, setAnnouncementModalOpen] = useState(false);
+  const [chatBackgroundUrl, setChatBackgroundUrl] = useState('');
+  const [backgroundBusy, setBackgroundBusy] = useState(false);
   const [lockSettingsOpen, setLockSettingsOpen] = useState(false);
   const [muteTarget, setMuteTarget] = useState<ChatMessage | null>(null);
   const [warningTarget, setWarningTarget] = useState<ChatMessage | null>(null);
@@ -1236,6 +1241,7 @@ function ChatPage({ user, cloudinarySettings, isDemo, isAdmin, roomId, roomTitle
   const [notice, setNotice] = useState('');
   const [filePreviews, setFilePreviews] = useState<Array<{ key: string; url: string }>>([]);
   const fileInput = useRef<HTMLInputElement>(null);
+  const backgroundFileInput = useRef<HTMLInputElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const composerRef = useRef<HTMLTextAreaElement>(null);
   const pressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -1285,6 +1291,16 @@ function ChatPage({ user, cloudinarySettings, isDemo, isAdmin, roomId, roomTitle
     const stopWarnings = subscribeGeneralChatWarnings(user.uid, setWarnings, (reason) => setError(reason.message), roomId);
     return () => { stopLock(); stopWarnings(); };
   }, [user.uid, isDemo, roomId]);
+
+  useEffect(() => {
+    if (isDemo) { setAnnouncements([]); return; }
+    return subscribeChatAnnouncements(roomId, setAnnouncements, (reason) => setError(reason.message));
+  }, [roomId, isDemo]);
+
+  useEffect(() => {
+    if (isDemo) { setChatBackgroundUrl(''); return; }
+    return subscribeChatBackground(user.uid, roomId, setChatBackgroundUrl, (reason) => setError(reason.message));
+  }, [user.uid, roomId, isDemo]);
 
   useEffect(() => {
     if (!lockState.locked || !lockState.endAt) return;
