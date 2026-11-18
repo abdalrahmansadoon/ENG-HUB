@@ -490,6 +490,7 @@ function ProfileCompletionScreen({ user, cloudinarySettings, onComplete, themeCl
   const [displayName, setDisplayName] = useState(user.displayName || '');
   const [phone, setPhone] = useState(user.phone || '');
   const [bio, setBio] = useState(user.bio || '');
+  const [profileVisibility, setProfileVisibility] = useState<'public' | 'private'>(user.profileVisibility ?? 'public');
   const [photoURL, setPhotoURL] = useState(user.photoURL || '');
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState('');
@@ -1841,7 +1842,7 @@ function ProfilePage({ user, isDemo, onToggleRole, onLogout, onDeleteAccount, on
   onToggleRole: () => void;
   onLogout: () => Promise<void>;
   onDeleteAccount: (password?: string) => Promise<void>;
-  onSaveProfile: (profile: { displayName: string; photoURL?: string | null; phone?: string; bio?: string }) => Promise<void>;
+  onSaveProfile: (profile: { displayName: string; photoURL?: string | null; phone?: string; bio?: string; profileVisibility?: 'public' | 'private' }) => Promise<void>;
   themePreference: 'system' | 'light' | 'dark';
   onThemeChange: (preference: 'system' | 'light' | 'dark') => void;
   cloudinarySettings: CloudinarySettings;
@@ -1870,8 +1871,9 @@ function ProfilePage({ user, isDemo, onToggleRole, onLogout, onDeleteAccount, on
     setName(user.displayName);
     setPhone(user.phone || '');
     setBio(user.bio || '');
+    setProfileVisibility(user.profileVisibility ?? 'public');
     setPhotoURL(user.photoURL || '');
-  }, [user.displayName, user.phone, user.bio, user.photoURL]);
+  }, [user.displayName, user.phone, user.bio, user.photoURL, user.profileVisibility]);
 
   useEffect(() => {
     if (!photoFile) { setPhotoPreview(''); return; }
@@ -1901,7 +1903,7 @@ function ProfilePage({ user, isDemo, onToggleRole, onLogout, onDeleteAccount, on
     setProfileMessage('');
     try {
       const nextPhoto = photoFile ? await uploadFile(photoFile, cloudinarySettings) : photoURL;
-      await onSaveProfile({ displayName: name, photoURL: nextPhoto || null, phone, bio });
+      await onSaveProfile({ displayName: name, photoURL: nextPhoto || null, phone, bio, profileVisibility });
       setPhotoFile(null);
       setPhotoURL(nextPhoto || '');
       setProfileMessage('تم حفظ بيانات الملف الشخصي.');
@@ -1948,6 +1950,14 @@ function ProfilePage({ user, isDemo, onToggleRole, onLogout, onDeleteAccount, on
           <label>الاسم الظاهر<input required minLength={2} maxLength={80} value={name} onChange={(event)=>setName(event.target.value)} placeholder="اسمك الكامل"/></label>
           <label>رقم الهاتف أو واتساب<input type="tel" maxLength={24} value={phone} onChange={(event)=>setPhone(event.target.value)} placeholder="+20 1xxxxxxxxx" dir="ltr"/></label>
           <label>نبذة مختصرة<textarea rows={4} maxLength={240} value={bio} onChange={(event)=>setBio(event.target.value)} placeholder="اكتب نبذة قصيرة عنك واهتماماتك الدراسية..."/></label>
+          <section className="eh-profile-privacy" aria-label="خصوصية الملف الشخصي">
+            <h3>خصوصية ملفك الشخصي</h3>
+            <p>اختر ما إذا كان الطلاب الآخرون يستطيعون فتح ملفك ورؤية بياناته. تبقى صلاحيات الإدارة متاحة للمشرفين. الاسم والصورة يظلان ظاهرين في الرسائل للتعرّف على المرسل.</p>
+            <div className="eh-profile-privacy-options">
+              <button type="button" className={profileVisibility === 'public' ? 'selected' : ''} aria-pressed={profileVisibility === 'public'} onClick={() => setProfileVisibility('public')}><Users size={15}/> ملف عام</button>
+              <button type="button" className={profileVisibility === 'private' ? 'selected' : ''} aria-pressed={profileVisibility === 'private'} onClick={() => setProfileVisibility('private')}><Lock size={15}/> ملف خاص</button>
+            </div>
+          </section>
           {profileMessage&&<div className="eh-inline-feedback" role="status">{profileMessage}</div>}
           <div className="eh-profile-form-footer"><small>آخر البيانات المحفوظة تظهر في ملفك مباشرة.</small><button type="submit" className="eh-button primary" disabled={savingProfile||name.trim().length<2}>{savingProfile?<span className="spinner"/>:<Check size={16}/>} حفظ التغييرات</button></div>
         </form>
