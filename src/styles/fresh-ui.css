@@ -2197,3 +2197,186 @@ body { overflow-x:hidden; }
   .eh-app .eh-content { padding-bottom:calc(76px + env(safe-area-inset-bottom)); }
   .eh-app .eh-page-view.eh-chat-page { height:calc(100dvh - 62px - 76px - env(safe-area-inset-bottom)); }
 }
+
+
+/* =========================================================
+   ENG HUB — final usability pass
+   Stable desktop geometry, mobile safe areas, readable forms,
+   and a resilient WhatsApp-style conversation workspace.
+   ========================================================= */
+.eh-app {
+  min-height:100dvh;
+  width:100%;
+  overflow-x:clip;
+  isolation:isolate;
+  text-rendering:optimizeLegibility;
+  -webkit-font-smoothing:antialiased;
+}
+.eh-app .eh-sidebar {
+  inset:0 0 0 auto!important;
+  width:276px!important;
+  height:100dvh!important;
+  min-height:100dvh!important;
+  padding-top:max(20px,env(safe-area-inset-top))!important;
+  padding-bottom:max(14px,env(safe-area-inset-bottom))!important;
+}
+.eh-app .eh-navigation {
+  overscroll-behavior:contain;
+  scrollbar-gutter:stable;
+}
+.eh-app .eh-main {
+  width:calc(100% - 276px)!important;
+  margin-right:276px!important;
+  margin-left:0!important;
+  min-width:0!important;
+  max-width:none!important;
+  min-height:100dvh;
+}
+.eh-app .eh-content { min-width:0; }
+.eh-app .eh-page-view { min-width:0; }
+.eh-app .eh-topbar {
+  padding-top:env(safe-area-inset-top);
+  min-width:0;
+}
+.eh-app .eh-topbar-leading,.eh-app .eh-topbar-actions { min-width:0; }
+.eh-app .eh-breadcrumb { min-width:0; }
+.eh-app .eh-breadcrumb b { overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
+.eh-app .eh-avatar { overflow:hidden;aspect-ratio:1; }
+.eh-app .eh-avatar img { width:100%;height:100%;object-fit:cover;object-position:center;display:block; }
+.eh-app :where(input,textarea,select) {
+  color:var(--text);
+  accent-color:var(--purple);
+  color-scheme:inherit;
+}
+.eh-app select option { color:var(--text);background:var(--surface); }
+.eh-app input[type="date"],.eh-app input[type="time"],.eh-app input[type="datetime-local"] { color-scheme:dark; }
+.eh-app.theme-light input[type="date"],.eh-app.theme-light input[type="time"],.eh-app.theme-light input[type="datetime-local"] { color-scheme:light; }
+.eh-app :where(button,a) { -webkit-tap-highlight-color:transparent; }
+.eh-app :where(button,a):focus-visible,.eh-app :where(input,textarea,select):focus-visible {
+  outline:3px solid color-mix(in srgb,var(--purple) 38%,transparent);
+  outline-offset:2px;
+}
+.eh-app .eh-button,.eh-app .eh-icon-btn,.eh-app .eh-nav-link,.eh-app .chat-composer-btn,.eh-app .chat-send-btn {
+  transition:background-color .18s ease,color .18s ease,border-color .18s ease,box-shadow .18s ease,transform .18s ease,opacity .18s ease;
+}
+.eh-app .eh-button:active:not(:disabled),.eh-app .eh-icon-btn:active:not(:disabled) { transform:scale(.97); }
+.eh-app .eh-button:disabled,.eh-app .eh-icon-btn:disabled { cursor:not-allowed;opacity:.48; }
+.eh-app .eh-page-heading { min-width:0; }
+.eh-app .eh-page-heading h1 { overflow-wrap:anywhere; }
+.eh-app .eh-page-heading p { max-width:70ch; }
+.eh-app .panel,.eh-app .stat-card,.eh-app .course-card,.eh-app .lecture-card,.eh-app .file-card { min-width:0; }
+.eh-app :where(.panel,.stat-card,.course-card,.lecture-card,.file-card) :where(p,span,b,strong,small) { overflow-wrap:anywhere; }
+.eh-app .eh-search-results { z-index:120; }
+.eh-app .eh-mobile-nav { display:none; }
+
+/* Chat: reserve a real flex column so the message list scrolls,
+   while the header, pinned messages and composer remain visible. */
+.eh-app .eh-page-view.eh-chat-page {
+  display:flex;
+  flex-direction:column;
+  min-height:0;
+  overflow:hidden;
+}
+.eh-app .chat-reference-page,.eh-app .chat-reference-shell {
+  min-width:0;
+  min-height:0;
+}
+.eh-app .chat-reference-shell {
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+}
+.eh-app .chat-messages-rebuilt {
+  flex:1 1 auto;
+  min-height:0;
+  overflow-y:auto;
+  overscroll-behavior:contain;
+  scrollbar-width:thin;
+  scrollbar-color:var(--border2) transparent;
+}
+.eh-app .chat-topbar,.eh-app .chat-pinned-strip,.eh-app .chat-composer-shell { flex-shrink:0; }
+.eh-app .chat-pinned-strip-list {
+  min-width:0;
+  overflow-x:auto;
+  scrollbar-width:thin;
+}
+.eh-app .chat-pinned-strip-list button { min-width:0; }
+.eh-app .chat-msg { overflow-wrap:anywhere; }
+.eh-app .chat-msg .t { white-space:pre-wrap;overflow-wrap:anywhere; }
+.eh-app .chat-document-attachment { min-width:0;max-width:100%; }
+.eh-app .chat-document-attachment span { min-width:0;overflow:hidden; }
+.eh-app .chat-document-attachment b { overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
+.eh-app .chat-composer-shell { padding-bottom:max(10px,env(safe-area-inset-bottom)); }
+.eh-app .chat-input-group { min-width:0; }
+.eh-app .chat-input-wrap { min-width:0; }
+.eh-app .chat-input-wrap textarea { width:100%;min-width:0; }
+.eh-app .chat-context-menu { max-width:calc(100vw - 20px);max-height:calc(100dvh - 20px);overflow-y:auto; }
+.eh-app .chat-image-lightbox img { max-width:100%;max-height:calc(100dvh - 110px);object-fit:contain; }
+.eh-app .chat-error,.eh-app .chat-inline-notice { overflow-wrap:anywhere; }
+
+/* Desktop: a single fixed right rail and a content column that
+   starts after it. No RTL flex-direction arithmetic is involved. */
+@media(min-width:1081px) {
+  .eh-app { display:block!important; }
+  .eh-app .eh-sidebar { position:fixed!important;right:0!important;left:auto!important;transform:none!important; }
+  .eh-app .eh-main { margin-right:276px!important;margin-left:0!important;width:calc(100% - 276px)!important; }
+  .eh-app .eh-mobile-nav,.eh-app .eh-mobile-menu,.eh-app .eh-sidebar-close,.eh-app .eh-scrim { display:none!important; }
+  .eh-app .eh-content { padding-bottom:0!important; }
+  .eh-app .eh-page-view.eh-chat-page { height:calc(100dvh - 72px); }
+}
+
+/* Tablet and phone: full-screen content with an off-canvas drawer
+   and a safe-area-aware bottom navigation bar. */
+@media(max-width:1080px) {
+  .eh-app { display:block!important; }
+  .eh-app .eh-sidebar {
+    position:fixed!important;top:0!important;right:0!important;left:auto!important;
+    bottom:0!important;width:min(340px,88vw)!important;height:100dvh!important;
+    transform:translate3d(110%,0,0)!important;will-change:transform;
+    padding-top:max(18px,env(safe-area-inset-top))!important;
+  }
+  .eh-app .eh-sidebar.is-open { transform:translate3d(0,0,0)!important; }
+  .eh-app .eh-main { width:100%!important;margin:0!important;min-height:100dvh; }
+  .eh-app .eh-mobile-menu,.eh-app .eh-sidebar-close { display:grid!important; }
+  .eh-app .eh-scrim { display:block!important;position:fixed!important;inset:0!important;z-index:90!important; }
+  .eh-app .eh-mobile-nav {
+    position:fixed!important;right:0!important;left:0!important;bottom:0!important;
+    z-index:85!important;width:100%!important;height:auto!important;
+    min-height:calc(68px + env(safe-area-inset-bottom))!important;
+    display:flex!important;align-items:stretch;justify-content:space-around;
+    padding:6px 7px max(7px,env(safe-area-inset-bottom))!important;
+    background:color-mix(in srgb,var(--surface) 96%,transparent)!important;
+    border-top:1px solid var(--border2)!important;
+    backdrop-filter:blur(22px);
+  }
+  .eh-app .eh-content { padding-bottom:calc(76px + env(safe-area-inset-bottom))!important; }
+  .eh-app .eh-page-view.eh-chat-page {
+    height:calc(100dvh - 72px - 76px - env(safe-area-inset-bottom));
+    min-height:320px;
+  }
+}
+@media(max-width:600px) {
+  .eh-app .eh-topbar { height:62px!important;min-height:62px!important;flex-basis:62px!important;padding-inline:9px!important; }
+  .eh-app .eh-page-view { padding:17px 12px 22px!important; }
+  .eh-app .eh-page-view.eh-chat-page {
+    height:calc(100dvh - 62px - 76px - env(safe-area-inset-bottom));
+    min-height:300px;padding:5px 5px 4px!important;
+  }
+  .eh-app .eh-page-heading { align-items:flex-start;flex-direction:column;gap:10px; }
+  .eh-app .eh-page-heading h1 { font-size:24px; }
+  .eh-app .eh-page-heading p { font-size:12px; }
+  .eh-app .stats-grid { grid-template-columns:repeat(2,minmax(0,1fr));gap:9px; }
+  .eh-app .dashboard-grid,.eh-app .lower-grid { grid-template-columns:minmax(0,1fr); }
+  .eh-app .chat-reference-shell { border-radius:10px; }
+  .eh-app .chat-topbar { min-width:0; }
+  .eh-app .chat-topbar-actions { gap:3px; }
+  .eh-app .chat-topbar-search { flex:0 0 32px; }
+  .eh-app .chat-msg { max-width:88%; }
+  .eh-app .chat-composer-shell { padding-bottom:max(7px,env(safe-area-inset-bottom)); }
+}
+@media(prefers-reduced-motion:reduce) {
+  .eh-app *, .eh-app *::before, .eh-app *::after {
+    scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;
+    transition-duration:.01ms!important;
+  }
+}
