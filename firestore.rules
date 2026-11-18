@@ -58,6 +58,9 @@ service cloud.firestore {
       match /hiddenChatMessages/{roomId} {
         allow read, create, update, delete: if owns(userId) && activeUser();
       }
+      match /chatBackgrounds/{roomId} {
+        allow read, create, update, delete: if owns(userId) && activeUser();
+      }
     }
 
     match /roles/{roleId} {
@@ -224,6 +227,21 @@ service cloud.firestore {
         allow read: if activeUser() && (isModerator() || resource.data.userId == request.auth.uid);
         allow create: if isModerator() && request.resource.data.createdBy == request.auth.uid;
         allow update, delete: if isModerator();
+      }
+      match /announcements/{announcementId} {
+        allow read: if activeUser() && exists(/databases/$(database)/documents/conversations/$(conversationId)/members/$(request.auth.uid));
+        allow create: if isModerator()
+          && request.resource.data.createdBy == request.auth.uid
+          && request.resource.data.text is string
+          && request.resource.data.text.size() >= 4
+          && request.resource.data.text.size() <= 2500;
+        allow update: if isModerator()
+          && request.resource.data.createdBy == resource.data.createdBy
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['text', 'updatedAt'])
+          && request.resource.data.text is string
+          && request.resource.data.text.size() >= 4
+          && request.resource.data.text.size() <= 2500;
+        allow delete: if isModerator();
       }
       match /messages/{messageId} {
         allow read: if activeUser() && exists(/databases/$(database)/documents/conversations/$(conversationId)/members/$(request.auth.uid));
