@@ -1,5 +1,5 @@
 import {
-  addDoc, collection, deleteDoc, doc, onSnapshot, orderBy, query, serverTimestamp,
+  addDoc, collection, doc, onSnapshot, query, serverTimestamp,
   updateDoc, where, writeBatch, type Unsubscribe,
 } from 'firebase/firestore';
 import { db } from './firebase';
@@ -31,8 +31,8 @@ export function subscribeAcademicContent(
   if (!db || !subjectId) { onData([]); return; }
   const base = nodeCollection(subjectId);
   const contentQuery = isAdmin
-    ? query(base, orderBy('sortOrder', 'asc'))
-    : query(base, where('publicationStatus', '==', 'published'), orderBy('sortOrder', 'asc'));
+    ? query(base)
+    : query(base, where('publicationStatus', '==', 'published'));
   return onSnapshot(contentQuery, (snapshot) => {
     const nodes = snapshot.docs.map((entry) => {
       const data = entry.data();
