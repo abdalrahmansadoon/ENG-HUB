@@ -40,13 +40,6 @@ interface AppShellProps {
   onCloseMobileNav: () => void;
 }
 
-const quickLinks: AppNavItem[] = [
-  { id: 'home', label: 'الرئيسية', icon: Search },
-  { id: 'courses', label: 'المواد', icon: Search },
-  { id: 'chat', label: 'المحادثات', icon: Search },
-  { id: 'tasks', label: 'المهام', icon: Search },
-];
-
 export function AppShell({
   children, user, page, pageTitle, navGroups, isAdmin, dark, search,
   searchResults, unreadCount, mobileNav, onSearch, onNavigate, onToggleTheme,
@@ -99,11 +92,11 @@ export function AppShell({
         </nav>
 
         <div className="eh-sidebar-bottom">
-          <div className="eh-help-card">
+          <button type="button" className="eh-help-card" onClick={() => onNavigate('chat')}>
             <span><CircleHelp size={18}/></span>
-            <div><b>تحتاج إلى مساعدة؟</b><small>مركز المساعدة والدعم</small></div>
+            <span><b>تواصل مع مجتمعك</b><small>اسأل زملاءك وشارك المعرفة</small></span>
             <ChevronLeft size={15}/>
-          </div>
+          </button>
           <button type="button" className="eh-account-mini" onClick={() => onNavigate('profile')}>
             <span className="eh-avatar">{user.photoURL ? <img src={user.photoURL} alt=""/> : initials}</span>
             <span className="eh-account-copy"><b>{user.displayName}</b><small>{isAdmin ? 'مدير المنصة' : 'طالب هندسة'}</small></span>
