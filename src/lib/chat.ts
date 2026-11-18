@@ -1,6 +1,6 @@
 import {
   addDoc, collection, deleteDoc, doc, getDoc, getDocs, limit, onSnapshot, orderBy, query,
-  arrayUnion, runTransaction, serverTimestamp, setDoc, Timestamp, updateDoc, writeBatch, type Unsubscribe,
+  arrayUnion, runTransaction, serverTimestamp, setDoc, Timestamp, updateDoc, where, writeBatch, type Unsubscribe,
 } from 'firebase/firestore';
 import { db } from './firebase';
 
@@ -81,6 +81,111 @@ export async function toggleGeneralChatMute(userId: string, adminId: string, min
     updatedBy: adminId,
   }, { merge: true });
   return muted;
+}
+
+export async function setGeneralChatMute(userId: string, adminId: string, minutes: number | null) {
+  await setDoc(muteRef(userId), {
+    userId,
+    muted: true,
+    mutedUntil: minutes && minutes > 0 ? Timestamp.fromDate(new Date(Date.now() + minutes * 60 * 1000)) : null,
+    updatedAt: serverTimestamp(),
+    updatedBy: adminId,
+  }, { merge: true });
+}
+
+export async function unmuteGeneralChatUser(userId: string, adminId: string) {
+  await setDoc(muteRef(userId), {
+    userId, muted: false, mutedUntil: null,
+    updatedAt: serverTimestamp(), updatedBy: adminId,
+  }, { merge: true });
+}
+
+export interface ChatLockStatus {
+  locked: boolean;
+  startAt: Date | null;
+  endAt: Date | null;
+  reason: string;
+  autoExpire: boolean;
+}
+
+export interface ChatWarning {
+  id: string;
+  userId: string;
+  reason: string;
+  createdAt: Date | null;
+  createdBy: string;
+}
+
+const chatSettingsRef = () => doc(requireDb(), 'conversations', GENERAL_CHAT_ID, 'settings', 'chat');
+
+export function subscribeGeneralChatLockStatus(
+  onStatus: (status: ChatLockStatus) => void,
+  onError: (error: Error) => void,
+): Unsubscribe {
+  return onSnapshot(chatSettingsRef(), (snapshot) => {
+    const data = snapshot.exists() ? snapshot.data() : {};
+    const startAt = timestampToDate(data.startAt);
+    const endAt = timestampToDate(data.endAt);
+    const started = !startAt || startAt.getTime() <= Date.now();
+    const notEnded = !endAt || endAt.getTime() > Date.now();
+    onStatus({
+      locked: data.locked === true && started && notEnded,
+      startAt,
+      endAt,
+      reason: String(data.reason ?? ''),
+      autoExpire: data.autoExpire === true,
+    });
+  }, onError);
+}
+
+export async function setGeneralChatLock(
+  adminId: string,
+  input: { startAt: Date; endAt?: Date | null; reason?: string; autoExpire?: boolean },
+) {
+  if (input.endAt && input.endAt.getTime() <= input.startAt.getTime()) {
+    throw new Error('وقت فتح الدردشة يجب أن يكون بعد وقت بداية القفل.');
+  }
+  await setDoc(chatSettingsRef(), {
+    locked: true,
+    startAt: Timestamp.fromDate(input.startAt),
+    endAt: input.autoExpire ? (input.endAt ? Timestamp.fromDate(input.endAt) : null) : null,
+    autoExpire: input.autoExpire === true,
+    reason: input.reason?.trim() ?? '',
+    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
+    updatedAt: serverTimestamp(),
+    updatedBy: adminId,
+  }, { merge: true });
+}
+
+export async function clearGeneralChatLock(adminId: string) {
+  await setDoc(chatSettingsRef(), {
+    locked: false, startAt: null, endAt: null, autoExpire: false,
+    reason: '', updatedAt: serverTimestamp(), updatedBy: adminId,
+  }, { merge: true });
+}
+
+export function subscribeGeneralChatWarnings(
+  userId: string,
+  onWarnings: (warnings: ChatWarning[]) => void,
+  onError: (error: Error) => void,
+): Unsubscribe {
+  const warningsQuery = query(
+    collection(requireDb(), 'conversations', GENERAL_CHAT_ID, 'warnings'),
+    where('userId', '==', userId),
+  );
+  return onSnapshot(warningsQuery, (snapshot) => {
+    const warnings = snapshot.docs.map((entry) => {
+      const data = entry.data();
+      return {
+        id: entry.id,
+        userId: String(data.userId ?? ''),
+        reason: String(data.reason ?? ''),
+        createdAt: timestampToDate(data.createdAt),
+        createdBy: String(data.createdBy ?? ''),
+      } as ChatWarning;
+    }).sort((a,b) => (b.createdAt?.getTime() ?? 0) - (a.createdAt?.getTime() ?? 0));
+    onWarnings(warnings);
+  }, onError);
 }
 
 export async function createGeneralChatWarning(userId: string, adminId: string, reason: string) {
