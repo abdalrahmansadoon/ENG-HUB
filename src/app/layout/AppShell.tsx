@@ -82,7 +82,7 @@ export function AppShell({
           <button type="button" className="eh-icon-btn eh-sidebar-close" onClick={onCloseMobileNav} aria-label="إغلاق القائمة"><X size={19}/></button>
         </div>
 
-        <details className="eh-term-switcher"><summary className="eh-term-card"><span className="eh-term-symbol"><Command size={17}/></span><span><b>{user.term || 'الترم الأول'}</b><small>{user.academicYear || 'السنة الإعدادية'} · هندسة القاهرة</small></span><ChevronDown size={15}/></summary><div className="eh-term-menu"><span>الفصل الدراسي الحالي</span><strong>{user.term || 'الترم الأول'}</strong><small>إدارة السنوات والفصول الدراسية متاحة من إعدادات المدير.</small></div></details>
+        <details className="eh-term-switcher" title="السنة والفصل الدراسي الحالي"><summary className="eh-term-card"><span className="eh-term-symbol"><Command size={17}/></span><span><b>{user.term || 'الترم الأول'}</b><small>{user.academicYear || 'السنة الإعدادية'} · هندسة القاهرة</small></span><ChevronDown size={15}/></summary><div className="eh-term-menu"><span>الفصل الدراسي الحالي</span><strong>{user.term || 'الترم الأول'}</strong><small>إدارة السنوات والفصول الدراسية متاحة من إعدادات المدير.</small></div></details>
 
         <nav className="eh-navigation">
           {navGroups.map((group) => (
@@ -92,7 +92,7 @@ export function AppShell({
                 const Icon = item.icon;
                 const active = page === item.id || (item.id === 'courses' && page === 'lectures');
                 return (
-                  <button type="button" key={item.id} className={`eh-nav-link ${active ? 'active' : ''}`} aria-current={active ? 'page' : undefined} onClick={() => onNavigate(item.id)}>
+                  <button type="button" key={item.id} className={`eh-nav-link ${active ? 'active' : ''}`} title={item.label} data-tooltip={item.label} aria-current={active ? 'page' : undefined} onClick={() => onNavigate(item.id)}>
                     <Icon size={19}/><span>{item.label}</span>{active && <i/>}
                   </button>
                 );
@@ -111,7 +111,7 @@ export function AppShell({
 
         <div className="eh-sidebar-bottom">
 
-          <button type="button" className="eh-account-mini" onClick={() => onNavigate('profile')}>
+          <button type="button" className="eh-account-mini" onClick={() => onNavigate('profile')} title="الملف الشخصي" data-tooltip="الملف الشخصي">
             <span className="eh-avatar">{user.photoURL ? <img src={user.photoURL} alt=""/> : initials}</span>
             <span className="eh-account-copy"><b>{user.displayName}</b><small>{isAdmin ? 'مدير المنصة' : 'طالب هندسة'}</small></span>
             <Settings size={17}/>
