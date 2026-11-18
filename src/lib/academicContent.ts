@@ -48,6 +48,10 @@ export function subscribeAcademicContent(
         mimeType: typeof data.mimeType === 'string' ? data.mimeType : undefined,
         duration: typeof data.duration === 'string' ? data.duration : undefined,
         linkedNodeIds: Array.isArray(data.linkedNodeIds) ? data.linkedNodeIds.filter((id): id is string => typeof id === 'string') : [],
+        customTypeName: typeof data.customTypeName === 'string' ? data.customTypeName : undefined,
+        customTypeIcon: typeof data.customTypeIcon === 'string' ? data.customTypeIcon : undefined,
+        customTypeColor: typeof data.customTypeColor === 'string' ? data.customTypeColor : undefined,
+        canContainChildren: typeof data.canContainChildren === 'boolean' ? data.canContainChildren : undefined,
         publicationStatus: data.publicationStatus === 'draft' ? 'draft' : 'published',
         sortOrder: Number(data.sortOrder ?? 0),
         createdBy: String(data.createdBy ?? ''),
@@ -67,8 +71,11 @@ export async function createAcademicContentNode(
   const title = input.title.trim();
   if (!subjectId) throw new Error('اختر المادة أولاً.');
   if (title.length < 2) throw new Error('اكتب عنواناً واضحاً من حرفين على الأقل.');
-  if (!['folder', 'lecturer', 'lecture', 'note'].includes(input.kind) && !input.url?.trim()) {
+  if (!['folder', 'lecturer', 'lecture', 'note', 'custom'].includes(input.kind) && !input.url?.trim()) {
     throw new Error('أضف رابط أو ملفاً لهذا النوع من المحتوى.');
+  }
+  if (input.kind === 'custom' && !input.customTypeName?.trim()) {
+    throw new Error('اكتب اسم النوع المخصص الذي تريد إنشاءه.');
   }
   const ref = await addDoc(nodeCollection(subjectId), {
     parentId: input.parentId ?? null,
@@ -80,6 +87,10 @@ export async function createAcademicContentNode(
     mimeType: input.mimeType ?? null,
     duration: input.duration?.trim() ?? '',
     linkedNodeIds: [...new Set(input.linkedNodeIds ?? [])],
+    customTypeName: input.kind === 'custom' ? input.customTypeName?.trim() ?? 'نوع مخصص' : null,
+    customTypeIcon: input.kind === 'custom' ? input.customTypeIcon?.trim() ?? '✳' : null,
+    customTypeColor: input.kind === 'custom' ? input.customTypeColor ?? '#4169e1' : null,
+    canContainChildren: input.kind === 'custom' ? input.canContainChildren === true : null,
     publicationStatus: input.publicationStatus ?? 'published',
     sortOrder: input.sortOrder ?? Date.now(),
     createdBy,
@@ -92,7 +103,7 @@ export async function createAcademicContentNode(
 export async function updateAcademicContentNode(
   subjectId: string,
   nodeId: string,
-  patch: Partial<Pick<AcademicContentNode, 'kind' | 'title' | 'description' | 'url' | 'mimeType' | 'duration' | 'parentId' | 'category' | 'linkedNodeIds' | 'publicationStatus' | 'sortOrder'>>,
+  patch: Partial<Pick<AcademicContentNode, 'kind' | 'title' | 'description' | 'url' | 'mimeType' | 'duration' | 'parentId' | 'category' | 'linkedNodeIds' | 'customTypeName' | 'customTypeIcon' | 'customTypeColor' | 'canContainChildren' | 'publicationStatus' | 'sortOrder'>>,
 ) {
   const allowed: Record<string, unknown> = { ...patch, updatedAt: serverTimestamp() };
   if (typeof patch.title === 'string') allowed.title = patch.title.trim();
