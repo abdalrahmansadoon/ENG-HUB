@@ -48,6 +48,9 @@ export function buildEngHubHash(route: EngHubRoute): string {
   if (!route.subjectId) return '#/courses';
   const root = '#/courses/' + encode(route.subjectId);
   if (!route.category) return root;
+  if (route.category === 'lectures' && route.contentNodeId) {
+    return root + '/category/lectures/node/' + encode(route.contentNodeId);
+  }
   if (route.category === 'lectures') {
     if (route.lectureId) return root + '/lectures/lecturer/' + encode(route.lecturerId) + '/lecture/' + encode(route.lectureId);
     if (route.lecturerId) return root + '/lectures/lecturer/' + encode(route.lecturerId);
