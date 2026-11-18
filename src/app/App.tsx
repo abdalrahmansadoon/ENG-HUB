@@ -456,6 +456,7 @@ function App() {
 
 
   const addFile = async (file: File) => {
+    if (!isAdmin) { setToast('رفع الملفات متاح للإدارة فقط.'); return; }
     let remoteUrl: string | undefined;
     if (!isDemo) {
       if (!isCloudinaryConfigured(cloudinarySettings)) {
@@ -563,7 +564,7 @@ function App() {
           onAddPart={() => setLecturePartModal(true)}
         />}
         {page === 'exams' && <ExamsPage exams={exams} setExams={setExams} canEdit={isAdmin} onAdd={() => setExamModal(true)}/>}
-        {page === 'files' && <FilesPage files={files} onUpload={addFile} cloudinaryReady={isCloudinaryConfigured(cloudinarySettings)} isDemo={isDemo}/>}
+        {page === 'files' && <FilesPage files={files} onUpload={addFile} cloudinaryReady={isCloudinaryConfigured(cloudinarySettings)} isDemo={isDemo} canUpload={isAdmin}/>}
                 {page === 'chat' && <ChatPage
           user={activeUser}
           cloudinarySettings={cloudinarySettings}
@@ -1172,7 +1173,7 @@ function ExamsPage({ exams, setExams, canEdit, onAdd }: {
   </div>;
 }
 
-function FilesPage({ files, onUpload, cloudinaryReady, isDemo }: { files: LibraryFile[]; onUpload: (file: File) => Promise<void>; cloudinaryReady: boolean; isDemo: boolean }) {
+function FilesPage({ files, onUpload, cloudinaryReady, isDemo, canUpload }: { files: LibraryFile[]; onUpload: (file: File) => Promise<void>; cloudinaryReady: boolean; isDemo: boolean; canUpload: boolean }) {
   const inputRef=useRef<HTMLInputElement>(null);
   const [query,setQuery]=useState('');
   const [filter,setFilter]=useState<'all'|'PDF'|'DOC'|'PPT'|'IMAGE'|'VIDEO'>('all');
@@ -1185,7 +1186,7 @@ function FilesPage({ files, onUpload, cloudinaryReady, isDemo }: { files: Librar
     try{await onUpload(file);}finally{setUploading(false);if(inputRef.current)inputRef.current.value='';}
   };
   return <div className="eh-files-page">
-    <PageHeader eyebrow="RESOURCE LIBRARY" title="مكتبة الملفات" description="كل المذكرات والملفات والصور ومقاطع الفيديو في مكتبة واحدة." action={<><input ref={inputRef} type="file" accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.csv,.txt,.zip,.png,.jpg,.jpeg,.webp,.gif,.mp4,.mov,.webm" className="visually-hidden" onChange={(event)=>void handleFile(event.target.files?.[0])}/><button type="button" className="eh-button primary" onClick={()=>inputRef.current?.click()} disabled={uploading||(!isDemo&&!cloudinaryReady)}>{uploading?<span className="spinner"/>:<Upload size={16}/>} رفع ملف جديد</button></>}/>
+    <PageHeader eyebrow="RESOURCE LIBRARY" title="مكتبة الملفات" description="كل المذكرات والملفات والصور ومقاطع الفيديو في مكتبة واحدة." action={canUpload ? <><input ref={inputRef} type="file" accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.csv,.txt,.zip,.png,.jpg,.jpeg,.webp,.gif,.mp4,.mov,.webm" className="visually-hidden" onChange={(event)=>void handleFile(event.target.files?.[0])}/><button type="button" className="eh-button primary" onClick={()=>inputRef.current?.click()} disabled={uploading||(!isDemo&&!cloudinaryReady)}>{uploading?<span className="spinner"/>:<Upload size={16}/>} رفع ملف جديد</button></> : undefined}/>
     <section className="eh-files-overview"><div className="eh-files-overview-main"><span className="eh-files-icon"><FolderOpen size={25}/></span><div><span className="eh-eyebrow">YOUR STUDY LIBRARY</span><h2>{files.length} ملف في مكتبتك</h2><p>{isDemo?'وضع تجريبي — الملفات لا تُحفظ على الخادم.':cloudinaryReady?'تُرفع الملفات إلى Cloudinary، وتُحفظ بياناتها في Firestore.':'يلزم إعداد Cloudinary قبل رفع الملفات.'}</p></div></div><div className="eh-files-breakdown"><div><b>{counts('PDF')}</b><span>PDF</span></div><div><b>{counts('DOC')}</b><span>مستندات</span></div><div><b>{counts('VIDEO')}</b><span>فيديو</span></div><div><b>{counts('IMAGE')}</b><span>صور</span></div></div></section>
     <section className="eh-surface-card eh-files-board">
       <div className="eh-files-toolbar"><div><span className="eh-eyebrow">ALL RESOURCES</span><h2>الملفات المحفوظة</h2></div><label className="eh-inline-search"><Search size={15}/><input value={query} onChange={(event)=>setQuery(event.target.value)} placeholder="ابحث باسم الملف أو المادة"/></label></div>
