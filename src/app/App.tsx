@@ -417,7 +417,7 @@ function App() {
     setSelectedSubjectCategory(category);
     setSelectedContentNodeId(nodeId || '');
     setSelectedLecturerId(nodeId && lecturers.some((item) => item.id === nodeId) ? nodeId : '');
-    setSelectedLectureId(matchingLecture?.id || matchingPart?.lectureId || '');
+    setSelectedLectureId(matchingLecture?.id || matchingPart?.lectureId || (category !== 'lectures' ? selectedLectureId : ''));
     setPage(category === 'chat' ? 'chat' : 'courses');
   };
 
