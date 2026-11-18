@@ -161,6 +161,8 @@ function App() {
   const academicContentWithLegacy = useMemo<AcademicContentNode[]>(() => {
     const combined = [...academicContent];
     const existing = new Set(combined.map((node) => node.id));
+    const subject = subjects.find((item) => item.id === selectedSubjectId);
+    const belongsToSubject = (name: string) => Boolean(subject && name.trim().toLocaleLowerCase() === subject.name.trim().toLocaleLowerCase());
     lecturers.filter((item) => item.subjectId === selectedSubjectId && item.status === 'active').forEach((item) => {
       if (existing.has(item.id)) return;
       combined.push({
@@ -192,8 +194,48 @@ function App() {
       });
       existing.add(item.id);
     });
+    files.filter((item) => belongsToSubject(item.subjectName)).forEach((item) => {
+      const id = 'legacy-file-' + item.id;
+      if (existing.has(id)) return;
+      const extension = item.name.split('.').pop()?.toLowerCase() || '';
+      const mimeType = extension === 'pdf' ? 'application/pdf'
+        : ['jpg','jpeg','png','webp','gif'].includes(extension) ? 'image/' + (extension === 'jpg' ? 'jpeg' : extension)
+        : ['mp4','webm','mov'].includes(extension) ? 'video/' + extension
+        : 'application/octet-stream';
+      combined.push({
+        id, subjectId: selectedSubjectId, parentId: null, kind: 'file', category: 'files',
+        title: item.name, description: item.size + ' · ' + item.updatedAt,
+        url: item.url, mimeType, linkedNodeIds: [], publicationStatus: 'published',
+        sortOrder: 0, createdBy: 'legacy', createdAt: null, updatedAt: null,
+      });
+      existing.add(id);
+    });
+    exams.filter((item) => belongsToSubject(item.subjectName)).forEach((item) => {
+      const id = 'legacy-exam-' + item.id;
+      if (existing.has(id)) return;
+      combined.push({
+        id, subjectId: selectedSubjectId, parentId: null, kind: 'exam', category: 'exams',
+        title: item.title,
+        description: `موعد الاختبار: ${new Date(item.date).toLocaleString('ar-EG')} · المدة: ${item.duration} · عدد الأسئلة: ${item.questions} · الحالة: ${item.status}`,
+        linkedNodeIds: [], publicationStatus: 'published', sortOrder: new Date(item.date).getTime() || 0,
+        createdBy: 'legacy', createdAt: null, updatedAt: null,
+      });
+      existing.add(id);
+    });
+    tasks.filter((item) => item.subjectId === selectedSubjectId && item.type !== 'personal').forEach((item) => {
+      const id = 'legacy-task-' + item.id;
+      if (existing.has(id)) return;
+      combined.push({
+        id, subjectId: selectedSubjectId, parentId: null, kind: 'assignment', category: 'assignments',
+        title: item.title,
+        description: [item.description, 'موعد التسليم: ' + new Date(item.dueAt).toLocaleString('ar-EG'), 'الحالة: ' + item.status].filter(Boolean).join(' · '),
+        linkedNodeIds: [], publicationStatus: 'published', sortOrder: new Date(item.dueAt).getTime() || 0,
+        createdBy: 'legacy', createdAt: null, updatedAt: null,
+      });
+      existing.add(id);
+    });
     return combined;
-  }, [academicContent, lecturers, lectures, lectureParts, selectedSubjectId, selectedLectureId]);
+  }, [academicContent, lecturers, lectures, lectureParts, files, exams, tasks, subjects, selectedSubjectId, selectedLectureId]);
   const quickResults = search.trim() ? [
     ...tasks.filter((item) => `${item.title} ${item.subjectName}`.toLowerCase().includes(search.toLowerCase())).slice(0, 3).map((item) => ({ id: item.id, title: item.title, sub: item.subjectName, page: 'tasks' })),
     ...subjects.filter((item) => `${item.name} ${item.code}`.toLowerCase().includes(search.toLowerCase())).slice(0, 2).map((item) => ({ id: item.id, title: item.name, sub: 'مادة دراسية', page: 'courses' })),
