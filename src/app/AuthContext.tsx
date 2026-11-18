@@ -24,6 +24,7 @@ type ProfileInput = {
   photoURL?: string | null;
   phone?: string;
   bio?: string;
+  profileVisibility?: 'public' | 'private';
 };
 
 type AuthContextValue = {
@@ -61,6 +62,7 @@ function appUserFromFirebase(firebaseUser: FirebaseUser, profile: Record<string,
     photoURL: (profile.photoURL as string | null | undefined) ?? firebaseUser.photoURL,
     phone: typeof profile.phone === 'string' ? profile.phone : '',
     bio: typeof profile.bio === 'string' ? profile.bio : '',
+    profileVisibility: profile.profileVisibility === 'private' ? 'private' : 'public',
     providerId: firebaseUser.providerData[0]?.providerId ?? 'password',
     role,
     academicYear: String(profile.academicYear || 'السنة الإعدادية'),
@@ -172,6 +174,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const photoURL = profile.photoURL?.trim() || null;
     const phone = profile.phone?.trim() || '';
     const bio = profile.bio?.trim() || '';
+    const profileVisibility = profile.profileVisibility === 'private' ? 'private' : 'public';
 
     await updateProfile(firebaseUser, { displayName, photoURL });
 
@@ -182,6 +185,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       photoURL,
       phone,
       bio,
+      profileVisibility,
       profileCompleted: true,
       updatedAt: serverTimestamp(),
     };
@@ -208,6 +212,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       photoURL,
       phone,
       bio,
+      profileVisibility,
       role: previousRole,
     } : current);
     setProfileComplete(true);
