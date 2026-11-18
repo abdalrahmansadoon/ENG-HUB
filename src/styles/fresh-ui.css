@@ -1147,3 +1147,118 @@ img { max-width:100%; }
   .eh-app .modal-backdrop { padding:9px; }
   .eh-app .modal-card { max-height:94dvh;padding:17px; }
 }
+
+
+/* Academic library hierarchy: subject -> lecturer -> lecture -> video parts */
+.eh-app .eh-academic-page { display:flex;flex-direction:column;gap:0; }
+.eh-app .eh-academic-crumbs { min-height:42px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:-8px 0 18px;padding:7px 11px;border:1px solid var(--border);border-radius:11px;background:var(--surface);color:var(--dim); }
+.eh-app .eh-academic-crumbs button { display:inline-flex;align-items:center;gap:6px;padding:4px 6px;border:0;border-radius:7px;background:transparent;color:var(--muted);font-size:10px; }
+.eh-app .eh-academic-crumbs button.active { color:var(--purple);font-weight:800; }
+.eh-app .eh-academic-crumbs button:hover { background:var(--surface2); }
+.eh-app .eh-academic-crumbs>span { color:var(--text);font-size:10px;font-weight:700; }
+.eh-app .eh-academic-crumbs .eh-crumb-back { margin-inline-start:auto;color:var(--purple); }
+.eh-app .eh-academic-hero {
+  position:relative;isolation:isolate;min-height:180px;display:flex;align-items:center;justify-content:space-between;gap:25px;
+  overflow:hidden;padding:25px 29px;margin:0 0 28px;border:1px solid rgba(173,161,255,.22);border-radius:20px;
+  background:radial-gradient(circle at 10% 20%,rgba(150,135,255,.22),transparent 32%),linear-gradient(115deg,#242451,#302e68 58%,#25365d);
+}
+.eh-app .eh-academic-hero-copy { position:relative;z-index:1;max-width:650px; }
+.eh-app .eh-academic-hero h2 { margin:8px 0 5px;color:#fff;font-size:26px;font-weight:800; }
+.eh-app .eh-academic-hero p { margin:0;color:#d8d8f2;font-size:12px;line-height:1.9; }
+.eh-app .eh-academic-stats { display:flex;align-items:center;gap:22px;padding-inline:22px;border-right:1px solid rgba(255,255,255,.16); }
+.eh-app .eh-academic-stats>div { min-width:54px;display:flex;flex-direction:column;gap:2px; }
+.eh-app .eh-academic-stats b { color:#fff;font:800 26px Inter,sans-serif; }
+.eh-app .eh-academic-stats span { color:#d1d0f0;font-size:9px; }
+.eh-app .eh-academic-hero-symbol { position:absolute;left:40px;top:50%;width:125px;height:125px;display:grid;place-items:center;border:1px solid rgba(255,255,255,.17);border-radius:34px;background:rgba(161,148,255,.22);color:#eceaff;transform:translateY(-50%) rotate(-11deg);box-shadow:0 18px 40px rgba(7,10,40,.18); }
+.eh-app .eh-result-count { color:var(--muted);font-size:10px; }
+.eh-app .eh-academic-subject-grid { display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:15px; }
+.eh-app .eh-academic-subject-card {
+  min-width:0;min-height:200px;display:flex;flex-direction:column;align-items:stretch;padding:18px;
+  border:1px solid var(--border);border-radius:17px;background:var(--surface);color:var(--text);text-align:right;
+  box-shadow:0 7px 22px rgba(0,0,0,.025);transition:transform .18s,border-color .18s,box-shadow .18s;
+}
+.eh-app .eh-academic-subject-card:hover { transform:translateY(-3px);border-color:color-mix(in srgb,var(--purple) 45%,var(--border));box-shadow:var(--eh-card-shadow); }
+.eh-app .eh-academic-card-top { display:flex;align-items:center;justify-content:space-between;margin-bottom:15px; }
+.eh-app .eh-academic-subject-icon { width:46px;height:46px;flex:0 0 46px;display:grid;place-items:center;border-radius:13px;background:color-mix(in srgb,var(--subject-color,var(--purple)) 13%,var(--surface2));color:var(--subject-color,var(--purple));font-weight:800;font-size:20px; }
+.eh-app .eh-academic-subject-icon.large { width:60px;height:60px;flex-basis:60px;border-radius:17px;font-size:24px; }
+.eh-app .eh-course-index { color:var(--dim);font:700 10px Inter,sans-serif; }
+.eh-app .eh-course-code { color:var(--purple);font:800 9px Inter,sans-serif;letter-spacing:.7px; }
+.eh-app .eh-academic-subject-card h3 { margin:5px 0 4px;color:var(--text);font-size:15px;font-weight:800; }
+.eh-app .eh-academic-subject-card p { flex:1;margin:0;color:var(--muted);font-size:10px;line-height:1.8; }
+.eh-app .eh-course-card-footer { display:flex;align-items:center;gap:12px;margin-top:15px;padding-top:12px;border-top:1px solid var(--border);color:var(--muted); }
+.eh-app .eh-course-card-footer span { display:inline-flex;align-items:center;gap:5px;font-size:9px; }
+.eh-app .eh-course-card-footer>svg { margin-inline-start:auto;color:var(--purple); }
+.eh-app .eh-empty-action { display:flex;justify-content:center;padding:0 20px 20px; }
+.eh-app .eh-academic-level { display:flex;align-items:center;gap:15px;padding:20px 22px;margin-bottom:23px;border:1px solid var(--border);border-radius:17px;background:var(--surface);box-shadow:var(--eh-card-shadow); }
+.eh-app .eh-academic-level-copy { min-width:0;flex:1; }
+.eh-app .eh-academic-level-copy h2 { margin:4px 0 3px;color:var(--text);font-size:18px;font-weight:800; }
+.eh-app .eh-academic-level-copy p { margin:0;color:var(--muted);font-size:10px;line-height:1.8; }
+.eh-app .eh-academic-level-count { min-width:68px;display:flex;flex-direction:column;align-items:center;gap:3px;padding-inline:13px;border-right:1px solid var(--border); }
+.eh-app .eh-academic-level-count b { color:var(--text);font:800 22px Inter,sans-serif; }
+.eh-app .eh-academic-level-count span { color:var(--muted);font-size:9px; }
+.eh-app .eh-lecturer-grid { display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px; }
+.eh-app .eh-lecturer-card { min-width:0;display:flex;align-items:center;gap:12px;padding:15px 16px;border:1px solid var(--border);border-radius:15px;background:var(--surface);color:var(--text);text-align:right;transition:.18s; }
+.eh-app .eh-lecturer-card:hover { border-color:var(--purple);transform:translateY(-2px);box-shadow:var(--eh-card-shadow); }
+.eh-app .eh-lecturer-avatar { width:48px;height:48px;flex:0 0 48px;display:grid;place-items:center;overflow:hidden;border-radius:50%;background:color-mix(in srgb,var(--purple) 13%,var(--surface2));color:var(--purple); }
+.eh-app .eh-lecturer-avatar img { width:100%;height:100%;display:block;object-fit:cover;border-radius:50%; }
+.eh-app .eh-lecturer-avatar.large { width:59px;height:59px;flex-basis:59px; }
+.eh-app .eh-lecturer-copy { min-width:0;flex:1;display:flex;flex-direction:column;gap:4px; }
+.eh-app .eh-lecturer-copy b { color:var(--text);font-size:12px; }
+.eh-app .eh-lecturer-copy small { color:var(--muted);font-size:9px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
+.eh-app .eh-lecturer-copy em { color:var(--purple);font-size:9px;font-style:normal;font-weight:800; }
+.eh-app .eh-lecturer-index { color:var(--dim);font:700 10px Inter,sans-serif; }
+.eh-app .eh-legacy-block { margin-top:19px;overflow:hidden; }
+.eh-app .eh-legacy-lecture { width:100%;display:flex;align-items:center;gap:11px;padding:12px 18px;border:0;border-top:1px solid var(--border);background:transparent;color:var(--text);text-align:right; }
+.eh-app .eh-legacy-lecture>span { width:34px;height:34px;display:grid;place-items:center;border-radius:10px;background:var(--surface2);color:var(--purple); }
+.eh-app .eh-legacy-lecture b { flex:1;color:var(--text);font-size:11px; }
+.eh-app .eh-legacy-lecture small { color:var(--muted);font-size:9px; }
+.eh-app .eh-lecture-grid { display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px; }
+.eh-app .eh-lecture-card { min-width:0;overflow:hidden;display:flex;flex-direction:column;padding:0;border:1px solid var(--border);border-radius:16px;background:var(--surface);color:var(--text);text-align:right;transition:.18s; }
+.eh-app .eh-lecture-card:hover { transform:translateY(-3px);border-color:var(--purple);box-shadow:var(--eh-card-shadow); }
+.eh-app .eh-lecture-art { position:relative;height:145px;display:flex;align-items:center;justify-content:center;overflow:hidden;background:linear-gradient(135deg,#252553,#443c8c);color:#fff; }
+.eh-app .eh-lecture-art.art-1 { background:linear-gradient(135deg,#17405a,#28677a); }
+.eh-app .eh-lecture-art.art-2 { background:linear-gradient(135deg,#563653,#784c74); }
+.eh-app .eh-lecture-art.art-3 { background:linear-gradient(135deg,#36465b,#627b99); }
+.eh-app .eh-lecture-art:before,.eh-app .eh-lecture-art:after { content:"";position:absolute;width:180px;height:180px;border:1px solid rgba(255,255,255,.12);border-radius:50%; }
+.eh-app .eh-lecture-art:before { transform:translate(-45px,38px); }
+.eh-app .eh-lecture-art:after { transform:translate(90px,-75px); }
+.eh-app .eh-lecture-number { position:absolute;top:13px;inset-inline-start:13px;z-index:1;color:rgba(255,255,255,.8);font:800 9px Inter,sans-serif;letter-spacing:.8px; }
+.eh-app .eh-lecture-play { z-index:1;width:49px;height:49px;display:grid;place-items:center;border:1px solid rgba(255,255,255,.3);border-radius:50%;background:rgba(255,255,255,.15);backdrop-filter:blur(7px); }
+.eh-app .eh-lecture-part-count { position:absolute;bottom:11px;inset-inline-end:12px;z-index:1;display:flex;align-items:center;gap:5px;padding:5px 8px;border:1px solid rgba(255,255,255,.2);border-radius:8px;background:rgba(5,8,28,.25);color:#fff;font-size:9px; }
+.eh-app .eh-lecture-card-copy { display:flex;flex-direction:column;gap:7px;padding:15px; }
+.eh-app .eh-lecture-card-copy small { color:var(--muted);font-size:9px; }
+.eh-app .eh-lecture-card-copy b { color:var(--text);font-size:13px; }
+.eh-app .eh-lecture-card-copy>span { display:flex;align-items:center;gap:5px;color:var(--purple);font-size:9px;font-weight:800; }
+.eh-app .eh-lecture-level-icon { width:55px;height:55px;flex:0 0 55px;display:grid;place-items:center;border-radius:15px;background:color-mix(in srgb,var(--blue) 13%,var(--surface2));color:var(--blue); }
+.eh-app .eh-parts-list { display:flex;flex-direction:column;gap:9px; }
+.eh-app .eh-part-card { min-height:77px;display:flex;align-items:center;gap:14px;padding:13px 15px;border:1px solid var(--border);border-radius:14px;background:var(--surface); }
+.eh-app .eh-part-number { width:42px;height:42px;flex:0 0 42px;display:grid;place-items:center;border-radius:12px;background:color-mix(in srgb,var(--purple) 13%,var(--surface2));color:var(--purple);font:800 12px Inter,sans-serif; }
+.eh-app .eh-part-main { min-width:0;flex:1;display:flex;flex-direction:column;gap:4px; }
+.eh-app .eh-part-main b { color:var(--text);font-size:12px; }
+.eh-app .eh-part-main small { color:var(--muted);font-size:9px; }
+.eh-app .video-modal-backdrop { position:fixed;inset:0;z-index:170;display:grid;place-items:center;padding:20px;background:rgba(2,6,16,.78);backdrop-filter:blur(7px); }
+.eh-app .video-modal-card { width:min(1050px,96vw);overflow:hidden;border:1px solid var(--border2);border-radius:17px;background:var(--surface);box-shadow:0 25px 80px rgba(0,0,0,.4); }
+.eh-app .video-modal-header { min-height:57px;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:9px 15px;border-bottom:1px solid var(--border); }
+.eh-app .video-modal-header>div { min-width:0;display:flex;flex-direction:column;gap:3px; }
+.eh-app .video-modal-header b { color:var(--text);font-size:12px; }
+.eh-app .video-modal-header span { color:var(--muted);font-size:9px; }
+.eh-app .video-player-frame { width:100%;aspect-ratio:16/9;background:#05070d; }
+.eh-app .video-player-frame video,.eh-app .video-player-frame iframe { width:100%;height:100%;display:block;border:0; }
+@media(max-width:1100px) { .eh-app .eh-academic-subject-grid,.eh-app .eh-lecture-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+@media(max-width:720px) {
+  .eh-app .eh-academic-hero { min-height:190px;align-items:flex-start;flex-direction:column;gap:17px;padding:20px; }
+  .eh-app .eh-academic-hero h2 { font-size:23px; }
+  .eh-app .eh-academic-stats { width:100%;justify-content:flex-start;gap:21px;padding:11px 0 0;border-right:0;border-top:1px solid rgba(255,255,255,.17); }
+  .eh-app .eh-academic-stats b { font-size:21px; }
+  .eh-app .eh-academic-hero-symbol { width:84px;height:84px;left:13px;top:auto;bottom:8px;transform:rotate(-11deg);opacity:.3; }
+  .eh-app .eh-academic-hero-symbol svg { width:40px; }
+  .eh-app .eh-academic-subject-grid,.eh-app .eh-lecture-grid { grid-template-columns:1fr;gap:10px; }
+  .eh-app .eh-academic-level { align-items:flex-start;flex-wrap:wrap;padding:14px;gap:11px; }
+  .eh-app .eh-academic-level-copy { flex-basis:calc(100% - 75px); }
+  .eh-app .eh-academic-level-copy h2 { font-size:15px; }
+  .eh-app .eh-academic-level-count { min-width:60px;padding:7px 10px;border-right:0;border-top:1px solid var(--border); }
+  .eh-app .eh-lecturer-grid { grid-template-columns:1fr;gap:9px; }
+  .eh-app .eh-part-card { flex-wrap:wrap;gap:9px;padding:11px; }
+  .eh-app .eh-part-card .eh-button { margin-inline-start:auto; }
+  .eh-app .eh-lecture-art { height:132px; }
+}
