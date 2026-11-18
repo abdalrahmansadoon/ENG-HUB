@@ -4,7 +4,7 @@ import {
   BookOpenCheck, CalendarDays, Check, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight,
   CircleHelp, Clock3, CloudUpload, Code2, Command, Download, File, FileImage, FileText,
   Filter, FolderOpen, GraduationCap, Grid2X2, Headphones, Home, Layers3, Lock, LogOut, Menu,
-  MessageCircle, MoreHorizontal, Paperclip, Pause, Play, Plus, Search, Send, Settings, ShieldCheck,
+  MessageCircle, Megaphone, MoreHorizontal, Paperclip, Pause, Play, Plus, Search, Send, Settings, ShieldCheck,
   SlidersHorizontal, Sparkles, Sun, Moon, Target, Timer, TrendingUp, Upload, Users,
   Video, X, Zap, ClipboardList, CalendarClock, BookMarked, ListChecks, ChartNoAxesCombined,
   ImagePlus, Volume2, VolumeX, Maximize, Trash2, Pencil, Monitor, Smartphone, Unlock,
@@ -1625,6 +1625,65 @@ function ChatPage({ user, cloudinarySettings, isDemo, isAdmin, roomId, roomTitle
     }
   };
 
+  const saveAnnouncement = async (text: string) => {
+    if (!isAdmin) return;
+    setModerationBusy(true);
+    try {
+      if (announcementTarget) {
+        await updateChatAnnouncement(roomId, announcementTarget.id, text);
+        setNotice('تم تحديث التعميم.');
+      } else {
+        await createChatAnnouncement(roomId, user.uid, text);
+        setNotice('تم نشر التعميم لجميع أعضاء الغرفة.');
+      }
+      setAnnouncementTarget(null);
+      setAnnouncementModalOpen(false);
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : 'تعذر حفظ التعميم.');
+    } finally {
+      setModerationBusy(false);
+    }
+  };
+
+  const removeAnnouncement = async (item: ChatAnnouncement) => {
+    if (!isAdmin || !window.confirm('سيتم حذف هذا التعميم من جميع أعضاء الغرفة. هل تريد المتابعة؟')) return;
+    try {
+      await deleteChatAnnouncement(roomId, item.id);
+      setNotice('تم حذف التعميم.');
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : 'تعذر حذف التعميم.');
+    }
+  };
+
+  const changeChatBackground = async (file?: File) => {
+    if (!file) return;
+    if (!file.type.startsWith('image/')) { setError('اختر صورة صالحة لخلفية المحادثة.'); return; }
+    if (file.size > 8 * 1024 * 1024) { setError('حجم صورة الخلفية يجب ألا يتجاوز 8 MB.'); return; }
+    if (!isCloudinaryConfigured(cloudinarySettings)) { setError('إعدادات Cloudinary غير مكتملة لرفع الخلفية.'); return; }
+    setBackgroundBusy(true);
+    setError('');
+    try {
+      const url = await uploadFile(file, cloudinarySettings);
+      await saveChatBackground(user.uid, roomId, url);
+      setNotice('تم حفظ خلفية المحادثة لهذا الحساب وهذه الغرفة.');
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : 'تعذر رفع خلفية المحادثة.');
+    } finally {
+      setBackgroundBusy(false);
+      if (backgroundFileInput.current) backgroundFileInput.current.value = '';
+    }
+  };
+
+  const resetChatBackground = async () => {
+    if (!chatBackgroundUrl) return;
+    try {
+      await clearChatBackground(user.uid, roomId);
+      setNotice('تمت إعادة خلفية المحادثة إلى الشكل الافتراضي.');
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : 'تعذر إزالة خلفية المحادثة.');
+    }
+  };
+
   const openContextMenu = (message: ChatMessage, x: number, y: number) => {
     const width = 236;
     const height = isAdmin ? 385 : 280;
@@ -1681,15 +1740,28 @@ function ChatPage({ user, cloudinarySettings, isDemo, isAdmin, roomId, roomTitle
         </div>
         <div className="chat-topbar-actions">
           <div className="chat-topbar-search"><Search size={15}/><input placeholder="ابحث داخل المحادثة" value={search} onChange={(event) => setSearch(event.target.value)}/></div>
+          <button type="button" className="chat-topbar-btn" onClick={() => backgroundFileInput.current?.click()} disabled={backgroundBusy} title="اختيار خلفية المحادثة">{backgroundBusy ? <span className="spinner"/> : <ImagePlus size={16}/>}</button>
+          {chatBackgroundUrl && <button type="button" className="chat-topbar-btn" onClick={() => void resetChatBackground()} title="إزالة الخلفية"><X size={15}/></button>}
+          {isAdmin && <button type="button" className="chat-topbar-btn" onClick={() => { setAnnouncementTarget(null); setAnnouncementModalOpen(true); }} title="إضافة تعميم"><Megaphone size={16}/></button>}
           {isAdmin && <button type="button" className="chat-topbar-btn" onClick={() => lockState.locked ? void unlockChat() : setLockSettingsOpen(true)} disabled={moderationBusy} title={lockState.locked ? 'فتح المحادثة للطلاب' : 'جدولة قفل المحادثة'}>{lockState.locked ? <Unlock size={16}/> : <Lock size={16}/>}</button>}
           {isAdmin && <button type="button" className="chat-topbar-btn chat-admin-clear" onClick={() => void clearRoom()} title="تفريغ المحادثة"><Trash2 size={16}/></button>}
         </div>
       </header>
+      <input ref={backgroundFileInput} type="file" accept="image/*" className="visually-hidden" onChange={(event) => void changeChatBackground(event.target.files?.[0])}/>
 
       {notice && <div className="chat-inline-notice" role="status"><CheckCircle2 size={15}/><span>{notice}</span><button type="button" onClick={() => setNotice('')} aria-label="إغلاق"><X size={14}/></button></div>}
       {lockState.locked && <div className="chat-lock-banner"><Lock size={16}/><span><b>المحادثة مقفلة مؤقتاً.</b> {lockState.reason || 'تم إيقاف إرسال الطلاب بقرار من الإدارة.'} {lockState.endAt ? `موعد الفتح: ${lockState.endAt.toLocaleString('ar-EG', { dateStyle: 'short', timeStyle: 'short' })}` : 'سيتم فتحها يدوياً من الإدارة.'}</span>{isAdmin && <small>المدير يستطيع الإرسال</small>}</div>}
       {muteState.muted && <div className="chat-lock-banner"><ShieldCheck size={16}/><span>تم إيقاف الإرسال لحسابك {muteState.mutedUntil ? `حتى ${muteState.mutedUntil.toLocaleString('ar-EG', { dateStyle: 'short', timeStyle: 'short' })}` : 'حتى إلغاء الكتم من الإدارة'}.</span></div>}
       {warnings.length > 0 && <div className="chat-warning-strip"><ShieldCheck size={15}/><span><b>تنبيه من إدارة المحادثة:</b> {warnings[0].reason}</span><small>{warnings[0].createdAt?.toLocaleDateString('ar-EG') || ''}</small></div>}
+
+      {announcements.length > 0 && <section className="chat-announcement-stack" aria-label="التعاميم الإدارية">
+        {announcements.slice(0,5).map((item) => <article className="chat-announcement-card" key={item.id}>
+          <div className="chat-announcement-head"><span className="chat-announcement-icon"><Megaphone size={17}/></span><div><b>تعميم إداري</b><small>{item.createdAt?.toLocaleString('ar-EG', { dateStyle: 'medium', timeStyle: 'short' }) || 'حديثاً'}{item.updatedAt && item.createdAt && item.updatedAt.getTime() - item.createdAt.getTime() > 1000 ? ' · تم التعديل' : ''}</small></div>
+            {isAdmin && <details className="chat-announcement-actions"><summary aria-label="خيارات التعميم"><MoreHorizontal size={17}/></summary><div><button type="button" onClick={() => { setAnnouncementTarget(item); setAnnouncementModalOpen(true); }}><Pencil size={14}/> تعديل التعميم</button><button type="button" className="danger" onClick={() => void removeAnnouncement(item)}><Trash2 size={14}/> حذف التعميم</button></div></details>}
+          </div>
+          <p>{item.text}</p>
+        </article>)}
+      </section>}
 
       <div className="chat-pinned-strip">
         <div className="chat-pinned-strip-label"><Pin size={15}/><span>المثبتة</span></div>
@@ -1698,7 +1770,14 @@ function ChatPage({ user, cloudinarySettings, isDemo, isAdmin, roomId, roomTitle
           : <div className="chat-pinned-strip-list">{pinnedMessages.slice(0,3).map((message) => <button type="button" key={message.id} onClick={() => jumpToMessage(message.id)}><b>{message.senderName}</b><span>{message.text || message.attachments[0]?.name || 'مرفق'}</span></button>)}</div>}
       </div>
 
-      <main className="chat-messages-rebuilt" aria-live="polite">
+      <main
+        className="chat-messages-rebuilt"
+        aria-live="polite"
+        style={chatBackgroundUrl ? {
+          backgroundImage: `linear-gradient(rgba(7, 16, 31, .42), rgba(7, 16, 31, .42)), url("${chatBackgroundUrl.replace(/"/g, '%22')}")`,
+          backgroundPosition: 'center', backgroundSize: 'cover', backgroundAttachment: 'local',
+        } : undefined}
+      >
         {loading && <div className="chat-reference-state"><span className="spinner"/><b>جارٍ تحميل المحادثة</b><small>يتم الاتصال بغرفة الدردشة المباشرة.</small></div>}
         {!loading && visibleMessages.length === 0 && <div className="chat-reference-state"><div className="chat-reference-empty-icon"><MessageCircle size={27}/></div><b>{messages.length === 0 ? 'لا توجد رسائل حتى الآن' : 'لا توجد نتائج مطابقة'}</b><small>{messages.length === 0 ? 'ابدأ المحادثة وشارك زملاءك ما يفيدهم.' : 'جرّب البحث باسم أو كلمة مختلفة.'}</small></div>}
         {visibleMessages.map((message, index) => {
@@ -1892,6 +1971,7 @@ function ChatPage({ user, cloudinarySettings, isDemo, isAdmin, roomId, roomTitle
     {lockSettingsOpen && <ChatLockModal onClose={() => setLockSettingsOpen(false)} onSave={saveChatLock} busy={moderationBusy}/>}
     {muteTarget && <ChatMuteModal userName={muteTarget.senderName} onClose={() => setMuteTarget(null)} onSave={saveMuteDuration} busy={moderationBusy}/>}
     {warningTarget && <ChatWarningModal userName={warningTarget.senderName} onClose={() => setWarningTarget(null)} onSave={saveWarning} busy={moderationBusy}/>}
+    {announcementModalOpen && <ChatAnnouncementModal initialText={announcementTarget?.text ?? ''} onClose={() => { if (!moderationBusy) { setAnnouncementModalOpen(false); setAnnouncementTarget(null); } }} onSave={saveAnnouncement} busy={moderationBusy}/>}
   </section>;
 }
 
