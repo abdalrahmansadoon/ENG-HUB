@@ -1,4 +1,4 @@
-import { useMemo, useState, type FormEvent } from 'react';
+import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import {
   ArrowDown, ArrowUpLeft, BookOpen, Check, ChevronLeft, ChevronRight, ClipboardList,
   Download, ExternalLink, File, FileText, Folder, FolderPlus, GraduationCap, Layers3,
@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import type { Subject } from '../../types';
 import { isAcademicContentContainer } from '../../types/academicContent';
+import { setAcademicContentCompleted, subscribeCompletedAcademicContent } from '../../lib/academicContent';
 import type {
   AcademicContentCategory, AcademicContentKind, AcademicContentNode, CreateAcademicContentInput,
 } from '../../types/academicContent';
@@ -34,6 +35,7 @@ const kinds: Array<{ id: AcademicContentKind; label: string }> = [
 
 interface Props {
   subject: Subject;
+  currentUserId: string;
   nodes: AcademicContentNode[];
   category: AcademicContentCategory;
   activeNodeId: string;
@@ -47,12 +49,29 @@ interface Props {
 }
 
 export function AcademicContentArea({
-  subject, nodes, category, activeNodeId, isAdmin, onNavigate, onBackToSubject, onCreate, onDelete, onUpdate, onUpload,
+  subject, currentUserId, nodes, category, activeNodeId, isAdmin, onNavigate, onBackToSubject, onCreate, onDelete, onUpdate, onUpload,
 }: Props) {
   const [search, setSearch] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<AcademicContentNode | null>(null);
   const [busy, setBusy] = useState(false);
+  const [completedVideoIds, setCompletedVideoIds] = useState<Set<string>>(new Set());
+  const [completionBusy, setCompletionBusy] = useState(false);
+  useEffect(() => {
+    if (!currentUserId) { setCompletedVideoIds(new Set()); return; }
+    return subscribeCompletedAcademicContent(currentUserId, setCompletedVideoIds, (error) => console.warn('Video progress sync failed:', error));
+  }, [currentUserId]);
+  const toggleVideoCompleted = async (nodeId: string) => {
+    const next = !completedVideoIds.has(nodeId);
+    setCompletionBusy(true);
+    try {
+      await setAcademicContentCompleted(currentUserId, nodeId, next);
+      setCompletedVideoIds(current => { const copy = new Set(current); if (next) copy.add(nodeId); else copy.delete(nodeId); return copy; });
+    } catch (error) {
+      console.error(error);
+      window.alert('تعذر حفظ تقدم الفيديو. تحقق من الاتصال ثم حاول مرة أخرى.');
+    } finally { setCompletionBusy(false); }
+  };
   const activeNode = nodes.find((node) => node.id === activeNodeId) ?? null;
   const ancestorTrail = useMemo(() => {
     const trail: AcademicContentNode[] = [];
@@ -156,6 +175,10 @@ export function AcademicContentArea({
     {activeNode && <section className="eh-content-detail">
       <header><span className="eh-content-detail-label">CONTENT DETAILS</span><h3>{activeNode.title}</h3>{activeNode.description && <p>{activeNode.description}</p>}</header>
       {(activeNode.kind === 'video' || activeNode.kind === 'lecture') && activeNode.url && <AcademicVideo url={activeNode.url} title={activeNode.title}/>} 
+      {activeNode.kind === 'video' && <div className="eh-video-completion">
+        <div><b>{completedVideoIds.has(activeNode.id) ? 'أحسنت! أنهيت هذا الفيديو' : 'هل أكملت مشاهدة الفيديو؟'}</b><small>يُسجل التقدم لهذا الفيديو وحده، دون اعتبار بقية المحاضرة مكتملة.</small></div>
+        <button type="button" className={completedVideoIds.has(activeNode.id) ? 'is-complete' : ''} disabled={completionBusy} onClick={() => void toggleVideoCompleted(activeNode.id)}>{completionBusy ? 'جارٍ الحفظ…' : completedVideoIds.has(activeNode.id) ? 'مكتمل · تراجع' : 'تحديد كمكتمل'}</button>
+      </div>}
       {activeNode.kind === 'file' && activeNode.url && <a className="eh-related-content-link" href={activeNode.url} target="_blank" rel="noreferrer"><Download size={17}/><span><b>فتح أو تنزيل الملف</b><small>{activeNode.mimeType || 'مرفق المادة'}</small></span><ExternalLink size={15}/></a>}
       {(activeNode.kind === 'link' || activeNode.kind === 'exam' || activeNode.kind === 'assignment') && activeNode.url && <a className="eh-related-content-link" href={activeNode.url} target="_blank" rel="noreferrer"><ExternalLink size={17}/><span><b>{activeNode.kind === 'exam' ? 'فتح الاختبار' : activeNode.kind === 'assignment' ? 'فتح التكليف' : 'فتح الرابط'}</b><small>{activeNode.url}</small></span><ChevronLeft size={15}/></a>}
       {activeNode.kind === 'note' && <div className="eh-content-note">{activeNode.description || activeNode.title}</div>}
