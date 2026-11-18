@@ -1,6 +1,6 @@
 import {
   addDoc, collection, deleteDoc, doc, getDoc, getDocs, limit, onSnapshot, orderBy, query,
-  runTransaction, serverTimestamp, setDoc, Timestamp, updateDoc, writeBatch, type Unsubscribe,
+  arrayUnion, runTransaction, serverTimestamp, setDoc, Timestamp, updateDoc, writeBatch, type Unsubscribe,
 } from 'firebase/firestore';
 import { db } from './firebase';
 
@@ -27,6 +27,9 @@ export interface ChatMessage {
   attachments: ChatAttachment[];
   replyTo?: { id: string; text: string; senderName: string } | null;
   reactions: ChatReactions;
+  deleted?: boolean;
+  deletedAt?: Date | null;
+  deletedBy?: string | null;
 }
 
 const GENERAL_CHAT_ID = 'general';
@@ -145,6 +148,7 @@ export async function joinGeneralChat(user: { uid: string; displayName: string; 
 }
 
 export function subscribeGeneralChat(
+  userId: string,
   onMessages: (messages: ChatMessage[]) => void,
   onError: (error: Error) => void,
 ): Unsubscribe {
@@ -154,8 +158,12 @@ export function subscribeGeneralChat(
     orderBy('createdAt', 'desc'),
     limit(200),
   );
-  return onSnapshot(messagesQuery, (snapshot) => {
-    onMessages(snapshot.docs.map((entry) => {
+  const hiddenRef = doc(firestore, 'users', userId, 'hiddenChatMessages', GENERAL_CHAT_ID);
+  let allMessages: ChatMessage[] = [];
+  let hiddenIds = new Set<string>();
+  const emit = () => onMessages(allMessages.filter((message) => !hiddenIds.has(message.id)));
+  const stopMessages = onSnapshot(messagesQuery, (snapshot) => {
+    allMessages = snapshot.docs.map((entry) => {
       const data = entry.data();
       return {
         id: entry.id,
@@ -166,14 +174,26 @@ export function subscribeGeneralChat(
         createdAt: timestampToDate(data.createdAt),
         editedAt: timestampToDate(data.editedAt),
         edited: data.edited === true,
+        deleted: data.deleted === true,
+        deletedAt: timestampToDate(data.deletedAt),
+        deletedBy: typeof data.deletedBy === 'string' ? data.deletedBy : null,
         pinned: data.pinned === true,
         pinnedBy: typeof data.pinnedBy === 'string' ? data.pinnedBy : null,
         attachments: Array.isArray(data.attachments) ? data.attachments as ChatAttachment[] : [],
         replyTo: data.replyTo && typeof data.replyTo === 'object' ? data.replyTo : null,
         reactions: data.reactions && typeof data.reactions === 'object' ? data.reactions as ChatReactions : {},
       } as ChatMessage;
-    }).reverse());
+    }).reverse();
+    emit();
   }, onError);
+  const stopHidden = onSnapshot(hiddenRef, (snapshot) => {
+    const ids = snapshot.exists() && Array.isArray(snapshot.data().messageIds)
+      ? snapshot.data().messageIds.filter((id: unknown): id is string => typeof id === 'string')
+      : [];
+    hiddenIds = new Set(ids);
+    emit();
+  }, onError);
+  return () => { stopMessages(); stopHidden(); };
 }
 
 export async function sendGeneralChatMessage(input: {
@@ -196,6 +216,7 @@ export async function sendGeneralChatMessage(input: {
     replyTo: input.replyTo ?? null,
     reactions: {},
     pinned: false,
+    deleted: false,
     createdAt: serverTimestamp(),
   });
 }
@@ -243,6 +264,29 @@ export async function toggleGeneralChatPin(messageId: string, adminId: string, p
     pinnedBy: pinned ? adminId : null,
     pinnedAt: pinned ? serverTimestamp() : null,
   });
+}
+
+export async function softDeleteGeneralChatMessage(messageId: string, senderId: string) {
+  const ref = messageRef(messageId);
+  const snapshot = await getDoc(ref);
+  if (!snapshot.exists()) throw new Error('هذه الرسالة لم تعد موجودة.');
+  if (snapshot.data().senderId !== senderId) throw new Error('يمكنك حذف رسائلك فقط.');
+  await updateDoc(ref, {
+    deleted: true,
+    deletedAt: serverTimestamp(),
+    deletedBy: senderId,
+    text: '',
+    attachments: [],
+  });
+}
+
+export async function hideGeneralChatMessageForUser(userId: string, messageId: string) {
+  if (!userId) throw new Error('يجب تسجيل الدخول لإخفاء الرسالة من حسابك.');
+  const ref = doc(requireDb(), 'users', userId, 'hiddenChatMessages', GENERAL_CHAT_ID);
+  await setDoc(ref, {
+    messageIds: arrayUnion(messageId),
+    updatedAt: serverTimestamp(),
+  }, { merge: true });
 }
 
 export async function deleteGeneralChatMessage(messageId: string) {
