@@ -8,7 +8,7 @@ import {
   SlidersHorizontal, Sparkles, Sun, Moon, Target, Timer, TrendingUp, Upload, Users,
   Video, X, Zap, ClipboardList, CalendarClock, BookMarked, ListChecks, ChartNoAxesCombined,
   ImagePlus, Volume2, VolumeX, Maximize, Trash2, Pencil, Monitor, Smartphone,
-  Copy, Pin, Smile, CheckCheck,
+  Copy, Pin, Smile, CheckCheck, Flag, Minus, Info, RotateCcw,
 } from 'lucide-react';
 import { useAuth, registerAccount } from './AuthContext';
 import { defaultCloudinarySettings, isCloudinaryConfigured, saveCloudinarySettings, subscribeCloudinarySettings, type CloudinarySettings } from '../lib/cloudinary';
@@ -19,6 +19,7 @@ import { readLocal, writeLocal } from '../lib/storage';
 import { createExamCloud, createLectureCloud, createLecturePartCloud, createLecturerCloud, createSubjectCloud, createTaskCloud, deleteTaskCloud, saveFileMetadataCloud, subscribeExams, subscribeFiles, subscribeLectureParts, subscribeLecturers, subscribeLectures, subscribeSubjects, subscribeTasks, updateTaskStatusCloud } from '../lib/cloudData';
 import { createGeneralChatWarning, deleteGeneralChatMessage, editGeneralChatMessage, getGeneralChatMuteStatus, joinGeneralChat, sendGeneralChatMessage, subscribeGeneralChat, subscribeGeneralChatMuteStatus, toggleGeneralChatMute, toggleGeneralChatPin, toggleGeneralChatReaction, type ChatAttachment, type ChatMessage, type ChatMuteStatus } from '../lib/chat';
 import type { AppNotification, AppUser, Exam, Lecture, LecturePart, Lecturer, LibraryFile, Priority, StudyTask, Subject, TaskStatus } from '../types';
+import { AppShell } from './layout/AppShell';
 
 const navGroups = [
   { title: 'مساحة الدراسة', items: [
@@ -269,85 +270,56 @@ function App() {
   if (!profileComplete) return <ProfileCompletionScreen themeClass={themeClass} user={user} cloudinarySettings={defaultCloudinarySettings} onComplete={completeProfile} />;
 
   return (
-    <div className={dark ? 'app-shell theme-dark' : 'app-shell theme-light'} dir="rtl">
-      <aside className={`sidebar ${mobileNav ? 'sidebar-open' : ''}`}>
-        <div className="brand-row">
-          <div className="brand-mark">EH</div>
-          <div className="brand-copy"><strong>ENG HUB</strong><span>CAIRO UNIVERSITY</span></div>
-          <button className="icon-button sidebar-close" onClick={() => setMobileNav(false)} aria-label="إغلاق القائمة"><X size={18}/></button>
-        </div>
-        <div className="semester-chip"><span className="live-dot"/> <span>السنة الإعدادية</span><ChevronDown size={14}/></div>
-        <nav className="side-nav">
-          {navGroups.map((group) => <div className="nav-group" key={group.title}>
-            <div className="nav-caption">{group.title}</div>
-            {group.items.map((item) => {
-              const Icon = item.icon;
-              return <button key={item.id} onClick={() => { setPage(item.id); setMobileNav(false); }} className={`nav-item ${page === item.id ? 'active' : ''}`}>
-                <Icon size={18}/><span>{item.label}</span>
-              </button>;
-            })}
-          </div>)}
-          {isAdmin && <div className="nav-group"><div className="nav-caption">إدارة المنصة</div><button onClick={() => { setPage('admin'); setMobileNav(false); }} className={`nav-item ${page === 'admin' ? 'active' : ''}`}><ShieldCheck size={18}/><span>لوحة الإدارة</span><span className="admin-dot"/></button></div>}
-        </nav>
-        <div className="sidebar-spacer"/>
-        <div className="sidebar-help"><div className="help-icon"><CircleHelp size={18}/></div><div><b>تحتاج إلى مساعدة؟</b><span>مركز المساعدة والدعم</span></div><ChevronLeft size={15}/></div>
-        <div className="sidebar-profile">
-          <div className="avatar avatar-purple">{activeUser.photoURL ? <img src={activeUser.photoURL} alt="" /> : activeUser.displayName.slice(0, 1)}</div>
-          <div className="profile-copy"><b>{activeUser.displayName}</b><span>{isAdmin ? 'مدير المنصة' : 'طالب هندسة'}</span></div>
-          <button className="icon-button" onClick={() => setPage('profile')} aria-label="إعدادات الملف الشخصي"><MoreHorizontal size={19}/></button>
-        </div>
-      </aside>
-      {mobileNav && <button className="mobile-scrim" onClick={() => setMobileNav(false)} aria-label="إغلاق القائمة"/>}
-
-      <main className="main-area">
-        <header className="topbar">
-          <div className="topbar-start">
-            <button className="icon-button mobile-menu" onClick={() => setMobileNav(true)} aria-label="فتح القائمة"><Menu size={20}/></button>
-            <div className="breadcrumb"><span>ENG HUB</span><ChevronLeft size={13}/><b>{pageTitle(page)}</b></div>
-          </div>
-          <div className="topbar-actions">
-            <div className="global-search-wrap"><div className="global-search"><Search size={17}/><input placeholder="ابحث عن مادة، محاضرة، مهمة..." value={search} onChange={(event) => setSearch(event.target.value)} /><kbd>⌘ K</kbd></div>{search.trim() && <div className="global-search-results">{quickResults.length ? quickResults.map((result) => <button key={`${result.page}-${result.id}`} onClick={() => { setPage(result.page); setSearch(''); }}><Search size={13}/><span><b>{result.title}</b><small>{result.sub}</small></span><ArrowLeft size={13}/></button>) : <div className="search-empty">لا توجد نتائج مطابقة</div>}</div>}</div>
-            <button className="icon-button theme-toggle" onClick={() => setThemePreference(dark ? 'light' : 'dark')} aria-label="تغيير المظهر">{dark ? <Sun size={18}/> : <Moon size={18}/>}</button>
-            <button className="icon-button notification-button" onClick={() => setPage('notifications')} aria-label="الإشعارات"><Bell size={18}/>{unreadCount > 0 && <i/>}</button>
-            <button className="top-avatar" onClick={() => setPage('profile')}>{activeUser.photoURL ? <img src={activeUser.photoURL} alt="" /> : activeUser.displayName.slice(0, 1)}</button>
-          </div>
-        </header>
-
-        <div className="page-wrap">
-          {page === 'home' && <Dashboard userName={activeUser.displayName} tasks={tasks} subjects={subjects} exams={exams} lectures={lectures} onGo={setPage} onNewTask={() => setTaskModal(true)} onStatus={changeTaskStatus} canCreateTask={isAdmin}/>}
-          {page === 'tasks' && <TasksPage tasks={tasks} onNew={() => setTaskModal(true)} onStatus={changeTaskStatus} onDelete={(id) => void removeTask(id)} canEdit={isAdmin}/>}
-          {(page === 'courses' || page === 'lectures') && <AcademicHubPage
-            subjects={subjects} lecturers={lecturers} lectures={lectures} parts={lectureParts}
-            selectedSubjectId={selectedSubjectId} selectedLecturerId={selectedLecturerId} selectedLectureId={selectedLectureId}
-            canEdit={isAdmin}
-            onSelectSubject={(id) => { setSelectedSubjectId(id); setSelectedLecturerId(''); setSelectedLectureId(''); }}
-            onSelectLecturer={(id) => { setSelectedLecturerId(id); setSelectedLectureId(''); }}
-            onSelectLecture={setSelectedLectureId}
-            onBack={() => { if (selectedLectureId) setSelectedLectureId(''); else if (selectedLecturerId) setSelectedLecturerId(''); else setSelectedSubjectId(''); }}
-            onAddSubject={() => setSubjectModal(true)}
-            onAddLecturer={() => setLecturerModal(true)}
-            onAddLecture={() => setLectureModal(true)}
-            onAddPart={() => setLecturePartModal(true)}
-          />}
-          {page === 'exams' && <ExamsPage exams={exams} setExams={setExams} canEdit={isAdmin} onAdd={() => setExamModal(true)}/>}
-          {page === 'files' && <FilesPage files={files} onUpload={addFile} cloudinaryReady={isCloudinaryConfigured(cloudinarySettings)} isDemo={isDemo} />}
-          {page === 'chat' && <ChatPage user={activeUser} cloudinarySettings={cloudinarySettings} isDemo={isDemo} isAdmin={isAdmin} onBack={() => setPage('home')}/>}
-          {page === 'planner' && <PlannerPage tasks={tasks} />}
-          {page === 'analytics' && <AnalyticsPage tasks={tasks} subjects={subjects} lectures={lectures} />}
-          {page === 'notifications' && <NotificationsPage items={notifications} setItems={setNotifications} />}
-          {page === 'admin' && <AdminPage tasks={tasks} subjects={subjects} lecturers={lecturers} lectures={lectures} exams={exams} files={files} currentUser={activeUser} cloudinarySettings={cloudinarySettings} onNewTask={() => setTaskModal(true)} onAddSubject={() => setSubjectModal(true)} onAddLecturer={() => { setPage('courses'); setSelectedSubjectId(''); setSelectedLecturerId(''); setSelectedLectureId(''); }} onAddLecture={() => setLectureModal(true)} onAddExam={() => setExamModal(true)} onSaved={() => setToast('تم حفظ إعدادات Cloudinary في Firestore')} onError={(message) => setToast(message)} />}
-          {page === 'profile' && <ProfilePage user={activeUser} isDemo={isDemo} onToggleRole={toggleDemoRole} onLogout={logout} onDeleteAccount={deleteAccount} onSaveProfile={saveProfile} themePreference={themePreference} onThemeChange={setThemePreference} cloudinarySettings={cloudinarySettings} onToggleTheme={() => setThemePreference(dark ? 'light' : 'dark')} dark={dark} />}
-        </div>
-      </main>
-
+    <AppShell
+      user={activeUser}
+      page={page}
+      pageTitle={pageTitle(page)}
+      navGroups={navGroups}
+      isAdmin={isAdmin}
+      dark={dark}
+      search={search}
+      searchResults={quickResults}
+      unreadCount={unreadCount}
+      mobileNav={mobileNav}
+      onSearch={setSearch}
+      onNavigate={(target) => { setPage(target); setMobileNav(false); }}
+      onToggleTheme={() => setThemePreference(dark ? 'light' : 'dark')}
+      onOpenMobileNav={() => setMobileNav(true)}
+      onCloseMobileNav={() => setMobileNav(false)}
+    >
+      <div className={`eh-page-view ${page === 'chat' ? 'eh-chat-page' : ''}`}>
+        {page === 'home' && <Dashboard userName={activeUser.displayName} tasks={tasks} subjects={subjects} exams={exams} lectures={lectures} onGo={setPage} onNewTask={() => setTaskModal(true)} onStatus={changeTaskStatus} canCreateTask={isAdmin}/>}
+        {page === 'tasks' && <TasksPage tasks={tasks} onNew={() => setTaskModal(true)} onStatus={changeTaskStatus} onDelete={(id) => void removeTask(id)} canEdit={isAdmin}/>}
+        {(page === 'courses' || page === 'lectures') && <AcademicHubPage
+          subjects={subjects} lecturers={lecturers} lectures={lectures} parts={lectureParts}
+          selectedSubjectId={selectedSubjectId} selectedLecturerId={selectedLecturerId} selectedLectureId={selectedLectureId}
+          canEdit={isAdmin}
+          onSelectSubject={(id) => { setSelectedSubjectId(id); setSelectedLecturerId(''); setSelectedLectureId(''); }}
+          onSelectLecturer={(id) => { setSelectedLecturerId(id); setSelectedLectureId(''); }}
+          onSelectLecture={setSelectedLectureId}
+          onBack={() => { if (selectedLectureId) setSelectedLectureId(''); else if (selectedLecturerId) setSelectedLecturerId(''); else setSelectedSubjectId(''); }}
+          onAddSubject={() => setSubjectModal(true)}
+          onAddLecturer={() => setLecturerModal(true)}
+          onAddLecture={() => setLectureModal(true)}
+          onAddPart={() => setLecturePartModal(true)}
+        />}
+        {page === 'exams' && <ExamsPage exams={exams} setExams={setExams} canEdit={isAdmin} onAdd={() => setExamModal(true)}/>}
+        {page === 'files' && <FilesPage files={files} onUpload={addFile} cloudinaryReady={isCloudinaryConfigured(cloudinarySettings)} isDemo={isDemo}/>}
+        {page === 'chat' && <ChatPage user={activeUser} cloudinarySettings={cloudinarySettings} isDemo={isDemo} isAdmin={isAdmin} onBack={() => setPage('home')}/>}
+        {page === 'planner' && <PlannerPage tasks={tasks}/>}
+        {page === 'analytics' && <AnalyticsPage tasks={tasks} subjects={subjects} lectures={lectures}/>}
+        {page === 'notifications' && <NotificationsPage items={notifications} setItems={setNotifications}/>}
+        {page === 'admin' && <AdminPage tasks={tasks} subjects={subjects} lecturers={lecturers} lectures={lectures} exams={exams} files={files} currentUser={activeUser} cloudinarySettings={cloudinarySettings} onNewTask={() => setTaskModal(true)} onAddSubject={() => setSubjectModal(true)} onAddLecturer={() => { setPage('courses'); setSelectedSubjectId(''); setSelectedLecturerId(''); setSelectedLectureId(''); }} onAddLecture={() => setLectureModal(true)} onAddExam={() => setExamModal(true)} onSaved={() => setToast('تم حفظ إعدادات Cloudinary في Firestore')} onError={(message) => setToast(message)}/>}
+        {page === 'profile' && <ProfilePage user={activeUser} isDemo={isDemo} onToggleRole={toggleDemoRole} onLogout={logout} onDeleteAccount={deleteAccount} onSaveProfile={saveProfile} themePreference={themePreference} onThemeChange={setThemePreference} cloudinarySettings={cloudinarySettings} onToggleTheme={() => setThemePreference(dark ? 'light' : 'dark')} dark={dark}/>}
+      </div>
       {taskModal && <TaskModal subjects={subjects} userId={activeUser.uid} onClose={() => setTaskModal(false)} onSave={addTask}/>}
       {subjectModal && <SubjectModal onClose={() => setSubjectModal(false)} onSave={addSubject}/>}
       {lecturerModal && <LecturerModal subject={subjects.find((item) => item.id === selectedSubjectId) ?? null} onClose={() => setLecturerModal(false)} onSave={addLecturer}/>}
       {lectureModal && <LectureModal lecturers={lecturers} selectedLecturerId={selectedLecturerId} onClose={() => setLectureModal(false)} onSave={addLecture}/>}
       {lecturePartModal && <LecturePartModal nextOrder={lectureParts.length + 1} onClose={() => setLecturePartModal(false)} onSave={addLecturePart}/>}
       {examModal && <ExamModal subjects={subjects} onClose={() => setExamModal(false)} onSave={addExam}/>}
-      {toast && <div className="toast"><CheckCircle2 size={17}/>{toast}</div>}
-    </div>
+      {toast && <div className="eh-toast"><CheckCircle2 size={17}/>{toast}</div>}
+    </AppShell>
   );
 }
 
@@ -450,7 +422,10 @@ function pageTitle(page: string) {
 }
 
 function PageHeader({ eyebrow, title, description, action }: { eyebrow?: string; title: string; description?: string; action?: ReactNode }) {
-  return <div className="page-heading"><div>{eyebrow && <div className="eyebrow">{eyebrow}</div>}<h1>{title}</h1>{description && <p>{description}</p>}</div>{action}</div>;
+  return <header className="eh-page-heading">
+    <div>{eyebrow && <div className="eh-eyebrow">{eyebrow}</div>}<h1>{title}</h1>{description && <p>{description}</p>}</div>
+    {action && <div className="eh-page-heading-action">{action}</div>}
+  </header>;
 }
 
 function Dashboard({ userName, tasks, subjects, exams, lectures, onGo, onNewTask, onStatus, canCreateTask }: {
@@ -458,94 +433,176 @@ function Dashboard({ userName, tasks, subjects, exams, lectures, onGo, onNewTask
   onGo: (page: string) => void; onNewTask: () => void; onStatus: (id: string, status: TaskStatus) => void; canCreateTask: boolean;
 }) {
   const completed = tasks.filter((task) => task.status === 'completed').length;
-  const todo = tasks.filter((task) => task.status !== 'completed' && task.status !== 'under-review').length;
+  const pending = tasks.filter((task) => task.status !== 'completed' && task.status !== 'under-review').length;
   const currentExams = exams.filter((exam) => exam.status !== 'completed').length;
-  const upcomingTasks = tasks.filter((task) => task.status !== 'completed').slice(0, 4);
-  const deadlines = [
-    ...tasks.filter((task) => task.status !== 'completed').map((task) => ({ id: 'task-' + task.id, title: task.title, sub: task.subjectName, date: new Date(task.dueAt), kind: 'مهمة' })),
-    ...exams.filter((exam) => exam.status !== 'completed').map((exam) => ({ id: 'exam-' + exam.id, title: exam.title, sub: exam.subjectName, date: new Date(exam.date), kind: 'اختبار' })),
-  ].filter((item) => !Number.isNaN(item.date.getTime())).sort((a, b) => a.date.getTime() - b.date.getTime()).slice(0, 4);
-
-  return <>
-    <section className="welcome-banner">
-      <div className="welcome-content">
-        <div className="welcome-kicker"><Sparkles size={14}/> مساحة دراستك في مكان واحد</div>
-        <h1>أهلاً بعودتك، {userName} <span>👋</span></h1>
-        <p>كل ما تضيفه إلى مساحتك الدراسية سيظهر هنا تلقائياً.</p>
-        <div className="welcome-actions">
-          {canCreateTask && <button className="btn btn-primary" onClick={onNewTask}><Plus size={16}/> أضف مهمة جديدة</button>}
-          <button className="btn btn-glass" onClick={() => onGo('planner')}><CalendarDays size={16}/> مخطط المذاكرة</button>
+  const upcomingTasks = [...tasks].filter((task) => task.status !== 'completed')
+    .sort((a,b) => new Date(a.dueAt).getTime() - new Date(b.dueAt).getTime()).slice(0,4);
+  const upcoming = [
+    ...tasks.filter((task) => task.status !== 'completed').map((task) => ({id:'task-'+task.id,title:task.title,subject:task.subjectName,date:new Date(task.dueAt),kind:'مهمة'})),
+    ...exams.filter((exam) => exam.status !== 'completed').map((exam) => ({id:'exam-'+exam.title,title:exam.title,subject:exam.subjectName,date:new Date(exam.date),kind:'اختبار'})),
+  ].filter((item) => !Number.isNaN(item.date.getTime())).sort((a,b)=>a.date.getTime()-b.date.getTime()).slice(0,4);
+  const rate = tasks.length ? Math.round((completed / tasks.length) * 100) : 0;
+  const today = new Date().toLocaleDateString('ar-EG',{weekday:'long',day:'numeric',month:'long'});
+  return <div className="eh-home">
+    <section className="eh-welcome">
+      <div className="eh-welcome-copy">
+        <span className="eh-welcome-kicker"><Sparkles size={15}/> مساحة دراستك · {today}</span>
+        <h1>أهلاً بعودتك، <strong>{userName}</strong></h1>
+        <p>مساحتك الأكاديمية جاهزة. تابع مهامك ومحاضراتك ونظّم وقت دراستك من مكان واحد.</p>
+        <div className="eh-welcome-actions">
+          {canCreateTask && <button type="button" className="eh-button primary" onClick={onNewTask}><Plus size={17}/> إضافة مهمة</button>}
+          <button type="button" className="eh-button glass" onClick={() => onGo('planner')}><CalendarDays size={17}/> مخطط المذاكرة</button>
+          <button type="button" className="eh-button glass" onClick={() => onGo('chat')}><MessageCircle size={17}/> اذهب إلى الدردشة</button>
         </div>
       </div>
-      <div className="welcome-art"><div className="orbit orbit-one"/><div className="orbit orbit-two"/><div className="art-core"><GraduationCap size={43}/></div></div>
-      <div className="banner-noise"/>
+      <div className="eh-welcome-visual" aria-hidden="true">
+        <div className="eh-visual-orbit orbit-a"/><div className="eh-visual-orbit orbit-b"/>
+        <div className="eh-visual-core"><GraduationCap size={48}/></div>
+        <div className="eh-visual-chip"><BookOpenCheck size={15}/> Study smarter</div>
+      </div>
     </section>
 
-    <div className="section-title-row"><div><div className="eyebrow">نظرة سريعة</div><h2>ملخص مساحتك الدراسية</h2></div><span className="muted-label">الأرقام من بيانات حسابك الفعلية</span></div>
-    <div className="stats-grid">
-      <StatCard label="المهام المتبقية" value={todo.toString()} meta="مهام غير مكتملة" icon={<ListChecks size={19}/>} tone="violet"/>
-      <StatCard label="المهام المكتملة" value={completed.toString()} meta="مهام أنجزتها" icon={<CheckCircle2 size={19}/>} tone="green"/>
-      <StatCard label="المحاضرات" value={lectures.length.toString()} meta="محاضرات منشورة" icon={<Video size={19}/>} tone="blue"/>
-      <StatCard label="الاختبارات القادمة" value={currentExams.toString()} meta="اختبارات لم تنتهِ بعد" icon={<AlarmClock size={19}/>} tone="amber"/>
+    <div className="eh-section-heading">
+      <div><span className="eh-eyebrow">نظرة عامة</span><h2>ملخص دراستك</h2><p>مؤشرات محسوبة من بياناتك الفعلية</p></div>
+      <button type="button" className="eh-text-button" onClick={() => onGo('analytics')}>عرض التحليلات <ArrowLeft size={15}/></button>
     </div>
 
-    <div className="dashboard-grid">
-      <section className="panel tasks-panel">
-        <div className="panel-head"><div><h3>مهامك</h3><span>المهام المنشورة أو المسندة إليك</span></div><button className="text-link" onClick={() => onGo('tasks')}>كل المهام <ArrowLeft size={15}/></button></div>
-        <div className="task-list">{upcomingTasks.map((task) => <TaskRow key={task.id} task={task} onStatus={onStatus}/>)}</div>
-        {upcomingTasks.length === 0 && <EmptyState title="لا توجد مهام بعد" body="ستظهر هنا المهام التي يضيفها مدير المنصة."/>}
-      </section>
-      <section className="panel progress-panel">
-        <div className="panel-head"><div><h3>المواد الدراسية</h3><span>المواد التي ينشرها مدير المنصة</span></div><button className="icon-button" onClick={() => onGo('courses')}><MoreHorizontal size={19}/></button></div>
-        <div className="subject-progress-list">{subjects.slice(0, 5).map((subject) => <div className="subject-progress" key={subject.id}><div className="subject-mini-icon" style={{ background: subject.color + '18', color: subject.color }}>{subject.icon}</div><div className="subject-progress-main"><div><b>{subject.name}</b><span>{subject.progress}%</span></div><div className="progress-track"><div style={{ width: subject.progress + '%', background: subject.color }}/></div></div></div>)}</div>
-        {subjects.length === 0 && <EmptyState title="لم تتم إضافة مواد بعد" body="ستظهر المواد هنا بعد نشرها من لوحة الإدارة."/>}
-        <button className="panel-footer-link" onClick={() => onGo('courses')}>عرض المواد <ArrowLeft size={14}/></button>
-      </section>
-    </div>
+    <section className="eh-stat-grid">
+      <StatCard label="المهام المتبقية" value={pending.toString()} detail="تحتاج إلى متابعة" icon={<ListChecks size={20}/>} tone="purple"/>
+      <StatCard label="المهام المكتملة" value={completed.toString()} detail={tasks.length ? `من أصل ${tasks.length} مهمة` : 'لا توجد مهام بعد'} icon={<CheckCircle2 size={20}/>} tone="green"/>
+      <StatCard label="المحاضرات المنشورة" value={lectures.length.toString()} detail="في مكتبتك الأكاديمية" icon={<Play size={20}/>} tone="blue"/>
+      <StatCard label="الاختبارات القادمة" value={currentExams.toString()} detail="اختبارات لم تنته بعد" icon={<ClipboardList size={20}/>} tone="amber"/>
+    </section>
 
-    <div className="lower-grid">
-      <section className="panel schedule-panel"><div className="panel-head"><div><h3>نشاط المذاكرة</h3><span>سجل جلسات المذاكرة الفعلية</span></div></div><EmptyState title="لا توجد جلسات مسجلة بعد" body="عند توفر سجل جلسات المذاكرة ستظهر إحصائيات النشاط هنا."/></section>
-      <section className="panel deadline-panel"><div className="panel-head"><div><h3>المواعيد القادمة</h3><span>المواعيد من مهامك واختباراتك</span></div><button className="icon-button" onClick={() => onGo('planner')}><CalendarDays size={17}/></button></div>
-        {deadlines.map((item) => <div className="deadline-item" key={item.id}><div className="date-tile"><b>{item.date.toLocaleDateString('ar-EG', { day: 'numeric' })}</b><span>{item.date.toLocaleDateString('ar-EG', { month: 'short' })}</span></div><div className="deadline-copy"><b>{item.title}</b><span>{item.sub} · {item.kind}</span></div><span className="deadline-pill">{item.date.toLocaleDateString('ar-EG', { weekday: 'short' })}</span></div>)}
-        {deadlines.length === 0 && <EmptyState title="لا توجد مواعيد قادمة" body="ستظهر هنا مواعيد المهام والاختبارات المنشورة."/>}
-      </section>
+    <section className="eh-home-grid">
+      <div className="eh-surface-card eh-progress-card">
+        <div className="eh-card-heading"><div><span className="eh-eyebrow">MY PROGRESS</span><h2>إنجاز المهام</h2><p>نسبة إنجاز المهام المسجلة</p></div><span className="eh-progress-badge">{rate}%</span></div>
+        <div className="eh-progress-line"><span style={{width:rate+'%'}}/></div>
+        <div className="eh-progress-meta"><span><i className="eh-dot green"/> مكتملة <b>{completed}</b></span><span><i className="eh-dot purple"/> متبقية <b>{pending}</b></span></div>
+        <div className="eh-progress-footer"><span>تقدمك يظهر هنا مع تحديث المهام</span><button type="button" onClick={() => onGo('tasks')}>إدارة المهام <ArrowLeft size={14}/></button></div>
+      </div>
+
+      <div className="eh-surface-card eh-subject-overview">
+        <div className="eh-card-heading"><div><span className="eh-eyebrow">ACADEMIC LIBRARY</span><h2>المواد الدراسية</h2><p>{subjects.length} مواد متاحة لك</p></div><button type="button" className="eh-round-link" onClick={() => onGo('courses')} aria-label="عرض المواد"><ArrowLeft size={17}/></button></div>
+        {subjects.slice(0,4).map((subject) => <button type="button" className="eh-subject-line" key={subject.id} onClick={() => onGo('courses')}>
+          <span className="eh-subject-symbol" style={{'--subject-color':subject.color} as React.CSSProperties}>{subject.icon || '∑'}</span>
+          <span><b>{subject.name}</b><small>{subject.code}</small></span>
+          <span className="eh-subject-line-meta">{lectures.filter((item)=>item.subjectId===subject.id).length} محاضرة</span>
+          <ChevronLeft size={16}/>
+        </button>)}
+        {subjects.length === 0 && <EmptyState title="لا توجد مواد منشورة" body="عندما يضيف مدير المنصة المقررات ستظهر هنا."/>}
+      </div>
+    </section>
+
+    <section className="eh-home-grid eh-home-grid-bottom">
+      <div className="eh-surface-card eh-task-preview">
+        <div className="eh-card-heading"><div><span className="eh-eyebrow">UP NEXT</span><h2>المهام التي تحتاج انتباهك</h2><p>مرتبة حسب أقرب موعد انتهاء</p></div><button type="button" className="eh-text-button" onClick={() => onGo('tasks')}>كل المهام <ArrowLeft size={15}/></button></div>
+        <div className="eh-task-list">
+          {upcomingTasks.map((task) => <TaskRow key={task.id} task={task} onStatus={onStatus}/>)}
+          {upcomingTasks.length===0 && <EmptyState title="أنت على ما يرام" body="لا توجد مهام مفتوحة حالياً."/>}
+        </div>
+      </div>
+      <div className="eh-surface-card eh-agenda-card">
+        <div className="eh-card-heading"><div><span className="eh-eyebrow">UPCOMING</span><h2>المواعيد القادمة</h2><p>المهام والاختبارات</p></div><button type="button" className="eh-round-link" onClick={() => onGo('planner')} aria-label="فتح المخطط"><CalendarDays size={17}/></button></div>
+        <div className="eh-agenda-list">
+          {upcoming.map((item) => <div className="eh-agenda-item" key={item.id}>
+            <div className="eh-agenda-date"><b>{item.date.toLocaleDateString('ar-EG',{day:'numeric'})}</b><small>{item.date.toLocaleDateString('ar-EG',{month:'short'})}</small></div>
+            <div><b>{item.title}</b><small>{item.subject} · {item.kind}</small></div>
+            <span>{item.date.toLocaleDateString('ar-EG',{weekday:'short'})}</span>
+          </div>)}
+          {upcoming.length===0 && <EmptyState title="لا توجد مواعيد قادمة" body="ستظهر مواعيد المهام والاختبارات هنا."/>}
+        </div>
+      </div>
+    </section>
+
+    <div className="eh-quick-access">
+      <button type="button" onClick={() => onGo('courses')}><span className="qa-icon purple"><BookOpen size={18}/></span><span><b>المواد الدراسية</b><small>المقررات والمدرسون</small></span><ArrowLeft size={16}/></button>
+      <button type="button" onClick={() => onGo('files')}><span className="qa-icon blue"><FolderOpen size={18}/></span><span><b>مكتبة الملفات</b><small>المذكرات والمرفقات</small></span><ArrowLeft size={16}/></button>
+      <button type="button" onClick={() => onGo('exams')}><span className="qa-icon amber"><ClipboardList size={18}/></span><span><b>الاختبارات</b><small>مواعيد واختباراتك</small></span><ArrowLeft size={16}/></button>
     </div>
-    <div className="bottom-note"><Sparkles size={15}/><span>ستتحدث هذه المساحة تلقائياً عند إضافة محتوى جديد.</span><span className="note-decoration">ENG HUB · STUDY SMARTER</span></div>
-  </>;
+  </div>;
 }
 
-function StatCard({ label, value, meta, icon, tone, trend }: { label: string; value: string; meta: string; icon: ReactNode; tone: string; trend?: string }) {
-  return <div className="stat-card"><div className="stat-top"><span>{label}</span><div className={`stat-icon ${tone}`}>{icon}</div></div><div className="stat-value">{value}</div><div className="stat-meta">{meta}</div>{trend ? <div className="stat-trend">{trend}</div> : null}</div>;
+function StatCard({ label, value, detail, icon, tone }: { label: string; value: string; detail: string; icon: ReactNode; tone: string }) {
+  return <article className={`eh-stat-card tone-${tone}`}>
+    <div className="eh-stat-top"><span>{label}</span><span className="eh-stat-icon">{icon}</span></div>
+    <strong>{value}</strong><small>{detail}</small>
+  </article>;
 }
 
 function EmptyState({ title, body }: { title: string; body: string }) {
-  return <div className="empty-state"><div className="empty-icon"><Layers3 size={22}/></div><b>{title}</b><span>{body}</span></div>;
+  return <div className="eh-empty-state"><span><Layers3 size={22}/></span><b>{title}</b><p>{body}</p></div>;
 }
 
 function TaskRow({ task, onStatus }: { task: StudyTask; onStatus: (id: string, status: TaskStatus) => void }) {
   const due = new Date(task.dueAt);
   const completed = task.status === 'completed';
-  return <div className="task-row"><div className={`task-subject-dot dot-${task.subjectId}`}/><div className="task-row-copy"><b>{task.title}</b><span>{task.subjectName} <i>•</i> ينتهي {due.toLocaleDateString('ar-EG', { day: 'numeric', month: 'short' })}</span></div><span className={`priority-badge priority-${task.priority}`}>{priorityText[task.priority]}</span><button type="button" className={`task-complete-toggle ${completed ? 'completed' : ''}`} onClick={() => onStatus(task.id, completed ? 'in-progress' : 'completed')} aria-pressed={completed}><CheckCircle2 size={15}/><span>{completed ? 'مكتملة' : 'إكمال المهمة'}</span></button></div>;
+  const start = task.startAt ? new Date(task.startAt) : null;
+  return <article className={`eh-task-row ${completed?'is-completed':''}`}>
+    <button type="button" className={`eh-task-complete ${completed?'checked':''}`} onClick={() => onStatus(task.id,completed?'in-progress':'completed')} aria-label={completed?'إلغاء إكمال المهمة':'تحديد المهمة كمكتملة'} aria-pressed={completed}>{completed?<Check size={15}/>:null}</button>
+    <div className="eh-task-row-main"><b>{task.title}</b><span>{task.subjectName || 'مهمة عامة'}{start ? ` · تبدأ ${start.toLocaleDateString('ar-EG',{day:'numeric',month:'short'})}` : ''}</span></div>
+    <div className="eh-task-row-date"><small>موعد الانتهاء</small><b>{due.toLocaleDateString('ar-EG',{day:'numeric',month:'short'})}</b></div>
+  </article>;
 }
 
 function TasksPage({ tasks, onNew, onStatus, onDelete, canEdit }: {
-  tasks: StudyTask[];
-  onNew: () => void;
-  onStatus: (id: string, status: TaskStatus) => void;
-  onDelete: (id: string) => void;
-  canEdit: boolean;
+  tasks: StudyTask[]; onNew: () => void; onStatus: (id: string, status: TaskStatus) => void;
+  onDelete: (id: string) => void; canEdit: boolean;
 }) {
-  const [filter, setFilter] = useState('all');
-  const [query, setQuery] = useState('');
-  const filtered = tasks.filter((task) => (filter === 'all' || (filter === 'pending' ? task.status !== 'completed' : task.status === filter)) && (task.title + ' ' + task.subjectName).toLowerCase().includes(query.toLowerCase()));
-  return <>
-    <PageHeader eyebrow="TASK MANAGEMENT" title="إدارة المهام" description="المهام التي نشرها مدير المنصة أو أضفتها إلى خطتك." action={canEdit ? <button className="btn btn-primary" onClick={onNew}><Plus size={16}/> إنشاء مهمة</button> : undefined}/>
-    <div className="task-overview-strip"><div><b>{tasks.length}</b><span>إجمالي المهام</span></div><div><b>{tasks.filter((t) => t.status === 'completed').length}</b><span>مكتملة</span></div><div><b>{tasks.filter((t) => t.status === 'in-progress').length}</b><span>قيد التنفيذ</span></div><div><b>{tasks.filter((t) => t.status === 'under-review').length}</b><span>قيد المراجعة</span></div><div><b>{tasks.filter((t) => new Date(t.dueAt) < new Date() && t.status !== 'completed').length}</b><span>متأخرة</span></div></div>
-    <div className="panel table-panel"><div className="table-toolbar"><div className="filter-tabs">{[{ id: 'all', label: 'الكل' }, { id: 'pending', label: 'غير مكتملة' }, { id: 'completed', label: 'مكتملة' }, { id: 'under-review', label: 'قيد المراجعة' }].map((tab) => <button key={tab.id} className={filter === tab.id ? 'filter-tab active' : 'filter-tab'} onClick={() => setFilter(tab.id)}>{tab.label}</button>)}</div><div className="table-tools"><div className="inline-search"><Search size={15}/><input placeholder="ابحث في المهام" value={query} onChange={(e) => setQuery(e.target.value)}/></div></div></div>
-      <div className="tasks-table"><div className="table-head"><span>المهمة</span><span>المادة</span><span>الأولوية</span><span>البداية / الانتهاء</span><span>الحالة</span><span/></div>{filtered.map((task) => <div className="table-row" key={task.id}><div className="table-task"><button type="button" className={'task-check ' + (task.status === 'completed' ? 'is-complete' : '')} onClick={() => onStatus(task.id, task.status === 'completed' ? 'in-progress' : 'completed')} aria-label={task.status === 'completed' ? 'إلغاء إكمال المهمة' : 'تحديد المهمة كمكتملة'} aria-pressed={task.status === 'completed'}><Check size={14}/></button><div><b>{task.title}</b><span>أُضيفت {new Date(task.createdAt).toLocaleDateString('ar-EG')}</span></div></div><span className="table-secondary">{task.subjectName}</span><span><i className={'priority-dot priority-dot-' + task.priority}/>{priorityText[task.priority]}</span><span className="table-secondary task-dates-cell"><small>تبدأ: {task.startAt ? new Date(task.startAt).toLocaleDateString('ar-EG', { day: 'numeric', month: 'short' }) : '—'}</small><small>تنتهي: {new Date(task.dueAt).toLocaleDateString('ar-EG', { day: 'numeric', month: 'short' })}</small></span><span><span className={'status-chip status-' + task.status}>{statusText[task.status]}</span></span><TaskActionsMenu task={task} onStatus={onStatus} onDelete={onDelete} canEdit={canEdit}/></div>)}{filtered.length === 0 && <EmptyState title={tasks.length === 0 ? 'لا توجد مهام بعد' : 'لا توجد نتائج'} body={tasks.length === 0 ? 'ستظهر هنا المهام التي ينشرها مدير المنصة.' : 'جرّب تغيير عبارة البحث أو الفلتر.'}/>}</div>
-      <div className="table-footer"><span>عرض {filtered.length} من {tasks.length} مهمة</span><div><button className="pagination-button" disabled><ChevronRight size={14}/></button><button className="pagination-button active">1</button><button className="pagination-button" disabled><ChevronLeft size={14}/></button></div></div>
+  const [filter,setFilter]=useState<'all'|'pending'|'completed'|'in-progress'>('all');
+  const [query,setQuery]=useState('');
+  const counts = {
+    all:tasks.length,
+    pending:tasks.filter((task)=>!['completed','under-review'].includes(task.status)).length,
+    completed:tasks.filter((task)=>task.status==='completed').length,
+    'in-progress':tasks.filter((task)=>task.status==='in-progress').length,
+  };
+  const filtered = tasks.filter((task) => {
+    const stateMatch = filter==='all' || (filter==='pending' ? !['completed','under-review'].includes(task.status) : task.status===filter);
+    const textMatch = `${task.title} ${task.subjectName} ${task.description}`.toLowerCase().includes(query.toLowerCase());
+    return stateMatch && textMatch;
+  }).sort((a,b)=>new Date(a.dueAt).getTime()-new Date(b.dueAt).getTime());
+  return <div className="eh-tasks-page">
+    <PageHeader eyebrow="TASK CENTER" title="المهام" description="نظّم أولوياتك وتابع تقدمك ومواعيد التسليم." action={canEdit?<button type="button" className="eh-button primary" onClick={onNew}><Plus size={17}/> إنشاء مهمة</button>:null}/>
+    <div className="eh-task-metrics">
+      <div><span>كل المهام</span><b>{counts.all}</b><small>إجمالي المسند إليك</small></div>
+      <div><span>بانتظار التنفيذ</span><b>{counts.pending}</b><small>تحتاج إلى بدء أو متابعة</small></div>
+      <div><span>قيد التنفيذ</span><b>{counts['in-progress']}</b><small>تعمل عليها الآن</small></div>
+      <div><span>مكتملة</span><b>{counts.completed}</b><small>أنجزتها بنجاح</small></div>
     </div>
-  </>;
+    <section className="eh-surface-card eh-task-manager">
+      <div className="eh-task-toolbar">
+        <div className="eh-task-filters">
+          {([{id:'all',label:'الكل'},{id:'pending',label:'بانتظار التنفيذ'},{id:'in-progress',label:'قيد التنفيذ'},{id:'completed',label:'مكتملة'}] as const).map((item)=><button key={item.id} type="button" className={filter===item.id?'active':''} onClick={()=>setFilter(item.id)}>{item.label}<small>{counts[item.id]}</small></button>)}
+        </div>
+        <label className="eh-inline-search"><Search size={16}/><input value={query} onChange={(event)=>setQuery(event.target.value)} placeholder="ابحث عن مهمة..."/></label>
+      </div>
+      <div className="eh-task-board">
+        {filtered.map((task)=> {
+          const completed=task.status==='completed';
+          const overdue=!completed&&new Date(task.dueAt).getTime()<Date.now();
+          return <article className={`eh-task-card ${completed?'is-completed':''}`} key={task.id}>
+            <button type="button" className={`eh-task-complete ${completed?'checked':''}`} onClick={()=>onStatus(task.id,completed?'in-progress':'completed')} aria-label={completed?'إلغاء الإكمال':'إكمال المهمة'} aria-pressed={completed}>{completed?<Check size={15}/>:null}</button>
+            <div className="eh-task-card-body">
+              <div className="eh-task-card-title"><h3>{task.title}</h3><span className={`eh-status-tag ${completed?'complete':overdue?'overdue':task.status==='in-progress'?'progress':'pending'}`}>{completed?'مكتملة':overdue?'متأخرة':statusText[task.status]}</span></div>
+              {task.description && <p>{task.description}</p>}
+              <div className="eh-task-card-meta">
+                <span><BookOpen size={13}/>{task.subjectName||'مهمة عامة'}</span>
+                <span><FlagIcon priority={task.priority}/>{priorityText[task.priority]}</span>
+                <span><CalendarClock size={13}/>{task.startAt?new Date(task.startAt).toLocaleDateString('ar-EG',{day:'numeric',month:'short'}):'بداية غير محددة'} — {new Date(task.dueAt).toLocaleDateString('ar-EG',{day:'numeric',month:'short'})}</span>
+              </div>
+            </div>
+            <TaskActionsMenu task={task} onStatus={onStatus} onDelete={onDelete} canEdit={canEdit}/>
+          </article>;
+        })}
+        {filtered.length===0&&<EmptyState title={tasks.length===0?'لم تُسند إليك مهام بعد':'لا توجد نتائج مطابقة'} body={tasks.length===0?'ستظهر المهام هنا عندما ينشرها مدير المنصة.':'جرّب تغيير البحث أو حالة المهمة.'}/>}
+      </div>
+    </section>
+  </div>;
+}
+
+function FlagIcon({ priority }: { priority: Priority }) {
+  return <Flag size={13} className={`eh-priority-icon priority-${priority}`}/>;
 }
 
 function TaskActionsMenu({ task, onStatus, onDelete, canEdit }: {
@@ -582,56 +639,110 @@ function AcademicHubPage({ subjects, lecturers, lectures, parts, selectedSubject
   const lecturerLectures = lectures.filter((item) => item.lecturerId === selectedLecturerId);
   const legacyLectures = lectures.filter((item) => item.subjectId === selectedSubjectId && !item.lecturerId);
   const legacyPart: LecturePart[] = lecture?.videoUrl ? [{
-    id: 'legacy-video', lectureId: lecture.id, title: 'الفيديو الرئيسي', videoUrl: lecture.videoUrl,
-    duration: lecture.duration || '', order: 1, sourceType: 'external', createdAt: '',
+    id:'legacy-video',lectureId:lecture.id,title:'الفيديو الرئيسي',videoUrl:lecture.videoUrl,
+    duration:lecture.duration||'',order:1,sourceType:'external',createdAt:'',
   }] : [];
   const currentParts = parts.length ? parts : legacyPart;
   const stageTitle = lecture ? lecture.title : lecturer ? lecturer.name : subject ? subject.name : 'المواد الدراسية';
-  const stageDescription = lecture ? 'أجزاء المحاضرة ومصادر الفيديو والمواد المرفقة.' : lecturer ? 'المحاضرات المرتبطة بهذا المدرس داخل المادة.' : subject ? 'اختر المدرس لعرض محاضراته ومحتواه.' : 'ابدأ باختيار مادة للانتقال إلى المدرسين والمحاضرات.';
-  const action = canEdit
-    ? lecture ? <button className="btn btn-primary" onClick={onAddPart}><Plus size={16}/> إضافة جزء فيديو</button>
-      : lecturer ? <button className="btn btn-primary" onClick={onAddLecture}><Plus size={16}/> إضافة محاضرة</button>
-      : subject ? <button className="btn btn-primary" onClick={onAddLecturer}><Plus size={16}/> إضافة مدرس</button>
-      : <button className="btn btn-primary" onClick={onAddSubject}><Plus size={16}/> إضافة مادة</button>
-    : undefined;
-  return <>
+  const stageDescription = lecture ? 'اختر جزءاً من المحاضرة لمشاهدة الفيديو.' : lecturer ? 'المحاضرات المنشورة لهذا المدرس.' : subject ? 'اختر المدرس لعرض المحاضرات والمحتوى.' : 'تصفح المواد ثم المدرسين ثم المحاضرات وأجزاء الفيديو.';
+  const action = !canEdit ? undefined : lecture
+    ? <button type="button" className="eh-button primary" onClick={onAddPart}><Plus size={16}/> إضافة جزء</button>
+    : lecturer
+      ? <button type="button" className="eh-button primary" onClick={onAddLecture}><Plus size={16}/> إضافة محاضرة</button>
+      : subject
+        ? <button type="button" className="eh-button primary" onClick={onAddLecturer}><Plus size={16}/> إضافة مدرس</button>
+        : <button type="button" className="eh-button primary" onClick={onAddSubject}><Plus size={16}/> إضافة مادة</button>;
+
+  return <div className="eh-academic-page">
     <PageHeader eyebrow="ACADEMIC LIBRARY" title={stageTitle} description={stageDescription} action={action}/>
-    <div className="academic-breadcrumbs">
-      <button className={!subject ? 'current' : ''} onClick={() => { onSelectSubject(''); onSelectLecturer(''); onSelectLecture(''); }}>المواد</button>
-      {subject && <><ChevronLeft size={14}/><button className={!lecturer ? 'current' : ''} onClick={() => { onSelectLecturer(''); onSelectLecture(''); }}>{subject.name}</button></>}
-      {lecturer && <><ChevronLeft size={14}/><button className={!lecture ? 'current' : ''} onClick={() => { onSelectLecture(''); }}>{lecturer.name}</button></>}
-      {lecture && <><ChevronLeft size={14}/><span className="current">{lecture.title}</span></>}
-      {subject && <button className="academic-back" onClick={onBack}><ArrowLeft size={14}/> رجوع</button>}
-    </div>
+    <nav className="eh-academic-crumbs" aria-label="مسار التصفح">
+      <button type="button" className={!subject?'active':''} onClick={() => { onSelectSubject('');onSelectLecturer('');onSelectLecture(''); }}><BookOpen size={14}/> المواد الدراسية</button>
+      {subject && <><ChevronLeft size={14}/><button type="button" className={!lecturer?'active':''} onClick={() => {onSelectLecturer('');onSelectLecture('');}}>{subject.name}</button></>}
+      {lecturer && <><ChevronLeft size={14}/><button type="button" className={!lecture?'active':''} onClick={() => onSelectLecture('')}>{lecturer.name}</button></>}
+      {lecture && <><ChevronLeft size={14}/><span>{lecture.title}</span></>}
+      {(subject || lecturer || lecture) && <button type="button" className="eh-crumb-back" onClick={onBack}><ArrowLeft size={14}/> رجوع</button>}
+    </nav>
 
     {!subject && <>
-      <div className="course-hero panel academic-hero"><div><div className="eyebrow">CAIRO UNIVERSITY · ENGINEERING</div><h2>مساحتك الأكاديمية</h2><p>تصفح المقررات ثم المدرسين ثم المحاضرات وأجزاء كل محاضرة.</p></div><div className="course-hero-stats"><div><b>{subjects.length}</b><span>مادة</span></div><div><b>{lecturers.length}</b><span>مدرس</span></div><div><b>{lectures.length}</b><span>محاضرة</span></div></div></div>
-      <div className="course-grid academic-card-grid">{subjects.map((item) => <button className="course-card academic-subject-card" key={item.id} onClick={() => onSelectSubject(item.id)}><div className="course-card-top"><div className="course-icon" style={{ background: item.color + '18', color: item.color }}>{item.icon || '∑'}</div><span className="course-code">{item.code}</span></div><h3>{item.name}</h3><p>{item.description || 'المحتوى الدراسي للمقرر'}</p><div className="course-meta"><span><Users size={14}/>{lecturers.filter((x) => x.subjectId === item.id).length} مدرسين</span><span><Video size={14}/>{lectures.filter((x) => x.subjectId === item.id).length} محاضرة</span><ChevronLeft size={15}/></div></button>)}</div>
-      {subjects.length === 0 && <div className="panel courses-empty-panel"><EmptyState title="لا توجد مواد دراسية بعد" body={canEdit ? 'أضف أول مادة دراسية، ثم أضف المدرسين والمحاضرات داخلها.' : 'ستظهر المقررات هنا بعد أن ينشرها مدير المنصة.'}/>{canEdit && <button className="btn btn-primary" onClick={onAddSubject}><Plus size={15}/> إضافة أول مادة</button>}</div>}
+      <section className="eh-academic-hero">
+        <div className="eh-academic-hero-copy"><span className="eh-eyebrow">CAIRO UNIVERSITY · FACULTY OF ENGINEERING</span><h2>مكتبتك الأكاديمية</h2><p>كل مقرر في مكانه، وكل مدرس ومحاضرة ومصدر تعليمي مرتبط به.</p></div>
+        <div className="eh-academic-stats">
+          <div><b>{subjects.length}</b><span>مادة</span></div>
+          <div><b>{lecturers.length}</b><span>مدرس</span></div>
+          <div><b>{lectures.length}</b><span>محاضرة</span></div>
+        </div>
+        <div className="eh-academic-hero-symbol"><GraduationCap size={53}/></div>
+      </section>
+      <div className="eh-section-heading"><div><span className="eh-eyebrow">YOUR COURSES</span><h2>المواد الدراسية</h2><p>اختر مادة لعرض المدرسين التابعين لها</p></div><span className="eh-result-count">{subjects.length} مقررات</span></div>
+      <div className="eh-academic-subject-grid">
+        {subjects.map((item,index) => <button type="button" className="eh-academic-subject-card" key={item.id} onClick={() => onSelectSubject(item.id)}>
+          <div className="eh-academic-card-top"><span className="eh-academic-subject-icon" style={{'--subject-color':item.color} as React.CSSProperties}>{item.icon||'∑'}</span><span className="eh-course-index">{String(index+1).padStart(2,'0')}</span></div>
+          <span className="eh-course-code">{item.code}</span><h3>{item.name}</h3><p>{item.description||'المحتوى التعليمي والمحاضرات الخاصة بهذا المقرر.'}</p>
+          <div className="eh-course-card-footer"><span><Users size={14}/>{lecturers.filter((x)=>x.subjectId===item.id).length} مدرس</span><span><Video size={14}/>{lectures.filter((x)=>x.subjectId===item.id).length} محاضرة</span><ChevronLeft size={16}/></div>
+        </button>)}
+      </div>
+      {subjects.length===0 && <div className="eh-surface-card"><EmptyState title="لا توجد مواد دراسية حتى الآن" body={canEdit?'أنشئ أول مادة، ثم أضف المدرسين والمحاضرات وأجزاء الفيديو.':'ستظهر المواد هنا عند نشرها من لوحة الإدارة.'}/>{canEdit&&<div className="eh-empty-action"><button type="button" className="eh-button primary" onClick={onAddSubject}><Plus size={16}/> إضافة أول مادة</button></div>}</div>}
     </>}
 
     {subject && !lecturer && <>
-      <div className="academic-level-banner panel"><div className="academic-level-icon" style={{color:subject.color,background:subject.color+'18'}}>{subject.icon || '∑'}</div><div><span className="eyebrow">SUBJECT</span><h2>{subject.name}</h2><p>{subject.description || 'قائمة المدرسين والمحاضرات المرتبطة بالمقرر.'}</p></div><div className="academic-level-meta"><b>{subjectLecturers.length}</b><span>مدرسين</span></div></div>
-      <div className="section-title-row"><div><div className="eyebrow">LECTURERS</div><h2>المدرسون</h2></div></div>
-      <div className="lecturer-grid">{subjectLecturers.map((item) => <button className="lecturer-card" key={item.id} onClick={() => onSelectLecturer(item.id)}><div className="lecturer-avatar">{item.photoURL ? <img src={item.photoURL} alt=""/> : <GraduationCap size={23}/>}</div><div className="lecturer-card-copy"><b>{item.name}</b><span>{item.bio || item.description || 'مدرس في هذا المقرر'}</span></div><ChevronLeft size={17}/></button>)}</div>
-      {subjectLecturers.length === 0 && <div className="panel"><EmptyState title="لم تتم إضافة مدرسين لهذه المادة" body={canEdit ? 'أضف مدرساً أو معيداً أولاً، ثم اربط به المحاضرات.' : 'سيظهر المدرسون هنا عند إضافتهم إلى المقرر.'}/></div>}
-      {legacyLectures.length > 0 && <div className="panel legacy-lectures-panel"><div className="panel-head"><div><h3>محاضرات محفوظة من الإصدار السابق</h3><span>يمكن فتحها دون فقد روابط الفيديو القديمة</span></div></div>{legacyLectures.map((item) => <button className="academic-list-row" key={item.id} onClick={() => onSelectLecture(item.id)}><span className="admin-task-symbol"><Video size={16}/></span><span><b>{item.title}</b><small>{item.lecturerName || item.instructor || 'بدون مدرس'}</small></span><ChevronLeft size={16}/></button>)}</div>}
+      <section className="eh-academic-level">
+        <span className="eh-academic-subject-icon large" style={{'--subject-color':subject.color} as React.CSSProperties}>{subject.icon||'∑'}</span>
+        <div className="eh-academic-level-copy"><span className="eh-eyebrow">SUBJECT DETAILS · {subject.code}</span><h2>{subject.name}</h2><p>{subject.description||'اختر أحد المدرسين لعرض محاضراته.'}</p></div>
+        <div className="eh-academic-level-count"><b>{subjectLecturers.length}</b><span>مدرس</span></div>
+        <div className="eh-academic-level-count"><b>{lectures.filter((x)=>x.subjectId===subject.id).length}</b><span>محاضرة</span></div>
+      </section>
+      <div className="eh-section-heading"><div><span className="eh-eyebrow">LECTURERS</span><h2>المدرسون والمعيدون</h2><p>اختر المدرس للانتقال إلى قائمة محاضراته</p></div></div>
+      <div className="eh-lecturer-grid">
+        {subjectLecturers.map((item,index)=><button type="button" className="eh-lecturer-card" key={item.id} onClick={()=>onSelectLecturer(item.id)}>
+          <span className="eh-lecturer-avatar">{item.photoURL?<img src={item.photoURL} alt=""/>:<GraduationCap size={24}/>}</span>
+          <span className="eh-lecturer-copy"><b>{item.name}</b><small>{item.bio||item.description||'مدرس في '+subject.name}</small><em>{lectures.filter((x)=>x.lecturerId===item.id).length} محاضرة</em></span>
+          <span className="eh-lecturer-index">{String(index+1).padStart(2,'0')}</span><ChevronLeft size={17}/>
+        </button>)}
+      </div>
+      {subjectLecturers.length===0 && <div className="eh-surface-card"><EmptyState title="لم تتم إضافة مدرسين" body={canEdit?'أضف المدرسين والمعيدين إلى المادة أولاً.':'سيظهر المدرسون هنا عندما تتم إضافتهم.'}/></div>}
+      {legacyLectures.length>0 && <section className="eh-surface-card eh-legacy-block"><div className="eh-card-heading"><div><span className="eh-eyebrow">LEGACY CONTENT</span><h2>محاضرات محفوظة سابقاً</h2><p>تم الاحتفاظ بالمحاضرات القديمة حتى لا تفقد روابط الفيديو.</p></div></div>{legacyLectures.map((item)=><button type="button" className="eh-legacy-lecture" key={item.id} onClick={()=>onSelectLecture(item.id)}><span><Video size={17}/></span><b>{item.title}</b><small>{item.lecturerName||item.instructor||'بدون مدرس'}</small><ChevronLeft size={16}/></button>)}</section>}
     </>}
 
     {lecturer && !lecture && <>
-      <div className="academic-level-banner panel"><div className="academic-level-icon"><GraduationCap size={23}/></div><div><span className="eyebrow">{subject?.name || lecturer.subjectName}</span><h2>{lecturer.name}</h2><p>{lecturer.bio || lecturer.description || 'محاضرات هذا المدرس ومواده التعليمية.'}</p></div><div className="academic-level-meta"><b>{lecturerLectures.length}</b><span>محاضرة</span></div></div>
-      <div className="lecture-grid">{lecturerLectures.map((item,index) => <button type="button" className="lecture-card lecture-card-button" key={item.id} onClick={() => onSelectLecture(item.id)}><div className={'lecture-cover cover-' + (index % 4)}><div className="cover-grid"/><span className="lecture-subject-tag">LECTURE {item.lectureNumber || index + 1}</span><span className="play-button"><BookOpen size={22}/></span><span className="cover-duration"><Layers3 size={12}/>{item.partsCount ?? item.parts ?? 0} أجزاء</span></div><div className="lecture-card-body"><div className="lecture-meta"><span>{item.date}</span><span>{item.duration}</span></div><h3>{item.title}</h3><div className="lecture-progress-head"><span>افتح محتويات المحاضرة</span><ChevronLeft size={15}/></div></div></button>)}</div>
-      {lecturerLectures.length === 0 && <div className="panel"><EmptyState title="لا توجد محاضرات لهذا المدرس" body={canEdit ? 'أضف المحاضرة الأولى، ثم أضف أجزاء الفيديو داخلها.' : 'ستظهر المحاضرات هنا بعد نشرها.'}/></div>}
+      <section className="eh-academic-level">
+        <span className="eh-lecturer-avatar large">{lecturer.photoURL?<img src={lecturer.photoURL} alt=""/>:<GraduationCap size={25}/>}</span>
+        <div className="eh-academic-level-copy"><span className="eh-eyebrow">{subject?.name||lecturer.subjectName}</span><h2>{lecturer.name}</h2><p>{lecturer.bio||lecturer.description||'جميع المحاضرات المنشورة لهذا المدرس.'}</p></div>
+        <div className="eh-academic-level-count"><b>{lecturerLectures.length}</b><span>محاضرة</span></div>
+      </section>
+      <div className="eh-section-heading"><div><span className="eh-eyebrow">LECTURE LIBRARY</span><h2>محاضرات المدرس</h2><p>اختر المحاضرة لعرض أجزائها ومشغل الفيديو</p></div></div>
+      <div className="eh-lecture-grid">
+        {lecturerLectures.map((item,index)=><button type="button" className="eh-lecture-card" key={item.id} onClick={()=>onSelectLecture(item.id)}>
+          <span className={'eh-lecture-art art-'+(index%4)}><span className="eh-lecture-number">LECTURE {item.lectureNumber||index+1}</span><span className="eh-lecture-play"><Play size={22} fill="currentColor"/></span><span className="eh-lecture-part-count"><Layers3 size={13}/>{item.partsCount??item.parts??0} أجزاء</span></span>
+          <span className="eh-lecture-card-copy"><small>{item.date} · {item.duration||'مدة غير محددة'}</small><b>{item.title}</b><span>عرض محتويات المحاضرة <ArrowLeft size={14}/></span></span>
+        </button>)}
+      </div>
+      {lecturerLectures.length===0&&<div className="eh-surface-card"><EmptyState title="لا توجد محاضرات بعد" body={canEdit?'أنشئ أول محاضرة لهذا المدرس، ثم أضف روابط الفيديو كأجزاء مستقلة.':'ستظهر المحاضرات هنا بعد نشرها.'}/></div>}
     </>}
 
     {lecture && <>
-      <div className="academic-level-banner panel"><div className="academic-level-icon"><Video size={23}/></div><div><span className="eyebrow">{lecture.subjectName} · {lecture.lecturerName || lecture.instructor || lecturer?.name || 'محاضرة'}</span><h2>{lecture.title}</h2><p>{lecture.description || 'اختر جزءاً لتشغيل الفيديو ومتابعة المحاضرة.'}</p></div><div className="academic-level-meta"><b>{currentParts.length}</b><span>أجزاء</span></div></div>
-      <div className="parts-list">{currentParts.map((part,index) => <article className="part-row" key={part.id}><div className="part-number">{String(index+1).padStart(2,'0')}</div><div className="part-row-main"><b>{part.title}</b><span>{part.duration || 'مدة غير محددة'} · {part.sourceType === 'youtube' ? 'YouTube' : part.sourceType === 'vimeo' ? 'Vimeo' : part.sourceType === 'direct' ? 'فيديو مباشر' : 'رابط خارجي'}</span></div><button type="button" className="btn btn-primary btn-small" onClick={() => setPlayingPart(part)}><Play size={14} fill="currentColor"/> تشغيل الجزء</button></article>)}</div>
-      {currentParts.length === 0 && <div className="panel"><EmptyState title="لم تتم إضافة أجزاء لهذه المحاضرة" body={canEdit ? 'أضف جزءاً واحداً أو أكثر، ويمكنك وضع رابط فيديو مختلف لكل جزء.' : 'سيظهر محتوى المحاضرة هنا بعد إضافة أجزائها.'}/></div>}
+      <section className="eh-academic-level lecture-level">
+        <span className="eh-lecture-level-icon"><Video size={24}/></span>
+        <div className="eh-academic-level-copy"><span className="eh-eyebrow">{lecture.subjectName} · {lecture.lecturerName||lecturer?.name||'محاضرة'}</span><h2>{lecture.title}</h2><p>{lecture.description||'قائمة الأجزاء المسجلة لهذه المحاضرة.'}</p></div>
+        <div className="eh-academic-level-count"><b>{currentParts.length}</b><span>أجزاء فيديو</span></div>
+      </section>
+      <div className="eh-section-heading"><div><span className="eh-eyebrow">VIDEO CHAPTERS</span><h2>أجزاء المحاضرة</h2><p>اختر الجزء المطلوب لتشغيل الفيديو</p></div></div>
+      <div className="eh-parts-list">
+        {currentParts.map((part,index)=><article className="eh-part-card" key={part.id}>
+          <span className="eh-part-number">{String(index+1).padStart(2,'0')}</span>
+          <span className="eh-part-main"><b>{part.title}</b><small>{part.duration||'المدة غير محددة'} · {part.sourceType==='youtube'?'YouTube':part.sourceType==='vimeo'?'Vimeo':part.sourceType==='direct'?'فيديو مباشر':'رابط خارجي'}</small></span>
+          <button type="button" className="eh-button primary" onClick={()=>setPlayingPart(part)}><Play size={15} fill="currentColor"/> تشغيل</button>
+        </article>)}
+        {currentParts.length===0&&<div className="eh-surface-card"><EmptyState title="لم تتم إضافة أجزاء للمحاضرة" body={canEdit?'أضف جزء فيديو واحداً أو أكثر لهذه المحاضرة.':'سيظهر المحتوى هنا عندما يضيفه المدرس أو مدير المنصة.'}/></div>}
+      </div>
     </>}
 
-    {playingPart && <div className="video-modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setPlayingPart(null); }}><section className="video-modal-card" role="dialog" aria-modal="true" aria-label={playingPart.title}><header className="video-modal-header"><div><b>{playingPart.title}</b><span>{lecture?.title || ''}</span></div><button type="button" className="icon-button" onClick={() => setPlayingPart(null)} aria-label="إغلاق المشغل"><X size={20}/></button></header><VideoPlayer source={playingPart.videoUrl} title={playingPart.title}/></section></div>}
-  </>;
+    {playingPart && <div className="video-modal-backdrop" role="presentation" onMouseDown={(event)=>{if(event.target===event.currentTarget)setPlayingPart(null);}}>
+      <section className="video-modal-card" role="dialog" aria-modal="true" aria-label={playingPart.title}>
+        <header className="video-modal-header"><div><b>{playingPart.title}</b><span>{lecture?.title||''}</span></div><button type="button" className="icon-button" onClick={()=>setPlayingPart(null)} aria-label="إغلاق المشغل"><X size={20}/></button></header>
+        <VideoPlayer source={playingPart.videoUrl} title={playingPart.title}/>
+      </section>
+    </div>}
+  </div>;
 }
 
 function VideoPlayer({ source, title }: { source: string; title: string }) {
@@ -724,39 +835,70 @@ function VideoPlayer({ source, title }: { source: string; title: string }) {
 }
 
 function ExamsPage({ exams, setExams, canEdit, onAdd }: {
-  exams: Exam[];
-  setExams: (fn: (items: Exam[]) => Exam[]) => void;
-  canEdit: boolean;
-  onAdd: () => void;
+  exams: Exam[]; setExams: (fn: (items: Exam[]) => Exam[]) => void; canEdit: boolean; onAdd: () => void;
 }) {
-  const upcoming = exams.filter((exam) => exam.status === 'upcoming').sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-  return <>
-    <PageHeader eyebrow="ASSESSMENTS" title="الاختبارات والامتحانات" description="مواعيد الاختبارات التي ينشرها مدير المنصة." action={canEdit ? <button className="btn btn-primary" onClick={onAdd}><Plus size={16}/> إضافة اختبار</button> : undefined}/>
-    <div className="exam-highlight"><div className="exam-highlight-icon"><AlarmClock size={23}/></div><div><span>الاختبار القادم</span><h2>{upcoming[0]?.title ?? 'لا يوجد اختبار قادم'}</h2><p>{upcoming[0] ? upcoming[0].subjectName + ' · ' + new Date(upcoming[0].date).toLocaleDateString('ar-EG') : 'ستظهر المواعيد هنا عند نشر الاختبارات.'}</p></div><div className="exam-countdown"><b>{upcoming.length}</b><span>اختبارات قادمة</span></div></div>
-    <div className="section-title-row exam-list-title"><div><h2>كل الاختبارات</h2><p>الاختبارات المنشورة في حسابك</p></div></div>
-    <div className="exam-list">{exams.map((exam) => <div className="exam-row" key={exam.id}><div className={'exam-type-icon ' + exam.status}><ClipboardList size={20}/></div><div className="exam-row-copy"><b>{exam.title}</b><span>{exam.subjectName} <i>•</i> {exam.questions} سؤال <i>•</i> {exam.duration}</span></div><div className="exam-date"><b>{new Date(exam.date).toLocaleDateString('ar-EG', { day: 'numeric', month: 'short' })}</b><span>{new Date(exam.date).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })}</span></div><span className={'exam-status ' + exam.status}>{exam.status === 'upcoming' ? 'قادم' : exam.status === 'available' ? 'متاح الآن' : 'مكتمل'}</span></div>)}</div>
-    {exams.length === 0 && <EmptyState title="لا توجد اختبارات بعد" body={canEdit ? 'انشر أول اختبار من زر إضافة اختبار.' : 'سيضيف مدير المنصة مواعيد الاختبارات هنا.'}/>}
-  </>;
+  const [filter,setFilter]=useState<'all'|'upcoming'|'available'|'completed'>('all');
+  const ordered=[...exams].sort((a,b)=>new Date(a.date).getTime()-new Date(b.date).getTime());
+  const upcoming=ordered.filter((exam)=>exam.status==='upcoming');
+  const available=ordered.filter((exam)=>exam.status==='available');
+  const completed=ordered.filter((exam)=>exam.status==='completed');
+  const filtered=ordered.filter((exam)=>filter==='all'||exam.status===filter);
+  const next=upcoming[0]||available[0];
+  return <div className="eh-exams-page">
+    <PageHeader eyebrow="ASSESSMENT CENTER" title="الاختبارات والامتحانات" description="تابع مواعيد التقييمات والاستعداد لاختباراتك." action={canEdit?<button type="button" className="eh-button primary" onClick={onAdd}><Plus size={17}/> إضافة اختبار</button>:null}/>
+    <section className="eh-next-exam">
+      <div className="eh-next-exam-copy"><span className="eh-eyebrow">NEXT ASSESSMENT</span><h2>{next?.title||'لا يوجد اختبار قادم'}</h2><p>{next?next.subjectName+' · '+new Date(next.date).toLocaleDateString('ar-EG',{weekday:'long',day:'numeric',month:'long'}):'ستظهر هنا أقرب مواعيد الاختبارات التي ينشرها مدير المنصة.'}</p></div>
+      <div className="eh-next-exam-symbol"><CalendarClock size={27}/></div>
+      <div className="eh-next-exam-count"><b>{upcoming.length}</b><span>اختبارات قادمة</span></div>
+    </section>
+    <section className="eh-exam-metrics">
+      <div><span>كل الاختبارات</span><b>{exams.length}</b></div>
+      <div><span>قادمة</span><b>{upcoming.length}</b></div>
+      <div><span>متاحة الآن</span><b>{available.length}</b></div>
+      <div><span>مكتملة</span><b>{completed.length}</b></div>
+    </section>
+    <section className="eh-surface-card eh-exam-list">
+      <div className="eh-exam-toolbar">
+        <div><span className="eh-eyebrow">EXAM SCHEDULE</span><h2>جدول الاختبارات</h2><p>المواعيد المسجلة في حسابك</p></div>
+        <div className="eh-exam-filters">{([{id:'all',label:'الكل'},{id:'upcoming',label:'قادم'},{id:'available',label:'متاح'},{id:'completed',label:'مكتمل'}] as const).map(item=><button type="button" key={item.id} className={filter===item.id?'active':''} onClick={()=>setFilter(item.id)}>{item.label}</button>)}</div>
+      </div>
+      {filtered.map((exam,index)=><article className="eh-exam-card" key={exam.id}>
+        <span className={'eh-exam-icon '+exam.status}><ClipboardList size={20}/></span>
+        <div className="eh-exam-card-copy"><small>{exam.subjectName} · {exam.questions} سؤال</small><b>{exam.title}</b><span><Clock3 size={13}/>{exam.duration}</span></div>
+        <div className="eh-exam-date"><b>{new Date(exam.date).toLocaleDateString('ar-EG',{day:'numeric',month:'short'})}</b><small>{new Date(exam.date).toLocaleTimeString('ar-EG',{hour:'2-digit',minute:'2-digit'})}</small></div>
+        <span className={'eh-exam-status '+exam.status}>{exam.status==='upcoming'?'قادم':exam.status==='available'?'متاح الآن':'مكتمل'}</span>
+      </article>)}
+      {filtered.length===0&&<EmptyState title={exams.length===0?'لا توجد اختبارات منشورة':'لا توجد اختبارات بهذه الحالة'} body={exams.length===0?'سيضيف مدير المنصة مواعيد الاختبارات إلى هذه الصفحة.':'اختر حالة أخرى لعرض الاختبارات.'}/>}
+    </section>
+  </div>;
 }
 
 function FilesPage({ files, onUpload, cloudinaryReady, isDemo }: { files: LibraryFile[]; onUpload: (file: File) => Promise<void>; cloudinaryReady: boolean; isDemo: boolean }) {
-  const inputRef = useRef<HTMLInputElement>(null);
-  const [query, setQuery] = useState('');
-  const [uploading, setUploading] = useState(false);
-  const filtered = files.filter((file) => file.name.toLowerCase().includes(query.toLowerCase()) || file.subjectName.toLowerCase().includes(query.toLowerCase()));
-  const handleFile = async (file?: File) => {
-    if (!file) return;
+  const inputRef=useRef<HTMLInputElement>(null);
+  const [query,setQuery]=useState('');
+  const [filter,setFilter]=useState<'all'|'PDF'|'DOC'|'PPT'|'IMAGE'|'VIDEO'>('all');
+  const [uploading,setUploading]=useState(false);
+  const filtered=files.filter(file=>(filter==='all'||file.type===filter)&&(file.name+' '+file.subjectName).toLowerCase().includes(query.toLowerCase()));
+  const counts=(type:string)=>files.filter(file=>type==='all'||file.type===type).length;
+  const handleFile=async(file?:File)=>{
+    if(!file)return;
     setUploading(true);
-    try { await onUpload(file); } finally { setUploading(false); if (inputRef.current) inputRef.current.value = ''; }
+    try{await onUpload(file);}finally{setUploading(false);if(inputRef.current)inputRef.current.value='';}
   };
-  return <>
-    <PageHeader eyebrow="RESOURCE CENTER" title="مكتبة الملفات" description="الملفات التي ترفعها أو ينشرها مدير المنصة." action={<><input ref={inputRef} type="file" accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.csv,.txt,.zip,.png,.jpg,.jpeg,.webp,.gif,.mp4,.mov,.webm" className="visually-hidden" onChange={(event) => void handleFile(event.target.files?.[0])}/><button className="btn btn-primary" onClick={() => inputRef.current?.click()} disabled={uploading || (!isDemo && !cloudinaryReady)}>{uploading ? <span className="spinner"/> : <Upload size={16}/>} رفع ملف</button></>}/>
-    <div className="file-storage-banner"><div className="storage-icon"><CloudUpload size={23}/></div><div><b>{files.length} ملف</b><span>{isDemo ? 'وضع تجريبي — لن يتم حفظ الملفات على الخادم.' : cloudinaryReady ? 'تُرفع الملفات إلى Cloudinary وتُحفظ روابطها وبياناتها في Firestore.' : 'Cloudinary غير مهيأ. افتح إعدادات Cloudinary في لوحة الإدارة قبل رفع الملفات.'}</span></div></div>
-    <div className="panel file-panel"><div className="file-toolbar"><div className="file-count-label">{files.length} ملف</div><div className="inline-search"><Search size={15}/><input placeholder="ابحث عن ملف..." value={query} onChange={(event) => setQuery(event.target.value)}/></div></div>
-      <div className="file-grid">{filtered.map((file) => <div className="file-card" key={file.id}><div className={'file-type-icon type-' + file.type.toLowerCase()}>{file.type === 'IMAGE' ? <FileImage size={22}/> : file.type === 'VIDEO' ? <Video size={22}/> : <FileText size={22}/>}<span>{file.type}</span></div><div className="file-card-copy"><b>{file.name}</b><span>{file.subjectName}</span><small>{file.size} <i>•</i> {file.updatedAt}</small></div><button className="icon-button" onClick={() => file.url ? window.open(file.url, '_blank', 'noopener,noreferrer') : undefined} aria-label="فتح الملف"><Download size={16}/></button></div>)}</div>
-      {filtered.length === 0 && <EmptyState title={files.length === 0 ? 'لا توجد ملفات بعد' : 'لا توجد نتائج مطابقة'} body={files.length === 0 ? 'ستظهر الملفات هنا بعد رفعها إلى مكتبة المنصة.' : 'جرّب تغيير كلمة البحث.'}/>}
-    </div>
-  </>;
+  return <div className="eh-files-page">
+    <PageHeader eyebrow="RESOURCE LIBRARY" title="مكتبة الملفات" description="كل المذكرات والملفات والصور ومقاطع الفيديو في مكتبة واحدة." action={<><input ref={inputRef} type="file" accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.csv,.txt,.zip,.png,.jpg,.jpeg,.webp,.gif,.mp4,.mov,.webm" className="visually-hidden" onChange={(event)=>void handleFile(event.target.files?.[0])}/><button type="button" className="eh-button primary" onClick={()=>inputRef.current?.click()} disabled={uploading||(!isDemo&&!cloudinaryReady)}>{uploading?<span className="spinner"/>:<Upload size={16}/>} رفع ملف جديد</button></>}/>
+    <section className="eh-files-overview"><div className="eh-files-overview-main"><span className="eh-files-icon"><FolderOpen size={25}/></span><div><span className="eh-eyebrow">YOUR STUDY LIBRARY</span><h2>{files.length} ملف في مكتبتك</h2><p>{isDemo?'وضع تجريبي — الملفات لا تُحفظ على الخادم.':cloudinaryReady?'تُرفع الملفات إلى Cloudinary، وتُحفظ بياناتها في Firestore.':'يلزم إعداد Cloudinary قبل رفع الملفات.'}</p></div></div><div className="eh-files-breakdown"><div><b>{counts('PDF')}</b><span>PDF</span></div><div><b>{counts('DOC')}</b><span>مستندات</span></div><div><b>{counts('VIDEO')}</b><span>فيديو</span></div><div><b>{counts('IMAGE')}</b><span>صور</span></div></div></section>
+    <section className="eh-surface-card eh-files-board">
+      <div className="eh-files-toolbar"><div><span className="eh-eyebrow">ALL RESOURCES</span><h2>الملفات المحفوظة</h2></div><label className="eh-inline-search"><Search size={15}/><input value={query} onChange={(event)=>setQuery(event.target.value)} placeholder="ابحث باسم الملف أو المادة"/></label></div>
+      <div className="eh-files-filters">{([{id:'all',label:'الكل'},{id:'PDF',label:'PDF'},{id:'DOC',label:'مستندات'},{id:'PPT',label:'عروض'},{id:'IMAGE',label:'صور'},{id:'VIDEO',label:'فيديو'}] as const).map(item=><button type="button" key={item.id} className={filter===item.id?'active':''} onClick={()=>setFilter(item.id)}>{item.label}<small>{counts(item.id)}</small></button>)}</div>
+      <div className="eh-files-grid">{filtered.map(file=><article className="eh-file-card" key={file.id}>
+        <div className={'eh-file-kind kind-'+file.type.toLowerCase()}>{file.type==='IMAGE'?<FileImage size={23}/>:file.type==='VIDEO'?<Video size={23}/>:file.type==='PPT'?<Grid2X2 size={23}/>:<FileText size={23}/>}<small>{file.type}</small></div>
+        <div className="eh-file-copy"><b title={file.name}>{file.name}</b><span>{file.subjectName}</span><small>{file.size} · {file.updatedAt}</small></div>
+        <button type="button" className="eh-file-open" onClick={()=>file.url?window.open(file.url,'_blank','noopener,noreferrer'):undefined} disabled={!file.url} aria-label="فتح الملف"><Download size={17}/></button>
+      </article>)}</div>
+      {filtered.length===0&&<EmptyState title={files.length===0?'المكتبة فارغة حالياً':'لا توجد نتائج مطابقة'} body={files.length===0?'ارفع أول ملف لتجميع مادتك الدراسية في مكان واحد.':'جرّب تغيير البحث أو نوع الملف.'}/>}
+    </section>
+  </div>;
 }
 
 function ChatPage({ user, cloudinarySettings, isDemo, isAdmin, onBack }: {
@@ -778,7 +920,10 @@ function ChatPage({ user, cloudinarySettings, isDemo, isAdmin, onBack }: {
   const [emojiOpen, setEmojiOpen] = useState(false);
   const [contextMessage, setContextMessage] = useState<ChatMessage | null>(null);
   const [contextPosition, setContextPosition] = useState({ x: 0, y: 0 });
-  const [lightbox, setLightbox] = useState<ChatAttachment | null>(null);
+  const [lightboxItems, setLightboxItems] = useState<ChatAttachment[]>([]);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
+  const [lightboxScale, setLightboxScale] = useState(1);
+  const lightbox = lightboxItems[lightboxIndex] ?? null;
   const [muteState, setMuteState] = useState<ChatMuteStatus>({ muted: false, mutedUntil: null });
   const [contextMuted, setContextMuted] = useState(false);
   const [notice, setNotice] = useState('');
@@ -857,13 +1002,32 @@ function ChatPage({ user, cloudinarySettings, isDemo, isAdmin, onBack }: {
     const close = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         setContextMessage(null);
-        setLightbox(null);
+        setLightboxItems([]); setLightboxIndex(0); setLightboxScale(1);
         setEmojiOpen(false);
+      } else if (lightboxItems.length > 1 && event.key === 'ArrowLeft') {
+        setLightboxIndex((index) => (index + 1) % lightboxItems.length);
+        setLightboxScale(1);
+      } else if (lightboxItems.length > 1 && event.key === 'ArrowRight') {
+        setLightboxIndex((index) => (index - 1 + lightboxItems.length) % lightboxItems.length);
+        setLightboxScale(1);
       }
     };
     window.addEventListener('keydown', close);
     return () => window.removeEventListener('keydown', close);
-  }, []);
+  }, [lightboxItems.length]);
+
+  const openMessageGallery = (attachments: ChatAttachment[], selected: ChatAttachment) => {
+    const images = attachments.filter((item) => item.mimeType.startsWith('image/'));
+    const index = images.findIndex((item) => item.url === selected.url);
+    setLightboxItems(images.length ? images : [selected]);
+    setLightboxIndex(Math.max(0, index));
+    setLightboxScale(1);
+  };
+  const closeMessageGallery = () => {
+    setLightboxItems([]);
+    setLightboxIndex(0);
+    setLightboxScale(1);
+  };
 
   const visibleMessages = messages.filter((message) =>
     (message.text + ' ' + message.senderName + ' ' + message.attachments.map((item) => item.name).join(' '))
@@ -1134,7 +1298,7 @@ function ChatPage({ user, cloudinarySettings, isDemo, isAdmin, onBack }: {
                   const videoFile = attachment.mimeType.startsWith('video/');
                   return imageFile
                     ? <figure className="chat-media-item" key={attachment.url + attachmentIndex}>
-                        <button type="button" className="chat-media-frame" onClick={() => setLightbox(attachment)} aria-label={'عرض ' + attachment.name}>
+                        <button type="button" className="chat-media-frame" onClick={() => openMessageGallery(message.attachments, attachment)} aria-label={'عرض ' + attachment.name}>
                           <img src={attachment.url} alt={attachment.name} loading="lazy" decoding="async"/>
                         </button>
                         <figcaption>{attachment.name}</figcaption>
@@ -1225,79 +1389,147 @@ function ChatPage({ user, cloudinarySettings, isDemo, isAdmin, onBack }: {
       </div>
     </div>}
 
-    {lightbox && <div className="chat-image-lightbox" role="dialog" aria-modal="true" aria-label={lightbox.name} onClick={() => setLightbox(null)}>
-      <button type="button" onClick={() => setLightbox(null)} aria-label="إغلاق الصورة"><X size={22}/></button>
-      <img src={lightbox.url} alt={lightbox.name} onClick={(event) => event.stopPropagation()}/>
-      <span>{lightbox.name}</span>
+    {lightbox && <div className="chat-image-lightbox" role="dialog" aria-modal="true" aria-label={lightbox.name} onClick={closeMessageGallery}>
+      <div className="chat-lightbox-topbar" onClick={(event) => event.stopPropagation()}>
+        <div><b>{lightbox.name}</b><small>{lightboxIndex + 1} / {lightboxItems.length}</small></div>
+        <div className="chat-lightbox-tools">
+          <button type="button" onClick={() => setLightboxScale((value) => Math.max(1, Math.min(3, value - .25)))} aria-label="تصغير الصورة"><Minus size={17}/></button>
+          <span>{Math.round(lightboxScale * 100)}%</span>
+          <button type="button" onClick={() => setLightboxScale((value) => Math.min(3, value + .25))} aria-label="تكبير الصورة"><Plus size={17}/></button>
+          <button type="button" onClick={() => setLightboxScale(1)} aria-label="الحجم الطبيعي"><Maximize size={17}/></button>
+          <button type="button" onClick={closeMessageGallery} aria-label="إغلاق الصورة"><X size={20}/></button>
+        </div>
+      </div>
+      <div className="chat-lightbox-stage" onClick={(event) => event.stopPropagation()}>
+        {lightboxItems.length > 1 && <button type="button" className="chat-lightbox-prev" onClick={() => { setLightboxIndex((index) => (index - 1 + lightboxItems.length) % lightboxItems.length); setLightboxScale(1); }} aria-label="الصورة السابقة"><ChevronRight size={22}/></button>}
+        <img src={lightbox.url} alt={lightbox.name} style={{transform:`scale(${lightboxScale})`}} onDoubleClick={() => setLightboxScale((value) => value === 1 ? 2 : 1)} onWheel={(event) => { event.preventDefault(); setLightboxScale((value) => Math.max(1, Math.min(3, value + (event.deltaY < 0 ? .12 : -.12)))); }}/>
+        {lightboxItems.length > 1 && <button type="button" className="chat-lightbox-next" onClick={() => { setLightboxIndex((index) => (index + 1) % lightboxItems.length); setLightboxScale(1); }} aria-label="الصورة التالية"><ChevronLeft size={22}/></button>}
+      </div>
+      {lightboxItems.length > 1 && <div className="chat-lightbox-thumbs" onClick={(event) => event.stopPropagation()}>{lightboxItems.map((item,index) => <button type="button" key={item.url} className={index===lightboxIndex?'active':''} onClick={() => { setLightboxIndex(index); setLightboxScale(1); }}><img src={item.url} alt=""/></button>)}</div>}
     </div>}
   </section>;
 }
 
 function PlannerPage({ tasks }: { tasks: StudyTask[] }) {
-  const [seconds, setSeconds] = useState(25 * 60);
-  const [running, setRunning] = useState(false);
-  const [mode, setMode] = useState<'focus' | 'break'>('focus');
-  useEffect(() => {
-    if (!running) return;
-    const timer = window.setInterval(() => setSeconds((value) => {
-      if (value <= 1) { setRunning(false); return 0; }
-      return value - 1;
-    }), 1000);
-    return () => window.clearInterval(timer);
-  }, [running]);
-  const switchMode = (next: 'focus' | 'break') => {
-    setMode(next);
-    setSeconds(next === 'focus' ? 25 * 60 : 5 * 60);
-    setRunning(false);
-  };
-  const timeLabel = String(Math.floor(seconds / 60)).padStart(2, '0') + ':' + String(seconds % 60).padStart(2, '0');
-  const upcoming = tasks.filter((task) => task.status !== 'completed').sort((a, b) => new Date(a.dueAt).getTime() - new Date(b.dueAt).getTime());
-  return <>
-    <PageHeader eyebrow="PLAN YOUR DAY" title="مخطط المذاكرة" description="استخدم المؤقت لتنظيم وقت التركيز، وتابع مواعيد مهامك الفعلية."/>
-    <div className="planner-grid">
-      <section className="panel pomodoro-panel">
-        <div className="panel-head"><div><h3>مؤقت التركيز</h3><span>تقنية بومودورو — ركز ثم استرح</span></div><div className="pomodoro-spark"><Sparkles size={17}/></div></div>
-        <div className="pomodoro-tabs"><button className={mode === 'focus' ? 'active' : ''} onClick={() => switchMode('focus')}>وقت التركيز</button><button className={mode === 'break' ? 'active' : ''} onClick={() => switchMode('break')}>استراحة قصيرة</button></div>
-        <div className="timer-ring"><div className="timer-inner"><span>{mode === 'focus' ? 'FOCUS SESSION' : 'SHORT BREAK'}</span><b>{timeLabel}</b><small>{running ? 'المؤقت يعمل' : 'جاهز للبدء'}</small></div></div>
-        <button className="btn btn-primary timer-action" onClick={() => { if (seconds === 0) setSeconds(mode === 'focus' ? 25 * 60 : 5 * 60); setRunning(!running); }}>{running ? 'إيقاف مؤقت' : seconds === 0 ? 'ابدأ من جديد' : 'ابدأ التركيز'} <Play size={15}/></button>
+  const [seconds,setSeconds]=useState(25*60);
+  const [running,setRunning]=useState(false);
+  const [mode,setMode]=useState<'focus'|'break'>('focus');
+  const [completedSessions,setCompletedSessions]=useState(0);
+  useEffect(()=>{
+    if(!running)return;
+    const timer=window.setInterval(()=>setSeconds(value=>{
+      if(value<=1){setRunning(false);if(mode==='focus')setCompletedSessions(count=>count+1);return 0;}
+      return value-1;
+    }),1000);
+    return ()=>window.clearInterval(timer);
+  },[running,mode]);
+  const switchMode=(next:'focus'|'break')=>{setMode(next);setSeconds(next==='focus'?25*60:5*60);setRunning(false);};
+  const reset=()=>{setRunning(false);setSeconds(mode==='focus'?25*60:5*60);};
+  const timeLabel=String(Math.floor(seconds/60)).padStart(2,'0')+':'+String(seconds%60).padStart(2,'0');
+  const upcoming=[...tasks].filter(task=>task.status!=='completed').sort((a,b)=>new Date(a.dueAt).getTime()-new Date(b.dueAt).getTime());
+  const today=new Date();
+  const todayTasks=upcoming.filter(task=>new Date(task.dueAt).toDateString()===today.toDateString());
+  const progress=(mode==='focus'?25*60:5*60)-seconds;
+  const percent=Math.max(0,Math.min(100,Math.round(progress/(mode==='focus'?25*60:5*60)*100)));
+  return <div className="eh-planner-page">
+    <PageHeader eyebrow="STUDY PLANNER" title="مخطط المذاكرة" description="قسّم وقتك، ركّز على مهمة واحدة، وتابع المواعيد القادمة."/>
+    <section className="eh-planner-summary">
+      <div><span className="eh-eyebrow">TODAY</span><h2>{today.toLocaleDateString('ar-EG',{weekday:'long',day:'numeric',month:'long'})}</h2><p>لديك {todayTasks.length} مهمة بموعد انتهاء اليوم.</p></div>
+      <div className="eh-planner-summary-count"><b>{completedSessions}</b><span>جلسات تركيز مكتملة في هذه الجلسة</span></div>
+    </section>
+    <div className="eh-planner-grid">
+      <section className="eh-surface-card eh-focus-card">
+        <div className="eh-card-heading"><div><span className="eh-eyebrow">FOCUS MODE</span><h2>مؤقت التركيز</h2><p>تقنية بومودورو — 25 دقيقة تركيز ثم استراحة قصيرة</p></div><span className="eh-focus-icon"><Timer size={20}/></span></div>
+        <div className="eh-focus-tabs"><button type="button" className={mode==='focus'?'active':''} onClick={()=>switchMode('focus')}>جلسة تركيز · 25 دقيقة</button><button type="button" className={mode==='break'?'active':''} onClick={()=>switchMode('break')}>استراحة · 5 دقائق</button></div>
+        <div className="eh-focus-clock" style={{'--focus-progress':percent*3.6+'deg'} as React.CSSProperties}>
+          <div><small>{mode==='focus'?'FOCUS SESSION':'SHORT BREAK'}</small><b>{timeLabel}</b><span>{running?'أنت في جلسة تركيز':'جاهز عندما تكون مستعداً'}</span></div>
+        </div>
+        <div className="eh-focus-controls">
+          <button type="button" className="eh-button primary" onClick={()=>{if(seconds===0)setSeconds(mode==='focus'?25*60:5*60);setRunning(value=>!value);}}>{running?<Pause size={16}/>:<Play size={16} fill="currentColor"/>}{running?'إيقاف مؤقت':seconds===0?'ابدأ من جديد':'ابدأ التركيز'}</button>
+          <button type="button" className="eh-button" onClick={reset}><RotateCcw size={16}/> إعادة ضبط</button>
+        </div>
+        <div className="eh-focus-note"><Sparkles size={14}/> أبعد المشتتات وابدأ بمهمة واحدة فقط.</div>
       </section>
-      <section className="panel today-plan">
-        <div className="panel-head"><div><h3>المهام المرتبطة بموعد</h3><span>{new Date().toLocaleDateString('ar-EG', { weekday: 'long', day: 'numeric', month: 'long' })}</span></div><button className="icon-button"><CalendarDays size={17}/></button></div>
-        {upcoming.length ? <div className="timeline">{upcoming.slice(0, 8).map((task) => <div className="timeline-row" key={task.id}><time>{new Date(task.dueAt).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })}</time><i/><div><b>{task.title}</b><span>{task.subjectName} · {new Date(task.dueAt).toLocaleDateString('ar-EG')}</span></div><span className={'priority-badge priority-' + task.priority}>{priorityText[task.priority]}</span></div>)}</div> : <EmptyState title="لا توجد مهام في خطتك بعد" body="ستظهر هنا المهام المنشورة التي لم تنتهِ بعد."/>}
+      <section className="eh-surface-card eh-planner-agenda">
+        <div className="eh-card-heading"><div><span className="eh-eyebrow">UPCOMING TASKS</span><h2>جدول مهامك</h2><p>مرتبة حسب موعد الانتهاء</p></div><span className="eh-agenda-count">{upcoming.length} مهام</span></div>
+        <div className="eh-planner-timeline">
+          {upcoming.slice(0,10).map((task,index)=><article className="eh-planner-task" key={task.id}>
+            <div className="eh-planner-task-date"><b>{new Date(task.dueAt).toLocaleDateString('ar-EG',{day:'numeric'})}</b><small>{new Date(task.dueAt).toLocaleDateString('ar-EG',{month:'short'})}</small></div>
+            <span className="eh-planner-task-mark"/>
+            <div className="eh-planner-task-copy"><b>{task.title}</b><small>{task.subjectName||'مهمة عامة'} · {task.startAt?'بداية '+new Date(task.startAt).toLocaleTimeString('ar-EG',{hour:'2-digit',minute:'2-digit'}):'موعد تسليم'} </small></div>
+            <span className={'eh-planner-priority '+task.priority}>{priorityText[task.priority]}</span>
+          </article>)}
+          {upcoming.length===0&&<EmptyState title="لا توجد مهام مجدولة" body="عندما تُسند إليك مهام ستظهر مواعيدها هنا."/>}
+        </div>
       </section>
     </div>
-  </>;
+  </div>;
 }
 
 function AnalyticsPage({ tasks, subjects, lectures }: { tasks: StudyTask[]; subjects: Subject[]; lectures: Lecture[] }) {
-  const completed = tasks.filter((task) => task.status === 'completed').length;
-  const completion = tasks.length ? Math.round(completed / tasks.length * 100) : 0;
-  const inProgress = tasks.filter((task) => task.status === 'in-progress').length;
-  const notStarted = tasks.filter((task) => task.status === 'not-started').length;
-  return <>
-    <PageHeader eyebrow="YOUR PERFORMANCE" title="إحصائياتك الدراسية" description="تعرض هذه الصفحة أرقاماً مستندة إلى نشاطك المسجل فقط."/>
-    <div className="analytics-summary">
-      <div className="analytics-score"><div className="score-ring"><div><b>{completion}%</b><span>إنجاز المهام</span></div></div><div><div className="eyebrow">YOUR PRODUCTIVITY</div><h2>ملخص تقدمك</h2><p>{tasks.length ? 'يتم حساب النسبة من المهام المسجلة في حسابك.' : 'ستظهر المؤشرات عند إضافة المهام والمحتوى الدراسي.'}</p></div></div>
-      <div className="analytics-kpis">
-        <div><span>ساعات المذاكرة</span><b>—</b><i>لا توجد جلسات مسجلة</i></div>
-        <div><span>محاضرات مكتملة</span><b>{lectures.filter((lecture) => lecture.progress === 100).length}</b><i>من أصل {lectures.length}</i></div>
-        <div><span>المهام المكتملة</span><b>{completed}</b><i>من أصل {tasks.length}</i></div>
+  const completed=tasks.filter(task=>task.status==='completed').length;
+  const inProgress=tasks.filter(task=>task.status==='in-progress').length;
+  const notStarted=tasks.filter(task=>task.status==='not-started').length;
+  const completion=tasks.length?Math.round(completed/tasks.length*100):0;
+  const late=tasks.filter(task=>task.status!=='completed'&&new Date(task.dueAt).getTime()<Date.now()).length;
+  const doneLectures=lectures.filter(lecture=>lecture.progress===100).length;
+  return <div className="eh-analytics-page">
+    <PageHeader eyebrow="STUDY INSIGHTS" title="إحصائياتي" description="قراءة واضحة لتقدمك الأكاديمي من البيانات المسجلة في حسابك."/>
+    <section className="eh-analytics-hero">
+      <div className="eh-analytics-overall">
+        <span className="eh-eyebrow">OVERALL TASK COMPLETION</span><h2>تقدمك الدراسي</h2><p>{tasks.length?'تُحسب النسبة من المهام المسجلة فعلياً.':'ستظهر مؤشراتك بمجرد تسجيل المهام ومتابعة حالتها.'}</p>
+        <div className="eh-analytics-progress"><span style={{width:completion+'%'}}/></div>
+        <div className="eh-analytics-progress-label"><b>{completion}%</b><small>{completed} من {tasks.length} مهمة مكتملة</small></div>
       </div>
-    </div>
-    <div className="analytics-grid">
-      <section className="panel"><div className="panel-head"><div><h3>تقدمك حسب المادة</h3><span>نسبة استكمال المحتوى المنشور</span></div></div>
-        <div className="analytics-subjects">{subjects.map((subject) => <div key={subject.id}><span className="analytics-subject-name"><i style={{ background: subject.color }}/>{subject.name}</span><div className="progress-track"><div style={{ width: subject.progress + '%', background: subject.color }}/></div><b>{subject.progress}%</b></div>)}
-        {subjects.length === 0 && <EmptyState title="لا توجد مواد لتحليلها" body="ستظهر إحصائيات المواد بعد إضافتها من لوحة الإدارة."/>}</div>
+      <div className="eh-analytics-ring" style={{'--analytics-degree':completion*3.6+'deg'} as React.CSSProperties}><div><b>{completion}%</b><span>نسبة الإنجاز</span></div></div>
+    </section>
+    <section className="eh-analytics-kpis">
+      <div><span className="eh-kpi-icon green"><CheckCircle2 size={19}/></span><small>مهام مكتملة</small><b>{completed}</b><em>من إجمالي {tasks.length}</em></div>
+      <div><span className="eh-kpi-icon blue"><Activity size={19}/></span><small>قيد التنفيذ</small><b>{inProgress}</b><em>مهام تعمل عليها</em></div>
+      <div><span className="eh-kpi-icon purple"><Clock3 size={19}/></span><small>لم تبدأ</small><b>{notStarted}</b><em>بانتظار البدء</em></div>
+      <div><span className="eh-kpi-icon amber"><AlertCircle size={19}/></span><small>متأخرة</small><b>{late}</b><em>تجاوزت موعد الانتهاء</em></div>
+    </section>
+    <div className="eh-analytics-grid">
+      <section className="eh-surface-card">
+        <div className="eh-card-heading"><div><span className="eh-eyebrow">SUBJECT PROGRESS</span><h2>التقدم حسب المادة</h2><p>نسب التقدم التي سجلها النظام للمقررات</p></div></div>
+        <div className="eh-analytics-subject-list">
+          {subjects.map(subject=><div className="eh-analytics-subject" key={subject.id}>
+            <span className="eh-analytics-subject-mark" style={{'--subject-color':subject.color} as React.CSSProperties}>{subject.icon||'∑'}</span>
+            <span className="eh-analytics-subject-copy"><b>{subject.name}</b><small>{subject.code}</small><i><span style={{width:subject.progress+'%',background:subject.color}}/></i></span>
+            <strong>{subject.progress}%</strong>
+          </div>)}
+          {subjects.length===0&&<EmptyState title="لا توجد مواد لتحليلها" body="ستظهر المواد هنا بعد نشرها وإضافة بيانات التقدم."/>}
+        </div>
       </section>
-      <section className="panel"><div className="panel-head"><div><h3>إنجاز المهام</h3><span>توزيع الحالات الحالية</span></div></div>
-        {tasks.length ? <div className="task-donut-wrap"><div className="task-donut"><div><b>{tasks.length}</b><span>مهمة</span></div></div><div className="donut-legend"><span><i className="legend-green"/> مكتملة <b>{completed}</b></span><span><i className="legend-purple"/> قيد التنفيذ <b>{inProgress}</b></span><span><i className="legend-gray"/> لم تبدأ <b>{notStarted}</b></span></div></div> : <EmptyState title="لا توجد مهام لتحليلها" body="ستظهر الإحصائيات بعد نشر المهام وتحديث حالتها."/>}
+      <section className="eh-surface-card">
+        <div className="eh-card-heading"><div><span className="eh-eyebrow">LEARNING CONTENT</span><h2>المحتوى الدراسي</h2><p>المحاضرات والمقررات المتاحة</p></div></div>
+        <div className="eh-content-insights">
+          <div><span><BookOpen size={17}/></span><b>{subjects.length}</b><small>مادة منشورة</small></div>
+          <div><span><Video size={17}/></span><b>{lectures.length}</b><small>محاضرة منشورة</small></div>
+          <div><span><CheckCircle2 size={17}/></span><b>{doneLectures}</b><small>محاضرة مكتملة</small></div>
+        </div>
+        <div className="eh-analytics-disclaimer"><Info size={15}/> لا نحسب ساعات مذاكرة تقديرية؛ ستظهر الساعات فقط عند توفر سجل جلسات فعلي.</div>
       </section>
     </div>
-  </>;
+  </div>;
 }
 
 function NotificationsPage({ items, setItems }: { items: AppNotification[]; setItems: (fn: (items: AppNotification[]) => AppNotification[]) => void }) {
-  return <><PageHeader eyebrow="UPDATES" title="الإشعارات" description="آخر التحديثات والتنبيهات الخاصة بموادك ومهامك." action={<button className="btn btn-outline" onClick={() => setItems((all) => all.map((item) => ({ ...item, read: true })))}><Check size={15}/> تحديد الكل كمقروء</button>}/><div className="panel notifications-panel">{items.map((item) => { const Icon = iconForKind[item.kind]; return <div className={`notification-row ${item.read ? '' : 'unread'}`} key={item.id}><div className={`notification-kind kind-${item.kind}`}><Icon size={18}/></div><div><b>{item.title}</b><p>{item.body}</p><span>{item.time}</span></div><div className="notification-actions">{!item.read && <i/>}<button className="icon-button" onClick={() => setItems((all) => all.map((n) => n.id === item.id ? { ...n, read: !n.read } : n))}>{item.read ? <Check size={15}/> : <MoreHorizontal size={18}/>}</button></div></div>; })}{items.length === 0 && <EmptyState title="لا توجد إشعارات" body="ستظهر هنا التحديثات الجديدة."/>}</div></>;
+  const [filter,setFilter]=useState<'all'|'unread'>('all');
+  const visible=items.filter(item=>filter==='all'||!item.read);
+  const unread=items.filter(item=>!item.read).length;
+  return <div className="eh-notifications-page">
+    <PageHeader eyebrow="NOTIFICATION CENTER" title="الإشعارات" description="كل التحديثات والتنبيهات المتعلقة بمساحتك الدراسية." action={unread>0?<button type="button" className="eh-button" onClick={()=>setItems(all=>all.map(item=>({...item,read:true})))}><CheckCheck size={16}/> تحديد الكل كمقروء</button>:null}/>
+    <section className="eh-surface-card eh-notifications-board">
+      <div className="eh-notifications-toolbar"><div><span className="eh-eyebrow">YOUR UPDATES</span><h2>مركز التنبيهات</h2><p>لديك {unread} إشعارات غير مقروءة</p></div><div className="eh-notifications-tabs"><button type="button" className={filter==='all'?'active':''} onClick={()=>setFilter('all')}>الكل <small>{items.length}</small></button><button type="button" className={filter==='unread'?'active':''} onClick={()=>setFilter('unread')}>غير مقروء <small>{unread}</small></button></div></div>
+      {visible.map(item=>{const Icon=iconForKind[item.kind];return <article className={'eh-notification-item '+(!item.read?'unread':'')} key={item.id}>
+        <span className={'eh-notification-icon '+item.kind}><Icon size={19}/></span>
+        <div className="eh-notification-copy"><b>{item.title}</b><p>{item.body}</p><small>{item.time}</small></div>
+        <button type="button" className="eh-notification-toggle" onClick={()=>setItems(all=>all.map(current=>current.id===item.id?{...current,read:!current.read}:current))} aria-label={item.read?'تحديد كغير مقروء':'تحديد كمقروء'}>{item.read?<Check size={16}/>:<span/>}</button>
+      </article>;})}
+      {visible.length===0&&<EmptyState title={filter==='unread'?'لا توجد تنبيهات غير مقروءة':'لا توجد إشعارات حتى الآن'} body={filter==='unread'?'لقد راجعت جميع الإشعارات.':'ستظهر هنا الإشعارات المتعلقة بمهامك ومحاضراتك.'}/>}
+    </section>
+  </div>;
 }
 
 function AdminPage({ tasks, subjects, lecturers, lectures, exams, files, currentUser, cloudinarySettings, onNewTask, onAddSubject, onAddLecturer, onAddLecture, onAddExam, onSaved, onError }: {
@@ -1365,10 +1597,10 @@ function AdminPage({ tasks, subjects, lecturers, lectures, exams, files, current
     <div className="admin-tabs">{[{ id: 'overview', label: 'نظرة عامة' }, { id: 'academic', label: 'المحتوى الأكاديمي' }, { id: 'tasks', label: 'إدارة المهام' }, { id: 'users', label: 'المستخدمون والصلاحيات' }, { id: 'cloudinary', label: 'إعدادات Cloudinary' }].map((item) => <button key={item.id} onClick={() => setTab(item.id)} className={tab === item.id ? 'active' : ''}>{item.label}</button>)}</div>
     {tab === 'overview' && <>
       <div className="admin-stats">
-        <StatCard label="المواد الدراسية" value={subjects.length.toString()} meta="مواد منشورة" icon={<BookOpen size={18}/>} tone="blue"/>
-        <StatCard label="المهام" value={tasks.length.toString()} meta="مهام مسجلة" icon={<ListChecks size={18}/>} tone="green"/>
-        <StatCard label="المحاضرات" value={lectures.length.toString()} meta="محاضرات منشورة" icon={<Video size={18}/>} tone="violet"/>
-        <StatCard label="الاختبارات" value={exams.length.toString()} meta="اختبارات منشورة" icon={<ClipboardList size={18}/>} tone="amber"/>
+        <StatCard label="المواد الدراسية" value={subjects.length.toString()} detail="مواد منشورة" icon={<BookOpen size={18}/>} tone="blue"/>
+        <StatCard label="المهام" value={tasks.length.toString()} detail="مهام مسجلة" icon={<ListChecks size={18}/>} tone="green"/>
+        <StatCard label="المحاضرات" value={lectures.length.toString()} detail="محاضرات منشورة" icon={<Video size={18}/>} tone="purple"/>
+        <StatCard label="الاختبارات" value={exams.length.toString()} detail="اختبارات منشورة" icon={<ClipboardList size={18}/>} tone="amber"/>
       </div>
       <div className="admin-quick-grid">
         <button onClick={onAddSubject}><div><BookOpen size={19}/></div><b>إضافة مادة</b><span>إنشاء مقرر دراسي</span></button>
@@ -1450,6 +1682,7 @@ function ProfilePage({ user, isDemo, onToggleRole, onLogout, onDeleteAccount, on
   const [bio, setBio] = useState(user.bio || '');
   const [photoURL, setPhotoURL] = useState(user.photoURL || '');
   const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState('');
   const [savingProfile, setSavingProfile] = useState(false);
   const [profileMessage, setProfileMessage] = useState('');
   const [showDelete, setShowDelete] = useState(false);
@@ -1463,6 +1696,13 @@ function ProfilePage({ user, isDemo, onToggleRole, onLogout, onDeleteAccount, on
     setBio(user.bio || '');
     setPhotoURL(user.photoURL || '');
   }, [user.displayName, user.phone, user.bio, user.photoURL]);
+
+  useEffect(() => {
+    if (!photoFile) { setPhotoPreview(''); return; }
+    const previewUrl = URL.createObjectURL(photoFile);
+    setPhotoPreview(previewUrl);
+    return () => URL.revokeObjectURL(previewUrl);
+  }, [photoFile]);
 
   const activatePush = async () => {
     setPushBusy(true);
@@ -1509,95 +1749,79 @@ function ProfilePage({ user, isDemo, onToggleRole, onLogout, onDeleteAccount, on
     }
   };
 
-  return <>
-    <PageHeader eyebrow="ACCOUNT SETTINGS" title="الملف الشخصي والإعدادات" description="حدّث بياناتك، واختر مظهر المنصة، وتحكم في حسابك."/>
-    <div className="profile-layout">
-      <section className="panel profile-card">
-        <div className="profile-cover"/>
-        <div className="profile-details">
-          <div className="profile-avatar-large">{photoFile ? photoFile.name.slice(0, 1).toUpperCase() : photoURL ? <img src={photoURL} alt={user.displayName}/> : user.displayName.slice(0, 1)}</div>
-          <h2>{user.displayName}</h2>
-          <p>{user.email}</p>
-          <span className="role-chip">{user.role === 'admin' || user.role === 'super-admin' ? 'مدير المنصة' : 'طالب هندسة'}</span>
-          <div className="profile-academic">
-            <div><span>الفرقة</span><b>{user.academicYear}</b></div>
-            <div><span>الفصل الدراسي</span><b>{user.term}</b></div>
+  return <div className="eh-profile-page">
+    <PageHeader eyebrow="YOUR ACCOUNT" title="الملف الشخصي والإعدادات" description="تحكم في بياناتك وخصوصيتك وطريقة ظهور منصة ENG HUB."/>
+    <section className="eh-profile-hero">
+      <div className="eh-profile-cover"/>
+      <div className="eh-profile-identity">
+        <div className="eh-profile-avatar">{photoPreview||photoURL?<img src={photoPreview||photoURL} alt={user.displayName}/>:user.displayName.slice(0,1)}</div>
+        <div className="eh-profile-name"><span className="eh-eyebrow">STUDENT PROFILE</span><h2>{user.displayName}</h2><p>{user.email}</p><span className="eh-profile-role">{user.role==='admin'||user.role==='super-admin'?'مدير المنصة':'طالب هندسة'}</span></div>
+        <div className="eh-profile-academic-facts"><div><small>الفرقة</small><b>{user.academicYear}</b></div><div><small>الفصل الدراسي</small><b>{user.term}</b></div></div>
+      </div>
+    </section>
+
+    <div className="eh-profile-grid">
+      <section className="eh-surface-card eh-profile-editor">
+        <div className="eh-card-heading"><div><span className="eh-eyebrow">PERSONAL DETAILS</span><h2>بياناتك الشخصية</h2><p>هذه البيانات التي تظهر في ملفك ورسائلك داخل المنصة.</p></div></div>
+        <form className="eh-profile-form" onSubmit={(event)=>void saveProfile(event)}>
+          <div className="eh-profile-photo-picker">
+            <div className="eh-profile-photo-preview">{photoPreview||photoURL?<img src={photoPreview||photoURL} alt=""/>:name.slice(0,1)}</div>
+            <div><b>الصورة الشخصية</b><span>اختر صورة واضحة ليتعرف عليك زملاؤك.</span></div>
+            <label className="eh-button"><ImagePlus size={15}/> تغيير الصورة<input type="file" accept="image/*" className="visually-hidden" onChange={(event)=>setPhotoFile(event.target.files?.[0]??null)}/></label>
           </div>
-        </div>
-      </section>
-      <section className="panel settings-panel">
-        <form className="settings-section profile-edit-form" onSubmit={(event) => void saveProfile(event)}>
-          <h3>بيانات الملف الشخصي</h3>
-          <div className="profile-edit-photo">
-            <div className="avatar avatar-purple">{photoFile ? photoFile.name.slice(0, 1).toUpperCase() : photoURL ? <img src={photoURL} alt=""/> : name.slice(0, 1)}</div>
-            <div><b>الصورة الشخصية</b><span>ارفع صورة جديدة من جهازك</span></div>
-            <label className="btn btn-outline btn-small"><ImagePlus size={14}/> تغيير الصورة<input type="file" accept="image/*" className="visually-hidden" onChange={(event) => setPhotoFile(event.target.files?.[0] ?? null)}/></label>
-          </div>
-          <label>الاسم الظاهر<input required minLength={2} maxLength={80} value={name} onChange={(event) => setName(event.target.value)}/></label>
-          <label>رقم الهاتف أو واتساب<input type="tel" maxLength={24} value={phone} onChange={(event) => setPhone(event.target.value)} placeholder="+20 1xxxxxxxxx" dir="ltr"/></label>
-          <label>نبذة عنك<textarea rows={3} maxLength={240} value={bio} onChange={(event) => setBio(event.target.value)} placeholder="نبذة قصيرة عنك..."/></label>
-          {profileMessage && <p className="settings-hint" role="status">{profileMessage}</p>}
-          <button className="btn btn-primary btn-small" type="submit" disabled={savingProfile || name.trim().length < 2}>{savingProfile ? <span className="spinner"/> : <Check size={14}/>} حفظ بيانات الملف</button>
+          <label>الاسم الظاهر<input required minLength={2} maxLength={80} value={name} onChange={(event)=>setName(event.target.value)} placeholder="اسمك الكامل"/></label>
+          <label>رقم الهاتف أو واتساب<input type="tel" maxLength={24} value={phone} onChange={(event)=>setPhone(event.target.value)} placeholder="+20 1xxxxxxxxx" dir="ltr"/></label>
+          <label>نبذة مختصرة<textarea rows={4} maxLength={240} value={bio} onChange={(event)=>setBio(event.target.value)} placeholder="اكتب نبذة قصيرة عنك واهتماماتك الدراسية..."/></label>
+          {profileMessage&&<div className="eh-inline-feedback" role="status">{profileMessage}</div>}
+          <div className="eh-profile-form-footer"><small>آخر البيانات المحفوظة تظهر في ملفك مباشرة.</small><button type="submit" className="eh-button primary" disabled={savingProfile||name.trim().length<2}>{savingProfile?<span className="spinner"/>:<Check size={16}/>} حفظ التغييرات</button></div>
         </form>
-        <div className="settings-section">
-          <h3>المظهر</h3>
-          <div className="theme-choice-group" role="group" aria-label="تفضيل المظهر">
-            <button type="button" className={themePreference === 'system' ? 'selected' : ''} onClick={() => onThemeChange('system')} aria-pressed={themePreference === 'system'}><Monitor size={17}/><span>حسب الجهاز</span></button>
-            <button type="button" className={themePreference === 'light' ? 'selected' : ''} onClick={() => onThemeChange('light')} aria-pressed={themePreference === 'light'}><Sun size={17}/><span>فاتح</span></button>
-            <button type="button" className={themePreference === 'dark' ? 'selected' : ''} onClick={() => onThemeChange('dark')} aria-pressed={themePreference === 'dark'}><Moon size={17}/><span>داكن</span></button>
-          </div>
-          <p className="settings-hint">{themePreference === 'system' ? 'يتغير المظهر تلقائياً حسب إعدادات جهازك.' : themePreference === 'light' ? 'المظهر الفاتح مفعل.' : 'المظهر الداكن مفعل.'}</p>
-        </div>
-        <div className="settings-section">
-          <h3>الإشعارات</h3>
-          <div className="setting-row">
-            <div className="setting-icon"><Bell size={18}/></div>
-            <div><b>إشعارات المتصفح</b><span>{isDemo ? 'تفعيلها متاح بعد ربط Firebase بالموقع.' : pushGranted ? 'إذن الإشعارات ممنوح لهذا المتصفح.' : 'اسمح للموقع بإرسال تنبيهات المنصة.'}</span></div>
-            <button className="btn btn-outline btn-small" onClick={() => void activatePush()} disabled={isDemo || pushBusy}>{pushBusy ? <span className="spinner"/> : null}{pushGranted ? 'تحديث التسجيل' : 'تفعيل الإشعارات'}</button>
-          </div>
-          {pushMessage && <p className="settings-hint" role="status">{pushMessage}</p>}
-        </div>
-        <div className="settings-section">
-          <h3>الحساب</h3>
-          <div className="setting-row">
-            <div className="setting-icon"><ShieldCheck size={18}/></div>
-            <div><b>حالة الاتصال</b><span>{isDemo ? 'وضع تجريبي — لا يوجد اتصال بقاعدة البيانات' : 'متصل بخدمات Firebase'}</span></div>
-            <span className={'connection-state ' + (isDemo ? 'demo' : '')}><i/>{isDemo ? 'Demo' : 'Online'}</span>
-          </div>
-          {isDemo && <div className="setting-row"><div className="setting-icon"><Users size={18}/></div><div><b>تجربة صلاحيات المدير</b><span>للعرض التجريبي فقط</span></div><button className="btn btn-outline btn-small" onClick={onToggleRole}>تبديل الدور</button></div>}
-        </div>
-        <div className="settings-section">
-          <h3>الجلسة</h3>
-          <div className="setting-row">
-            <div className="setting-icon"><LogOut size={18}/></div>
-            <div><b>تسجيل الخروج</b><span>إنهاء جلستك الحالية</span></div>
-            <button className="btn btn-outline btn-small" onClick={() => void onLogout()}>تسجيل الخروج</button>
-          </div>
-        </div>
-        <div className="settings-section danger-zone">
-          <h3>منطقة الخطر</h3>
-          <div className="setting-row">
-            <div className="setting-icon danger-setting"><Trash2 size={18}/></div>
-            <div><b>حذف الحساب نهائياً</b><span>حذف حساب Firebase وملفك والبيانات الشخصية القابلة للحذف.</span></div>
-            <button className="btn btn-danger btn-small" onClick={() => { setShowDelete(true); setDeleteError(''); }}>حذف الحساب</button>
-          </div>
-          <p className="settings-hint">{isDemo ? 'حذف الحساب متاح للحسابات المسجلة في Firebase فقط.' : 'لن تُحذف ملفات Cloudinary الثنائية تلقائياً من المتصفح؛ ستُزال بيانات ربطها بحسابك من Firestore. احتفظ بنسخة من ملفاتك قبل المتابعة.'}</p>
-        </div>
       </section>
+
+      <aside className="eh-profile-settings-column">
+        <section className="eh-surface-card eh-profile-settings">
+          <div className="eh-card-heading"><div><span className="eh-eyebrow">APPEARANCE</span><h2>مظهر المنصة</h2><p>اختر المظهر الأنسب لك.</p></div><span className="eh-setting-symbol"><Sun size={18}/></span></div>
+          <div className="eh-theme-options">
+            <button type="button" className={themePreference==='system'?'selected':''} onClick={()=>onThemeChange('system')} aria-pressed={themePreference==='system'}><Monitor size={17}/><span>حسب الجهاز</span></button>
+            <button type="button" className={themePreference==='light'?'selected':''} onClick={()=>onThemeChange('light')} aria-pressed={themePreference==='light'}><Sun size={17}/><span>فاتح</span></button>
+            <button type="button" className={themePreference==='dark'?'selected':''} onClick={()=>onThemeChange('dark')} aria-pressed={themePreference==='dark'}><Moon size={17}/><span>داكن</span></button>
+          </div>
+          <p className="eh-settings-caption">{themePreference==='system'?'يتغير المظهر تلقائياً حسب جهازك.':themePreference==='light'?'المظهر الفاتح مفعل حالياً.':'المظهر الداكن مفعل حالياً.'}</p>
+        </section>
+
+        <section className="eh-surface-card eh-profile-settings">
+          <div className="eh-card-heading"><div><span className="eh-eyebrow">NOTIFICATIONS</span><h2>الإشعارات</h2><p>إدارة تنبيهات المتصفح.</p></div><span className="eh-setting-symbol"><Bell size={18}/></span></div>
+          <div className="eh-setting-entry"><span className="eh-setting-entry-icon"><Bell size={16}/></span><div><b>إشعارات هذا المتصفح</b><small>{isDemo?'متاحة بعد ربط Firebase.':pushGranted?'إذن الإشعارات مفعل.':'لم يتم السماح بالإشعارات بعد.'}</small></div><button type="button" className="eh-button small" onClick={()=>void activatePush()} disabled={isDemo||pushBusy}>{pushBusy?<span className="spinner"/>:pushGranted?'تحديث':'تفعيل'}</button></div>
+          {pushMessage&&<p className="eh-settings-caption">{pushMessage}</p>}
+        </section>
+
+        <section className="eh-surface-card eh-profile-settings">
+          <div className="eh-card-heading"><div><span className="eh-eyebrow">SECURITY & SESSION</span><h2>الحساب والجلسة</h2><p>معلومات الاتصال وإدارة الجلسة الحالية.</p></div><span className="eh-setting-symbol"><ShieldCheck size={18}/></span></div>
+          <div className="eh-setting-entry"><span className="eh-setting-entry-icon"><ShieldCheck size={16}/></span><div><b>حالة الاتصال</b><small>{isDemo?'وضع تجريبي':'متصل بخدمات Firebase'}</small></div><span className={'eh-online-status '+(isDemo?'offline':'')}>{isDemo?'Demo':'Online'}</span></div>
+          {isDemo&&<div className="eh-setting-entry"><span className="eh-setting-entry-icon"><Users size={16}/></span><div><b>تجربة دور المدير</b><small>للعرض التجريبي فقط</small></div><button type="button" className="eh-button small" onClick={onToggleRole}>تبديل الدور</button></div>}
+          <div className="eh-setting-entry"><span className="eh-setting-entry-icon"><LogOut size={16}/></span><div><b>تسجيل الخروج</b><small>إنهاء جلستك الحالية على هذا الجهاز.</small></div><button type="button" className="eh-button small" onClick={()=>void onLogout()}>تسجيل الخروج</button></div>
+        </section>
+
+        <section className="eh-surface-card eh-profile-danger">
+          <div><span className="eh-eyebrow">DANGER ZONE</span><h2>حذف الحساب</h2><p>سيتم حذف بيانات الحساب الشخصية من Firebase. ملفات Cloudinary الفعلية لا تُحذف تلقائياً من المتصفح.</p></div>
+          <button type="button" className="eh-button danger" onClick={()=>{setShowDelete(true);setDeleteError('');}} disabled={isDemo||user.role==='admin'||user.role==='super-admin'}><Trash2 size={15}/> حذف الحساب</button>
+        </section>
+      </aside>
     </div>
-    {showDelete && <div className="modal-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) setShowDelete(false); }}>
+
+    {showDelete&&<div className="modal-backdrop" onMouseDown={(event)=>{if(event.target===event.currentTarget)setShowDelete(false);}}>
       <section className="modal-card delete-account-dialog" role="dialog" aria-modal="true" aria-labelledby="delete-account-title">
-        <div className="modal-head"><div><h2 id="delete-account-title">تأكيد حذف الحساب</h2><p>هذا الإجراء نهائي ولا يمكن التراجع عنه.</p></div><button className="icon-button" type="button" onClick={() => setShowDelete(false)} aria-label="إغلاق"><X size={18}/></button></div>
-        <form className="form-stack" onSubmit={(event) => void confirmDelete(event)}>
+        <div className="modal-head"><div><h2 id="delete-account-title">تأكيد حذف الحساب</h2><p>هذا الإجراء نهائي ولا يمكن التراجع عنه.</p></div><button type="button" className="icon-button" onClick={()=>setShowDelete(false)} aria-label="إغلاق"><X size={18}/></button></div>
+        <form className="form-stack" onSubmit={(event)=>void confirmDelete(event)}>
           <div className="delete-warning"><AlertCircle size={18}/><span>سيتم حذف حساب تسجيل الدخول وملف المستخدم والبيانات الشخصية المرتبطة به من Firestore.</span></div>
-          {!isDemo && user.providerId === 'password' && <label>أدخل كلمة المرور لتأكيد هويتك<input type="password" required autoComplete="current-password" value={deletePassword} onChange={(event) => setDeletePassword(event.target.value)}/></label>}
-          {user.role === 'admin' || user.role === 'super-admin' ? <p className="auth-error">لا يمكن حذف حساب مدير ما دامت له صلاحية إدارة. عطّل سجله في admins من Firebase Console أولاً ثم سجّل الدخول مجدداً.</p> : null}
-          {deleteError && <p className="auth-error">{deleteError}</p>}
-          <div className="modal-actions"><button type="button" className="btn btn-outline" onClick={() => setShowDelete(false)}>إلغاء</button><button type="submit" className="btn btn-danger" disabled={deleting || isDemo || user.role === 'admin' || user.role === 'super-admin'}>{deleting ? <span className="spinner"/> : <Trash2 size={15}/>} حذف الحساب نهائياً</button></div>
+          {!isDemo&&user.providerId==='password'&&<label>أدخل كلمة المرور لتأكيد هويتك<input type="password" required autoComplete="current-password" value={deletePassword} onChange={(event)=>setDeletePassword(event.target.value)}/></label>}
+          {(user.role==='admin'||user.role==='super-admin')&&<p className="auth-error">لا يمكن حذف حساب مدير قبل تعطيل صلاحياته في مجموعة admins.</p>}
+          {deleteError&&<p className="auth-error">{deleteError}</p>}
+          <div className="modal-actions"><button type="button" className="eh-button" onClick={()=>setShowDelete(false)}>إلغاء</button><button type="submit" className="eh-button danger" disabled={deleting||isDemo||user.role==='admin'||user.role==='super-admin'}>{deleting?<span className="spinner"/>:<Trash2 size={15}/>} حذف نهائي</button></div>
         </form>
       </section>
     </div>}
-  </>;
+  </div>;
+
 }
 
 function TaskModal({ subjects, userId, onClose, onSave }: {

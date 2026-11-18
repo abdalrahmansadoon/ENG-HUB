@@ -2,8 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { AuthProvider } from './app/AuthContext';
 import App from './app/App';
-import './styles/global.css';
-import './styles/redesign.css';
+import './styles/fresh-ui.css';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
@@ -25,7 +24,7 @@ if ('serviceWorker' in navigator && import.meta.env.PROD) {
         window.location.reload();
       });
     }
-    void navigator.serviceWorker.register(`${import.meta.env.BASE_URL}sw.js?v=3`)
+    void navigator.serviceWorker.register(`${import.meta.env.BASE_URL}sw.js?v=4`)
       .then((registration) => registration.update())
       .catch((error) => console.warn('ENG HUB service worker registration failed.', error));
   });
