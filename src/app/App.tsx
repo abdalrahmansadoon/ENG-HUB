@@ -773,8 +773,6 @@ function AcademicHubPage({ subjects, lecturers, lectures, parts, selectedSubject
     ? <button type="button" className="eh-button primary" onClick={onAddPart}><Plus size={16}/> إضافة جزء</button>
     : lecturer
       ? <button type="button" className="eh-button primary" onClick={onAddLecture}><Plus size={16}/> إضافة محاضرة</button>
-      : lecturer
-        ? <button type="button" className="eh-button primary" onClick={onAddLecture}><Plus size={16}/> إضافة محاضرة</button>
       : subject && subjectCategory === 'lectures'
         ? <div className="eh-academic-actions"><button type="button" className="eh-button" onClick={onAddLecturer}><Plus size={16}/> إضافة مدرس</button><button type="button" className="eh-button primary" onClick={onAddLecture}><Plus size={16}/> محاضرة بدون مدرس</button></div>
       : subject ? undefined
