@@ -26,6 +26,7 @@ import { AcademicContentArea } from './academic/AcademicContentArea';
 import { PublicStudentProfilePage } from './profile/PublicStudentProfilePage';
 import { ChatLockModal } from './chat/ChatLockModal';
 import { ChatMuteModal } from './chat/ChatMuteModal';
+import { ChatWarningModal } from './chat/ChatWarningModal';
 import type { AcademicContentNode, CreateAcademicContentInput } from '../types/academicContent';
 
 const navGroups = [
@@ -1150,6 +1151,7 @@ function ChatPage({ user, cloudinarySettings, isDemo, isAdmin, onBack, onOpenPro
   const [warnings, setWarnings] = useState<ChatWarning[]>([]);
   const [lockSettingsOpen, setLockSettingsOpen] = useState(false);
   const [muteTarget, setMuteTarget] = useState<ChatMessage | null>(null);
+  const [warningTarget, setWarningTarget] = useState<ChatMessage | null>(null);
   const [moderationBusy, setModerationBusy] = useState(false);
   const [contextMuted, setContextMuted] = useState(false);
   const [notice, setNotice] = useState('');
@@ -1500,14 +1502,21 @@ function ChatPage({ user, cloudinarySettings, isDemo, isAdmin, onBack, onOpenPro
 
   const handleWarning = async (message: ChatMessage) => {
     if (!isAdmin || message.senderId === user.uid) return;
-    const reason = window.prompt('اكتب سبب التحذير الذي سيظهر في سجل الإشراف:');
-    if (!reason?.trim()) return;
     setContextMessage(null);
+    setWarningTarget(message);
+  };
+
+  const saveWarning = async (reason: string) => {
+    if (!isAdmin || !warningTarget) return;
+    setModerationBusy(true);
     try {
-      await createGeneralChatWarning(message.senderId, user.uid, reason);
-      setNotice(`تم تسجيل تحذير إداري لـ ${message.senderName}.`);
+      await createGeneralChatWarning(warningTarget.senderId, user.uid, reason);
+      setNotice(`تم تسجيل تحذير إداري لـ ${warningTarget.senderName}.`);
+      setWarningTarget(null);
     } catch (errorReason) {
       setError(errorReason instanceof Error ? errorReason.message : 'تعذر حفظ التحذير.');
+    } finally {
+      setModerationBusy(false);
     }
   };
 
@@ -1787,6 +1796,7 @@ function ChatPage({ user, cloudinarySettings, isDemo, isAdmin, onBack, onOpenPro
     </div>}
     {lockSettingsOpen && <ChatLockModal onClose={() => setLockSettingsOpen(false)} onSave={saveChatLock} busy={moderationBusy}/>}
     {muteTarget && <ChatMuteModal userName={muteTarget.senderName} onClose={() => setMuteTarget(null)} onSave={saveMuteDuration} busy={moderationBusy}/>}
+    {warningTarget && <ChatWarningModal userName={warningTarget.senderName} onClose={() => setWarningTarget(null)} onSave={saveWarning} busy={moderationBusy}/>}
   </section>;
 }
 
