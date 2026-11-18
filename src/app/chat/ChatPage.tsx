@@ -268,7 +268,12 @@ export function ChatPage({ user, cloudinarySettings, isDemo, isAdmin, roomId, ro
   const markRoomAsRead = () => {
     const latest = messages[messages.length - 1];
     if (!latest) {
-      void markChatRoomRead(user.uid, roomId).catch((reason) => setError(reason instanceof Error ? reason.message : 'تعذر حفظ حالة القراءة.'));
+      if (lastReadMessageId.current === '__empty__') return;
+      lastReadMessageId.current = '__empty__';
+      void markChatRoomRead(user.uid, roomId).catch((reason) => {
+        lastReadMessageId.current = '';
+        setError(reason instanceof Error ? reason.message : 'تعذر حفظ حالة القراءة.');
+      });
       return;
     }
     if (lastReadMessageId.current === latest.id) return;
