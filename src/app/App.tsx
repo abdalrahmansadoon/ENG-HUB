@@ -1507,6 +1507,7 @@ function ProfilePage({ user, isDemo, onToggleRole, onLogout, onDeleteAccount, on
   const [bio, setBio] = useState(user.bio || '');
   const [photoURL, setPhotoURL] = useState(user.photoURL || '');
   const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState('');
   const [savingProfile, setSavingProfile] = useState(false);
   const [profileMessage, setProfileMessage] = useState('');
   const [showDelete, setShowDelete] = useState(false);
@@ -1520,6 +1521,13 @@ function ProfilePage({ user, isDemo, onToggleRole, onLogout, onDeleteAccount, on
     setBio(user.bio || '');
     setPhotoURL(user.photoURL || '');
   }, [user.displayName, user.phone, user.bio, user.photoURL]);
+
+  useEffect(() => {
+    if (!photoFile) { setPhotoPreview(''); return; }
+    const previewUrl = URL.createObjectURL(photoFile);
+    setPhotoPreview(previewUrl);
+    return () => URL.revokeObjectURL(previewUrl);
+  }, [photoFile]);
 
   const activatePush = async () => {
     setPushBusy(true);
@@ -1572,7 +1580,7 @@ function ProfilePage({ user, isDemo, onToggleRole, onLogout, onDeleteAccount, on
       <section className="panel profile-card">
         <div className="profile-cover"/>
         <div className="profile-details">
-          <div className="profile-avatar-large">{photoFile ? photoFile.name.slice(0, 1).toUpperCase() : photoURL ? <img src={photoURL} alt={user.displayName}/> : user.displayName.slice(0, 1)}</div>
+          <div className="profile-avatar-large">{photoPreview || photoURL ? <img src={photoPreview || photoURL} alt={user.displayName}/> : user.displayName.slice(0, 1)}</div>
           <h2>{user.displayName}</h2>
           <p>{user.email}</p>
           <span className="role-chip">{user.role === 'admin' || user.role === 'super-admin' ? 'مدير المنصة' : 'طالب هندسة'}</span>
@@ -1586,7 +1594,7 @@ function ProfilePage({ user, isDemo, onToggleRole, onLogout, onDeleteAccount, on
         <form className="settings-section profile-edit-form" onSubmit={(event) => void saveProfile(event)}>
           <h3>بيانات الملف الشخصي</h3>
           <div className="profile-edit-photo">
-            <div className="avatar avatar-purple">{photoFile ? photoFile.name.slice(0, 1).toUpperCase() : photoURL ? <img src={photoURL} alt=""/> : name.slice(0, 1)}</div>
+            <div className="avatar avatar-purple">{photoPreview || photoURL ? <img src={photoPreview || photoURL} alt=""/> : name.slice(0, 1)}</div>
             <div><b>الصورة الشخصية</b><span>ارفع صورة جديدة من جهازك</span></div>
             <label className="btn btn-outline btn-small"><ImagePlus size={14}/> تغيير الصورة<input type="file" accept="image/*" className="visually-hidden" onChange={(event) => setPhotoFile(event.target.files?.[0] ?? null)}/></label>
           </div>
