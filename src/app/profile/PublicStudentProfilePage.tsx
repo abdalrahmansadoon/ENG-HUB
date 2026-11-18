@@ -39,11 +39,11 @@ export function PublicStudentProfilePage({ uid, currentUid, onBack }: {
             <h1>{profile.displayName}</h1>
             {profile.username && <small className="eh-public-profile-username">@{profile.username}</small>}
             {profile.bio && <p className="eh-public-profile-bio">{profile.bio}</p>}
-            <div className="eh-public-profile-facts">
+            {profile.showAcademicInfoOnPublicProfile && <div className="eh-public-profile-facts">
               {profile.academicYear && <span><GraduationCap size={16}/>{profile.academicYear}</span>}
               {profile.term && <span><BookOpen size={16}/>{profile.term}</span>}
-              <span><ShieldCheck size={16}/>ملف عام</span>
-            </div>
+            </div>}
+            <div className="eh-public-profile-facts"><span><ShieldCheck size={16}/>ملف عام</span></div>
           </div>
         </section> : null}
   </main>;
