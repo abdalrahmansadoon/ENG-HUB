@@ -2903,3 +2903,11 @@ body { font-family:"IBM Plex Sans Arabic","Cairo",system-ui,sans-serif; }
 .eh-app .eh-calendar-save{display:flex;justify-content:flex-end;margin-top:16px}
 .eh-app .eh-calendar-note{display:flex;align-items:flex-start;gap:7px;margin-top:13px;color:var(--muted);font-size:10px;line-height:1.8}
 @media(max-width:650px){.eh-app .eh-calendar-current,.eh-app .eh-calendar-columns{grid-template-columns:1fr}.eh-app .eh-calendar-admin{padding:14px!important}}
+
+.eh-app .eh-video-completion{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-top:14px;padding:14px;border:1px solid var(--border);border-radius:13px;background:var(--surface2)}
+.eh-app .eh-video-completion>div{display:grid;gap:5px;min-width:0}
+.eh-app .eh-video-completion b{font-size:12px;color:var(--text)}
+.eh-app .eh-video-completion small{font-size:10px;line-height:1.7;color:var(--muted)}
+.eh-app .eh-video-completion button{min-height:38px;flex:0 0 auto;padding:0 13px;border:0;border-radius:10px;background:var(--purple);color:#fff;font-size:10px;font-weight:800}
+.eh-app .eh-video-completion button.is-complete{background:color-mix(in srgb,var(--green) 15%,var(--surface));color:var(--green);border:1px solid color-mix(in srgb,var(--green) 30%,var(--border))}
+@media(max-width:600px){.eh-app .eh-video-completion{align-items:stretch;flex-direction:column}.eh-app .eh-video-completion button{width:100%}}
