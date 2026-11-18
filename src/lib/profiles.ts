@@ -19,7 +19,7 @@ export async function getPublicStudentProfile(uid: string): Promise<PublicStuden
   if (!uid) throw new Error('رابط الملف الشخصي غير صالح.');
   let snapshot: DocumentSnapshot<DocumentData>;
   try {
-    snapshot = await getDoc(doc(db, 'users', uid));
+    snapshot = await getDoc(doc(db, 'publicProfiles', uid));
   } catch (error) {
     const code = (error as { code?: string })?.code ?? '';
     if (code === 'permission-denied') throw new Error('هذا الملف الشخصي خاص ولا يمكن عرضه للطلاب الآخرين.');
