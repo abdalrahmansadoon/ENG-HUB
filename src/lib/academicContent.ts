@@ -67,7 +67,7 @@ export async function createAcademicContentNode(
   const title = input.title.trim();
   if (!subjectId) throw new Error('اختر المادة أولاً.');
   if (title.length < 2) throw new Error('اكتب عنواناً واضحاً من حرفين على الأقل.');
-  if (input.kind !== 'folder' && input.kind !== 'note' && !input.url?.trim()) {
+  if (!['folder', 'lecturer', 'lecture', 'note'].includes(input.kind) && !input.url?.trim()) {
     throw new Error('أضف رابط أو ملفاً لهذا النوع من المحتوى.');
   }
   const ref = await addDoc(nodeCollection(subjectId), {
