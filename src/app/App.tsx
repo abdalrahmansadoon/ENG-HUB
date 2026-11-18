@@ -24,7 +24,7 @@ import { readEngHubRoute, buildEngHubHash, type SubjectCategory } from '../lib/r
 import { subscribeAcademicContent, createAcademicContentNode, updateAcademicContentNode, deleteAcademicContentNode } from '../lib/academicContent';
 import { AcademicContentArea } from './academic/AcademicContentArea';
 import { PublicStudentProfilePage } from './profile/PublicStudentProfilePage';
-import type { AcademicContentNode, CreateAcademicContentInput } from '../types/academicContent';
+import type { AcademicContentCategory, AcademicContentNode, CreateAcademicContentInput } from '../types/academicContent';
 
 const navGroups = [
   { title: 'مساحة الدراسة', items: [
@@ -518,7 +518,7 @@ function App() {
         {(page === 'courses' || page === 'lectures') && selectedSubjectId && selectedSubjectCategory && selectedSubjectCategory !== 'chat' && subjects.find((item) => item.id === selectedSubjectId) && <AcademicContentArea
           subject={subjects.find((item) => item.id === selectedSubjectId)!}
           nodes={academicContentWithLegacy}
-          category={selectedSubjectCategory}
+          category={selectedSubjectCategory as AcademicContentCategory}
           activeNodeId={selectedContentNodeId || selectedLectureId || selectedLecturerId}
           isAdmin={isAdmin}
           onNavigate={(category, nodeId) => changeAcademicRoute(category, nodeId)}
