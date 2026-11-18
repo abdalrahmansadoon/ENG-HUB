@@ -367,6 +367,8 @@ function App() {
         id: crypto.randomUUID(), subjectId: selectedSubjectId, parentId: input.parentId ?? null,
         kind: input.kind, category: input.category, title: input.title.trim(), description: input.description ?? '',
         url: input.url, mimeType: input.mimeType, duration: input.duration, linkedNodeIds: input.linkedNodeIds ?? [],
+        customTypeName: input.customTypeName, customTypeIcon: input.customTypeIcon, customTypeColor: input.customTypeColor,
+        canContainChildren: input.canContainChildren,
         publicationStatus: input.publicationStatus ?? 'published', sortOrder: input.sortOrder ?? Date.now(),
         createdBy: activeUser.uid, createdAt: new Date(), updatedAt: new Date(),
       };
