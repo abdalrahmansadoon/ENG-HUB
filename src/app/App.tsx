@@ -263,8 +263,9 @@ function App() {
   };
 
   if (loading) return <div className="boot-screen"><div className="brand-mark">EH</div><span>جاري تجهيز ENG HUB...</span></div>;
-  if (!user) return <AuthScreen onLogin={login} onGoogle={loginWithGoogle} />;
-  if (!profileComplete) return <ProfileCompletionScreen user={user} cloudinarySettings={defaultCloudinarySettings} onComplete={completeProfile} />;
+  const themeClass = dark ? 'theme-dark' : 'theme-light';
+  if (!user) return <AuthScreen themeClass={themeClass} onLogin={login} onGoogle={loginWithGoogle} />;
+  if (!profileComplete) return <ProfileCompletionScreen themeClass={themeClass} user={user} cloudinarySettings={defaultCloudinarySettings} onComplete={completeProfile} />;
 
   return (
     <div className={dark ? 'app-shell theme-dark' : 'app-shell theme-light'} dir="rtl">
@@ -349,7 +350,7 @@ function App() {
   );
 }
 
-function AuthScreen({ onLogin, onGoogle }: { onLogin: (email: string, password: string, name?: string) => Promise<void>; onGoogle: () => Promise<void> }) {
+function AuthScreen({ onLogin, onGoogle, themeClass }: { onLogin: (email: string, password: string, name?: string) => Promise<void>; onGoogle: () => Promise<void>; themeClass: 'theme-dark' | 'theme-light' }) {
   const [mode, setMode] = useState<'login' | 'register'>('login');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -374,11 +375,12 @@ function AuthScreen({ onLogin, onGoogle }: { onLogin: (email: string, password: 
       setBusy(false);
     }
   };
-  return <div className="auth-screen" dir="rtl"><div className="auth-visual"><div className="auth-brand"><div className="brand-mark">EH</div><div><b>ENG HUB</b><span>CAIRO UNIVERSITY · FACULTY OF ENGINEERING</span></div></div><div className="auth-visual-copy"><div className="eyebrow">YOUR ENGINEERING JOURNEY</div><h1>كل أدوات دراستك،<br/><span>في مساحة واحدة.</span></h1><p>نظّم محاضراتك، تابع مهامك، وذاكر بتركيز أكبر مع مجتمع هندسة القاهرة.</p><div className="auth-feature-list"><span><CheckCircle2 size={15}/> تنظيم المواد والمحاضرات</span><span><CheckCircle2 size={15}/> متابعة المهام والتسليمات</span><span><CheckCircle2 size={15}/> تعاون ومشاركة مع زملائك</span></div></div><div className="auth-orbit"/><div className="auth-foot">ENG HUB · STUDY SMARTER, BUILD BETTER</div></div><div className="auth-form-side"><form className="auth-form" onSubmit={submit}><div className="auth-mobile-brand"><div className="brand-mark">EH</div><b>ENG HUB</b></div><div className="eyebrow">WELCOME TO ENG HUB</div><h2>{mode === 'login' ? 'مرحباً بعودتك' : 'أنشئ حسابك'}</h2><p>{mode === 'login' ? 'سجل دخولك للوصول إلى مساحة دراستك.' : 'انضم إلى مساحة طلاب هندسة القاهرة.'}</p>{mode === 'register' && <label>الاسم بالكامل<input required value={name} onChange={(e) => setName(e.target.value)} placeholder="اسمك كما تحب أن يظهر"/></label>}<label>البريد الإلكتروني<input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="name@example.com"/></label><label>كلمة المرور<input type="password" required minLength={6} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="6 أحرف على الأقل"/></label>{error && <div className="auth-error"><AlertCircle size={15}/>{error}</div>}<button type="submit" className="btn btn-primary auth-submit" disabled={busy}>{busy ? <span className="spinner"/> : null}{mode === 'login' ? 'تسجيل الدخول' : 'إنشاء الحساب'} <ArrowLeft size={16}/></button><div className="auth-divider"><span>أو</span></div><button type="button" className="btn btn-outline google-btn" onClick={() => void continueWithGoogle()} disabled={busy}><span className="google-g">G</span> المتابعة باستخدام Google</button><div className="auth-switch">{mode === 'login' ? 'ليس لديك حساب؟' : 'لديك حساب بالفعل؟'} <button type="button" onClick={() => { setMode(mode === 'login' ? 'register' : 'login'); setError(''); }}>{mode === 'login' ? 'إنشاء حساب' : 'تسجيل الدخول'}</button></div><div className="auth-foot-mobile">بالاستمرار، أنت توافق على شروط الاستخدام وسياسة الخصوصية.</div></form></div></div>;
+  return <div className={'auth-screen ' + themeClass} dir="rtl"><div className="auth-visual"><div className="auth-brand"><div className="brand-mark">EH</div><div><b>ENG HUB</b><span>CAIRO UNIVERSITY · FACULTY OF ENGINEERING</span></div></div><div className="auth-visual-copy"><div className="eyebrow">YOUR ENGINEERING JOURNEY</div><h1>كل أدوات دراستك،<br/><span>في مساحة واحدة.</span></h1><p>نظّم محاضراتك، تابع مهامك، وذاكر بتركيز أكبر مع مجتمع هندسة القاهرة.</p><div className="auth-feature-list"><span><CheckCircle2 size={15}/> تنظيم المواد والمحاضرات</span><span><CheckCircle2 size={15}/> متابعة المهام والتسليمات</span><span><CheckCircle2 size={15}/> تعاون ومشاركة مع زملائك</span></div></div><div className="auth-orbit"/><div className="auth-foot">ENG HUB · STUDY SMARTER, BUILD BETTER</div></div><div className="auth-form-side"><form className="auth-form" onSubmit={submit}><div className="auth-mobile-brand"><div className="brand-mark">EH</div><b>ENG HUB</b></div><div className="eyebrow">WELCOME TO ENG HUB</div><h2>{mode === 'login' ? 'مرحباً بعودتك' : 'أنشئ حسابك'}</h2><p>{mode === 'login' ? 'سجل دخولك للوصول إلى مساحة دراستك.' : 'انضم إلى مساحة طلاب هندسة القاهرة.'}</p>{mode === 'register' && <label>الاسم بالكامل<input required value={name} onChange={(e) => setName(e.target.value)} placeholder="اسمك كما تحب أن يظهر"/></label>}<label>البريد الإلكتروني<input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="name@example.com"/></label><label>كلمة المرور<input type="password" required minLength={6} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="6 أحرف على الأقل"/></label>{error && <div className="auth-error"><AlertCircle size={15}/>{error}</div>}<button type="submit" className="btn btn-primary auth-submit" disabled={busy}>{busy ? <span className="spinner"/> : null}{mode === 'login' ? 'تسجيل الدخول' : 'إنشاء الحساب'} <ArrowLeft size={16}/></button><div className="auth-divider"><span>أو</span></div><button type="button" className="btn btn-outline google-btn" onClick={() => void continueWithGoogle()} disabled={busy}><span className="google-g">G</span> المتابعة باستخدام Google</button><div className="auth-switch">{mode === 'login' ? 'ليس لديك حساب؟' : 'لديك حساب بالفعل؟'} <button type="button" onClick={() => { setMode(mode === 'login' ? 'register' : 'login'); setError(''); }}>{mode === 'login' ? 'إنشاء حساب' : 'تسجيل الدخول'}</button></div><div className="auth-foot-mobile">بالاستمرار، أنت توافق على شروط الاستخدام وسياسة الخصوصية.</div></form></div></div>;
 }
 
-function ProfileCompletionScreen({ user, cloudinarySettings, onComplete }: {
+function ProfileCompletionScreen({ user, cloudinarySettings, onComplete, themeClass }: {
   user: AppUser;
+  themeClass: 'theme-dark' | 'theme-light';
   cloudinarySettings: CloudinarySettings;
   onComplete: (profile: { displayName: string; photoURL?: string | null; phone?: string; bio?: string }) => Promise<void>;
 }) {
@@ -411,7 +413,7 @@ function ProfileCompletionScreen({ user, cloudinarySettings, onComplete }: {
     }
   };
 
-  return <div className="profile-onboarding" dir="rtl">
+  return <div className={'profile-onboarding ' + themeClass} dir="rtl">
     <div className="profile-onboarding-card panel">
       <div className="brand-row onboarding-brand"><div className="brand-mark">EH</div><div className="brand-copy"><strong>ENG HUB</strong><span>CAIRO UNIVERSITY</span></div></div>
       <div className="eyebrow">COMPLETE YOUR ACCOUNT</div>
