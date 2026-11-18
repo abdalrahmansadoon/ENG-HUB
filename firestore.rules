@@ -42,7 +42,7 @@ service cloud.firestore {
         && request.resource.data.role == resource.data.role
         && request.resource.data.status == resource.data.status
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
-          'displayName', 'username', 'photoURL', 'bio', 'phone', 'profileCompleted',
+          'displayName', 'username', 'photoURL', 'bio', 'phone', 'profileVisibility', 'profileCompleted',
           'academicYear', 'term', 'locale', 'theme', 'notificationPreferences',
           'privacy', 'updatedAt'
         ])
@@ -67,6 +67,10 @@ service cloud.firestore {
     match /subjects/{subjectId} {
       allow read: if activeUser() && (resource.data.isPublished == true || isAdmin());
       allow create, update, delete: if isAdmin();
+      match /contentNodes/{nodeId} {
+        allow read: if activeUser() && (isAdmin() || resource.data.publicationStatus == 'published');
+        allow create, update, delete: if isAdmin();
+      }
     }
 
     match /lecturers/{lecturerId} {
