@@ -317,11 +317,13 @@ export async function createLecturerCloud(input: {
 
 export async function createLectureCloud(input: {
   title: string; description?: string; subjectId: string; subjectName: string;
-  lecturerId: string; lecturerName: string; duration?: string; lectureNumber?: number;
+  lecturerId?: string; lecturerName?: string; duration?: string; lectureNumber?: number;
 }) {
   const firestore = requireDb();
   const lectureRef = await addDoc(collection(firestore, 'lectures'), {
     ...input,
+    lecturerId: input.lecturerId ?? '',
+    lecturerName: input.lecturerName ?? '',
     title: input.title.trim(),
     description: input.description?.trim() ?? '',
     duration: input.duration?.trim() ?? '',
