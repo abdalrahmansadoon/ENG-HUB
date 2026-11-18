@@ -38,6 +38,7 @@ export function ChatPage({ user, cloudinarySettings, isDemo, isAdmin, roomId, ro
   onOpenProfile: (uid: string) => void;
 }) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [messagesReady, setMessagesReady] = useState(false);
   const [draft, setDraft] = useState('');
   const [files, setFiles] = useState<File[]>([]);
   const [replyTo, setReplyTo] = useState<ChatMessage | null>(null);
@@ -90,8 +91,12 @@ export function ChatPage({ user, cloudinarySettings, isDemo, isAdmin, roomId, ro
   const longPressTriggered = useRef(false);
 
   useEffect(() => {
+    setMessages([]);
+    setMessagesReady(false);
+    setLoading(true);
     if (isDemo) {
       setLoading(false);
+      setMessagesReady(true);
       setError('الدردشة المباشرة تحتاج إلى الاتصال بقاعدة Firebase.');
       return;
     }
@@ -103,7 +108,7 @@ export function ChatPage({ user, cloudinarySettings, isDemo, isAdmin, roomId, ro
       try {
         await joinGeneralChat({ uid: user.uid, displayName: user.displayName, photoURL: user.photoURL }, roomId, roomTitle, courseId);
         if (cancelled) return;
-        unsubscribe = subscribeGeneralChat(user.uid, setMessages, (reason) => setError(reason.message), roomId);
+        unsubscribe = subscribeGeneralChat(user.uid, setMessages, (reason) => setError(reason.message), roomId, () => setMessagesReady(true));
       } catch (reason) {
         setError(reason instanceof Error ? reason.message : 'تعذر فتح المحادثة العامة.');
       } finally {
@@ -304,7 +309,7 @@ export function ChatPage({ user, cloudinarySettings, isDemo, isAdmin, roomId, ro
   };
 
   useEffect(() => {
-    if (!chatReadReady || loading) return;
+    if (!chatReadReady || !messagesReady || loading) return;
     const frame = window.requestAnimationFrame(() => {
       if (!initialReadPositioned.current) {
         initialReadPositioned.current = true;
@@ -327,7 +332,7 @@ export function ChatPage({ user, cloudinarySettings, isDemo, isAdmin, roomId, ro
       }
     });
     return () => window.cancelAnimationFrame(frame);
-  }, [messages.length, chatReadReady, chatReadAt, loading, roomId, unreadMessages.length]);
+  }, [messages.length, messagesReady, chatReadReady, chatReadAt, loading, roomId, unreadMessages.length]);
 
   const editAllowed = (message: ChatMessage) => Boolean(
     message.createdAt && message.senderId === user.uid && Date.now() - message.createdAt.getTime() <= 15 * 60 * 1000,
