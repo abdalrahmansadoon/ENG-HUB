@@ -412,10 +412,12 @@ function App() {
   };
 
   const changeAcademicRoute = (category: SubjectCategory, nodeId?: string) => {
+    const matchingLecture = nodeId ? lectures.find((item) => item.id === nodeId) : undefined;
+    const matchingPart = nodeId ? lectureParts.find((item) => item.id === nodeId) : undefined;
     setSelectedSubjectCategory(category);
     setSelectedContentNodeId(nodeId || '');
     setSelectedLecturerId(nodeId && lecturers.some((item) => item.id === nodeId) ? nodeId : '');
-    setSelectedLectureId(nodeId && lectures.some((item) => item.id === nodeId) ? nodeId : '');
+    setSelectedLectureId(matchingLecture?.id || matchingPart?.lectureId || '');
     setPage(category === 'chat' ? 'chat' : 'courses');
   };
 
