@@ -123,22 +123,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             ? 'moderator'
             : 'student';
 
-        // Migrate existing account data into a deliberately small public-only projection.
-        // Keep the private users/{uid} document private; never expose email or phone here.
-        try {
-          await syncPublicProfile({
-            uid: firebaseUser.uid,
-            displayName: String(profile.displayName || firebaseUser.displayName || ''),
-            photoURL: (profile.photoURL as string | null | undefined) ?? firebaseUser.photoURL,
-            bio: typeof profile.bio === 'string' ? profile.bio : '',
-            academicYear: String(profile.academicYear || ''),
-            term: String(profile.term || ''),
-            profileVisibility: profile.profileVisibility === 'private' ? 'private' : 'public',
-            showBioOnPublicProfile: profile.showBioOnPublicProfile !== false,
-            showAcademicInfoOnPublicProfile: profile.showAcademicInfoOnPublicProfile !== false,
-          });
-        } catch (publicProfileError) {
-          console.warn('ENG HUB public profile sync is pending Firestore rules publication.', publicProfileError);
+        // Migrate only existing, completed profiles into the safe public projection.
+        // New OAuth accounts stay unpublished until the owner completes onboarding.
+        if (profileSnap.exists() && profile.profileCompleted === true) {
+          try {
+            await syncPublicProfile({
+              uid: firebaseUser.uid,
+              displayName: String(profile.displayName || firebaseUser.displayName || ''),
+              photoURL: (profile.photoURL as string | null | undefined) ?? firebaseUser.photoURL,
+              bio: typeof profile.bio === 'string' ? profile.bio : '',
+              academicYear: String(profile.academicYear || ''),
+              term: String(profile.term || ''),
+              profileVisibility: profile.profileVisibility === 'private' ? 'private' : 'public',
+              showBioOnPublicProfile: profile.showBioOnPublicProfile !== false,
+              showAcademicInfoOnPublicProfile: profile.showAcademicInfoOnPublicProfile !== false,
+            });
+          } catch (publicProfileError) {
+            console.warn('ENG HUB public profile sync is pending Firestore rules publication.', publicProfileError);
+          }
         }
 
         const isGoogleAccount = firebaseUser.providerData.some((provider) => provider.providerId === 'google.com');
