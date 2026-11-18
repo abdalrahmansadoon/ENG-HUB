@@ -23,6 +23,7 @@ import { AppShell } from './layout/AppShell';
 import { readEngHubRoute, buildEngHubHash, type SubjectCategory } from '../lib/routes';
 import { subscribeAcademicContent, createAcademicContentNode, deleteAcademicContentNode } from '../lib/academicContent';
 import { AcademicContentArea } from './academic/AcademicContentArea';
+import { PublicStudentProfilePage } from './profile/PublicStudentProfilePage';
 import { ChatLockModal } from './chat/ChatLockModal';
 import { ChatMuteModal } from './chat/ChatMuteModal';
 import type { AcademicContentNode, CreateAcademicContentInput } from '../types/academicContent';
@@ -55,6 +56,7 @@ function App() {
   const activeUser = user ?? { uid: '', displayName: 'طالب هندسة', email: '', photoURL: null, role: 'student' as const, academicYear: 'السنة الإعدادية', term: 'الترم الأول' };
   const initialRoute = readEngHubRoute();
   const [page, setPage] = useState(initialRoute.page);
+  const [publicProfileUid, setPublicProfileUid] = useState(initialRoute.profileUid);
   const [mobileNav, setMobileNav] = useState(false);
   const [search, setSearch] = useState('');
   const [themePreference, setThemePreference] = useState<'system' | 'light' | 'dark'>(() => readLocal<'system' | 'light' | 'dark'>('themePreference', 'system'));
@@ -96,6 +98,7 @@ function App() {
     const applyLocation = () => {
       const route = readEngHubRoute();
       setPage(route.page);
+      setPublicProfileUid(route.profileUid);
       setSelectedSubjectId(route.subjectId);
       setSelectedSubjectCategory(route.category);
       setSelectedContentNodeId(route.contentNodeId);
@@ -119,11 +122,12 @@ function App() {
       lecturerId: selectedLecturerId,
       lectureId: selectedLectureId,
       contentNodeId: selectedContentNodeId,
+      profileUid: publicProfileUid,
     });
     if (window.location.hash !== nextHash) {
       window.history.pushState({ engHubRoute: true }, '', `${window.location.pathname}${window.location.search}${nextHash}`);
     }
-  }, [page, selectedSubjectId, selectedSubjectCategory, selectedLecturerId, selectedLectureId, selectedContentNodeId]);
+  }, [page, selectedSubjectId, selectedSubjectCategory, selectedLecturerId, selectedLectureId, selectedContentNodeId, publicProfileUid]);
 
   useEffect(() => {
     if (!user || isDemo || !selectedSubjectId) {
@@ -473,7 +477,8 @@ function App() {
         />}
         {page === 'exams' && <ExamsPage exams={exams} setExams={setExams} canEdit={isAdmin} onAdd={() => setExamModal(true)}/>}
         {page === 'files' && <FilesPage files={files} onUpload={addFile} cloudinaryReady={isCloudinaryConfigured(cloudinarySettings)} isDemo={isDemo}/>}
-        {page === 'chat' && <ChatPage user={activeUser} cloudinarySettings={cloudinarySettings} isDemo={isDemo} isAdmin={isAdmin} onBack={() => setPage('home')}/>}
+        {page === 'chat' && <ChatPage user={activeUser} cloudinarySettings={cloudinarySettings} isDemo={isDemo} isAdmin={isAdmin} onBack={() => setPage('home')} onOpenProfile={(uid) => { setPublicProfileUid(uid); setPage('student-profile'); }}/ >}
+        {page === 'student-profile' && <PublicStudentProfilePage uid={publicProfileUid} currentUid={activeUser.uid} onBack={() => setPage('chat')}/>}
         {page === 'planner' && <PlannerPage tasks={tasks}/>}
         {page === 'analytics' && <AnalyticsPage tasks={tasks} subjects={subjects} lectures={lectures}/>}
         {page === 'notifications' && <NotificationsPage items={notifications} setItems={setNotifications}/>}
@@ -586,7 +591,7 @@ function ProfileCompletionScreen({ user, cloudinarySettings, onComplete, themeCl
 }
 
 function pageTitle(page: string) {
-  const titles: Record<string, string> = { home: 'الرئيسية', tasks: 'المهام', courses: 'المواد الدراسية', lectures: 'المحاضرات', exams: 'الاختبارات', files: 'مكتبة الملفات', chat: 'المحادثات', planner: 'مخطط المذاكرة', analytics: 'إحصائياتي', notifications: 'الإشعارات', admin: 'لوحة الإدارة', profile: 'الملف الشخصي' };
+  const titles: Record<string, string> = { 'student-profile': 'الملف الشخصي للطالب', home: 'الرئيسية', tasks: 'المهام', courses: 'المواد الدراسية', lectures: 'المحاضرات', exams: 'الاختبارات', files: 'مكتبة الملفات', chat: 'المحادثات', planner: 'مخطط المذاكرة', analytics: 'إحصائياتي', notifications: 'الإشعارات', admin: 'لوحة الإدارة', profile: 'الملف الشخصي' };
   return titles[page] ?? page;
 }
 
@@ -1116,12 +1121,13 @@ function FilesPage({ files, onUpload, cloudinaryReady, isDemo }: { files: Librar
   </div>;
 }
 
-function ChatPage({ user, cloudinarySettings, isDemo, isAdmin, onBack }: {
+function ChatPage({ user, cloudinarySettings, isDemo, isAdmin, onBack, onOpenProfile }: {
   user: AppUser;
   cloudinarySettings: CloudinarySettings;
   isDemo: boolean;
   isAdmin: boolean;
   onBack: () => void;
+  onOpenProfile: (uid: string) => void;
 }) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [draft, setDraft] = useState('');
