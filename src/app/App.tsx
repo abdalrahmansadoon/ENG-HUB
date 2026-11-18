@@ -1597,10 +1597,10 @@ function AdminPage({ tasks, subjects, lecturers, lectures, exams, files, current
     <div className="admin-tabs">{[{ id: 'overview', label: 'نظرة عامة' }, { id: 'academic', label: 'المحتوى الأكاديمي' }, { id: 'tasks', label: 'إدارة المهام' }, { id: 'users', label: 'المستخدمون والصلاحيات' }, { id: 'cloudinary', label: 'إعدادات Cloudinary' }].map((item) => <button key={item.id} onClick={() => setTab(item.id)} className={tab === item.id ? 'active' : ''}>{item.label}</button>)}</div>
     {tab === 'overview' && <>
       <div className="admin-stats">
-        <StatCard label="المواد الدراسية" value={subjects.length.toString()} meta="مواد منشورة" icon={<BookOpen size={18}/>} tone="blue"/>
-        <StatCard label="المهام" value={tasks.length.toString()} meta="مهام مسجلة" icon={<ListChecks size={18}/>} tone="green"/>
-        <StatCard label="المحاضرات" value={lectures.length.toString()} meta="محاضرات منشورة" icon={<Video size={18}/>} tone="violet"/>
-        <StatCard label="الاختبارات" value={exams.length.toString()} meta="اختبارات منشورة" icon={<ClipboardList size={18}/>} tone="amber"/>
+        <StatCard label="المواد الدراسية" value={subjects.length.toString()} detail="مواد منشورة" icon={<BookOpen size={18}/>} tone="blue"/>
+        <StatCard label="المهام" value={tasks.length.toString()} detail="مهام مسجلة" icon={<ListChecks size={18}/>} tone="green"/>
+        <StatCard label="المحاضرات" value={lectures.length.toString()} detail="محاضرات منشورة" icon={<Video size={18}/>} tone="purple"/>
+        <StatCard label="الاختبارات" value={exams.length.toString()} detail="اختبارات منشورة" icon={<ClipboardList size={18}/>} tone="amber"/>
       </div>
       <div className="admin-quick-grid">
         <button onClick={onAddSubject}><div><BookOpen size={19}/></div><b>إضافة مادة</b><span>إنشاء مقرر دراسي</span></button>
