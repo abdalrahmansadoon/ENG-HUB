@@ -77,7 +77,7 @@ export function AppShell({
       <aside className={`eh-sidebar ${mobileNav ? 'is-open' : ''}`} aria-label="القائمة الرئيسية">
         <div className="eh-brand">
           <div className="eh-brand-symbol"><img src={`${import.meta.env.BASE_URL}brand/enghub-mark.svg`} alt="ENG HUB"/></div>
-          <div className="eh-brand-copy"><strong>ENG HUB</strong><span>ENGINEERING LEARNING SPACE</span></div>
+          <div className="eh-brand-copy"><strong>ENG HUB</strong><span>STUDY · ENGINEER · GROW</span></div>
           <button type="button" className="eh-icon-btn eh-sidebar-close" onClick={onCloseMobileNav} aria-label="إغلاق القائمة"><X size={19}/></button>
         </div>
 
