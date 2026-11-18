@@ -398,3 +398,39 @@ export async function saveFileMetadataCloud(file: LibraryFile, ownerId: string, 
     url: file.url ?? null, ownerId, visibility, createdAt: serverTimestamp(), updatedAt: serverTimestamp(),
   });
 }
+
+export interface AcademicCalendarSettings {
+  years: string[];
+  terms: string[];
+  activeYear: string;
+  activeTerm: string;
+}
+export const defaultAcademicCalendar: AcademicCalendarSettings = {
+  years: ['السنة الإعدادية'],
+  terms: ['الترم الأول', 'الترم الثاني'],
+  activeYear: 'السنة الإعدادية',
+  activeTerm: 'الترم الأول',
+};
+export function subscribeAcademicCalendar(onData: (settings: AcademicCalendarSettings) => void, onError: (error: Error) => void): Unsubscribe | undefined {
+  if (!db) return;
+  return onSnapshot(doc(db, 'systemSettings', 'academicCalendar'), (snapshot) => {
+    const data = snapshot.exists() ? snapshot.data() : {};
+    const years = Array.isArray(data.years) ? data.years.filter((item): item is string => typeof item === 'string') : defaultAcademicCalendar.years;
+    const terms = Array.isArray(data.terms) ? data.terms.filter((item): item is string => typeof item === 'string') : defaultAcademicCalendar.terms;
+    onData({
+      years: years.length ? years : defaultAcademicCalendar.years,
+      terms: terms.length ? terms : defaultAcademicCalendar.terms,
+      activeYear: typeof data.activeYear === 'string' ? data.activeYear : defaultAcademicCalendar.activeYear,
+      activeTerm: typeof data.activeTerm === 'string' ? data.activeTerm : defaultAcademicCalendar.activeTerm,
+    });
+  }, onError);
+}
+export async function saveAcademicCalendar(settings: AcademicCalendarSettings, uid: string) {
+  const firestore = requireDb();
+  if (!settings.years.includes(settings.activeYear) || !settings.terms.includes(settings.activeTerm)) {
+    throw new Error('اختر سنة وفصلاً دراسياً من القوائم قبل الحفظ.');
+  }
+  await setDoc(doc(firestore, 'systemSettings', 'academicCalendar'), {
+    ...settings, updatedBy: uid, updatedAt: serverTimestamp(),
+  }, { merge: true });
+}
