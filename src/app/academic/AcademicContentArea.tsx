@@ -77,7 +77,7 @@ export function AcademicContentArea({
     ...nodes.filter((node) => node.linkedNodeIds.includes(activeNode.id)).map((node) => node.id),
   ])]
     .map((id) => nodes.find((node) => node.id === id))
-    .filter((node): node is AcademicContentNode => Boolean(node) && node.id !== activeNode.id) : [];
+    .filter((node): node is AcademicContentNode => node !== undefined && node.id !== activeNode.id) : [];
   const openAdd = () => { setEditTarget(null); setModalOpen(true); };
   const openEdit = (node: AcademicContentNode) => { setEditTarget(node); setModalOpen(true); };
 
