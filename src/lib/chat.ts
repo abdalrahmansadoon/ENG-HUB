@@ -31,6 +31,7 @@ export interface ChatMessage {
   deletedBy?: string | null;
 }
 export interface ChatMuteStatus { muted: boolean; mutedUntil: Date | null; reason: string; }
+export interface ChatSlowModeStatus { enabled: boolean; seconds: number; }
 export interface ChatLockStatus {
   locked: boolean;
   startAt: Date | null;
@@ -82,6 +83,9 @@ function muteRef(userId: string, roomId?: string) {
 }
 function chatSettingsRef(roomId?: string) {
   return doc(requireDb(), 'conversations', normalizeRoomId(roomId), 'settings', 'chat');
+}
+function slowModeCooldownRef(userId: string, roomId?: string) {
+  return doc(requireDb(), 'users', userId, 'chatSlowModeCooldowns', normalizeRoomId(roomId));
 }
 function timestampToDate(value: unknown): Date | null {
   if (!value) return null;
@@ -189,21 +193,49 @@ export async function sendGeneralChatMessage(input: {
   senderPhotoURL?: string | null;
   attachments?: ChatAttachment[];
   replyTo?: { id: string; text: string; senderName: string } | null;
+  isModerator?: boolean;
 }, roomId = GENERAL_CHAT_ID) {
   const firestore = requireDb();
+  const normalizedRoomId = normalizeRoomId(roomId);
   if (!input.text.trim() && !input.attachments?.length) return;
   if (input.text.length > 5000) throw new Error('الرسالة طويلة جداً. الحد الأقصى 5000 حرف.');
-  await addDoc(collection(firestore, 'conversations', normalizeRoomId(roomId), 'messages'), {
-    text: input.text.trim(),
-    senderId: input.senderId,
-    senderName: input.senderName,
-    senderPhotoURL: input.senderPhotoURL ?? null,
-    attachments: input.attachments ?? [],
-    replyTo: input.replyTo ?? null,
-    reactions: {},
-    pinned: false,
-    deleted: false,
-    createdAt: serverTimestamp(),
+
+  const settingsRef = chatSettingsRef(normalizedRoomId);
+  const cooldownRef = slowModeCooldownRef(input.senderId, normalizedRoomId);
+  const messageRef = doc(messageCollection(normalizedRoomId));
+
+  await runTransaction(firestore, async (transaction) => {
+    const settingsSnapshot = await transaction.get(settingsRef);
+    const settings = settingsSnapshot.exists() ? settingsSnapshot.data() : {};
+    const slowEnabled = settings.slowModeEnabled === true && Number(settings.slowModeSeconds) >= 5;
+    const seconds = Math.min(300, Math.max(5, Math.floor(Number(settings.slowModeSeconds) || 5)));
+
+    if (slowEnabled && input.isModerator !== true) {
+      const cooldownSnapshot = await transaction.get(cooldownRef);
+      const cooldownUntil = cooldownSnapshot.exists() ? timestampToDate(cooldownSnapshot.data().until) : null;
+      if (cooldownUntil && cooldownUntil.getTime() > Date.now()) {
+        const remaining = Math.ceil((cooldownUntil.getTime() - Date.now()) / 1000);
+        throw new Error(`الوضع البطيء مفعّل. انتظر ${remaining} ثانية قبل إرسال الرسالة التالية.`);
+      }
+      transaction.set(cooldownRef, {
+        until: Timestamp.fromDate(new Date(Date.now() + seconds * 1000)),
+        seconds,
+        updatedAt: serverTimestamp(),
+      }, { merge: true });
+    }
+
+    transaction.set(messageRef, {
+      text: input.text.trim(),
+      senderId: input.senderId,
+      senderName: input.senderName,
+      senderPhotoURL: input.senderPhotoURL ?? null,
+      attachments: input.attachments ?? [],
+      replyTo: input.replyTo ?? null,
+      reactions: {},
+      pinned: false,
+      deleted: false,
+      createdAt: serverTimestamp(),
+    });
   });
 }
 
@@ -341,6 +373,48 @@ export async function setGeneralChatMute(
 export async function unmuteGeneralChatUser(userId: string, adminId: string, roomId = GENERAL_CHAT_ID) {
   await setDoc(muteRef(userId, roomId), {
     userId, muted: false, mutedUntil: null, updatedAt: serverTimestamp(), updatedBy: adminId,
+  }, { merge: true });
+}
+
+export function subscribeGeneralChatSlowMode(
+  onStatus: (status: ChatSlowModeStatus) => void,
+  onError: (error: Error) => void,
+  roomId = GENERAL_CHAT_ID,
+): Unsubscribe {
+  return onSnapshot(chatSettingsRef(roomId), (snapshot) => {
+    const data = snapshot.exists() ? snapshot.data() : {};
+    const seconds = Math.min(300, Math.max(0, Math.floor(Number(data.slowModeSeconds) || 0)));
+    onStatus({ enabled: data.slowModeEnabled === true && seconds >= 5, seconds });
+  }, onError);
+}
+
+export function subscribeGeneralChatSlowModeCooldown(
+  userId: string,
+  onUntil: (until: Date | null) => void,
+  onError: (error: Error) => void,
+  roomId = GENERAL_CHAT_ID,
+): Unsubscribe {
+  return onSnapshot(slowModeCooldownRef(userId, roomId), (snapshot) => {
+    onUntil(snapshot.exists() ? timestampToDate(snapshot.data().until) : null);
+  }, onError);
+}
+
+export async function setGeneralChatSlowMode(
+  roomId: string,
+  adminId: string,
+  enabled: boolean,
+  seconds: number,
+) {
+  const duration = Math.floor(Number(seconds));
+  if (enabled && (!Number.isFinite(duration) || duration < 5 || duration > 300)) {
+    throw new Error('حدد مدة بين 5 و300 ثانية.');
+  }
+  await setDoc(chatSettingsRef(roomId), {
+    slowModeEnabled: enabled,
+    slowModeSeconds: enabled ? duration : 0,
+    slowModeUpdatedAt: serverTimestamp(),
+    slowModeUpdatedBy: adminId,
+    updatedAt: serverTimestamp(),
   }, { merge: true });
 }
 
