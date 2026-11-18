@@ -501,7 +501,7 @@ function App() {
         roomTitle={selectedSubjectId ? `مناقشات ${subjects.find((item) => item.id === selectedSubjectId)?.name ?? 'المادة'}` : 'المحادثة العامة'}
         courseId={selectedSubjectId || undefined}
         onBack={() => { setPage('home'); setSelectedSubjectId(''); setSelectedSubjectCategory(''); setSelectedContentNodeId(''); }}
-        onOpenProfile={(uid) => { setPublicProfileUid(uid); setPage('student-profile'); }} />
+        onOpenProfile={(uid) => { if (uid === activeUser.uid) setPage('profile'); else { setPublicProfileUid(uid); setPage('student-profile'); } }} />
     </div>
   );
 
@@ -589,7 +589,7 @@ function App() {
             if (selectedSubjectId) { setPage('courses'); setSelectedSubjectCategory(''); setSelectedContentNodeId(''); }
             else setPage('home');
           }}
-          onOpenProfile={(uid) => { setPublicProfileUid(uid); setPage('student-profile'); }}
+          onOpenProfile={(uid) => { if (uid === activeUser.uid) setPage('profile'); else { setPublicProfileUid(uid); setPage('student-profile'); } }}
         />}
         {page === 'student-profile' && <PublicStudentProfilePage uid={publicProfileUid} currentUid={activeUser.uid} onBack={() => setPage('chat')}/>}
         {page === 'planner' && <PlannerPage tasks={tasks} userId={activeUser.uid}/>}
