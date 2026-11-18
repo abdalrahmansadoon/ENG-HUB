@@ -237,13 +237,13 @@ export async function sendGeneralChatMessage(input: {
 
     if (slowEnabled && input.isModerator !== true) {
       const cooldownSnapshot = await transaction.get(cooldownRef);
-      const cooldownUntil = cooldownSnapshot.exists() ? timestampToDate(cooldownSnapshot.data().until) : null;
-      if (cooldownUntil && cooldownUntil.getTime() > Date.now()) {
-        const remaining = Math.ceil((cooldownUntil.getTime() - Date.now()) / 1000);
+      const lastSentAt = cooldownSnapshot.exists() ? timestampToDate(cooldownSnapshot.data().lastSentAt) : null;
+      if (lastSentAt && lastSentAt.getTime() + seconds * 1000 > Date.now()) {
+        const remaining = Math.ceil((lastSentAt.getTime() + seconds * 1000 - Date.now()) / 1000);
         throw new Error(`الوضع البطيء مفعّل. انتظر ${remaining} ثانية قبل إرسال الرسالة التالية.`);
       }
       transaction.set(cooldownRef, {
-        until: Timestamp.fromDate(new Date(Date.now() + seconds * 1000)),
+        lastSentAt: serverTimestamp(),
         seconds,
         updatedAt: serverTimestamp(),
       }, { merge: true });
@@ -420,7 +420,11 @@ export function subscribeGeneralChatSlowModeCooldown(
   roomId = GENERAL_CHAT_ID,
 ): Unsubscribe {
   return onSnapshot(slowModeCooldownRef(userId, roomId), (snapshot) => {
-    onUntil(snapshot.exists() ? timestampToDate(snapshot.data().until) : null);
+    if (!snapshot.exists()) { onUntil(null); return; }
+    const data = snapshot.data();
+    const sentAt = timestampToDate(data.lastSentAt);
+    const seconds = Math.max(0, Math.floor(Number(data.seconds) || 0));
+    onUntil(sentAt ? new Date(sentAt.getTime() + seconds * 1000) : null);
   }, onError);
 }
 
