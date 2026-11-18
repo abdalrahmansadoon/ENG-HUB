@@ -30,7 +30,7 @@ export interface ChatMessage {
   deletedAt?: Date | null;
   deletedBy?: string | null;
 }
-export interface ChatMuteStatus { muted: boolean; mutedUntil: Date | null; }
+export interface ChatMuteStatus { muted: boolean; mutedUntil: Date | null; reason: string; }
 export interface ChatLockStatus {
   locked: boolean;
   startAt: Date | null;
@@ -291,16 +291,16 @@ export function subscribeGeneralChatMuteStatus(
   return onSnapshot(muteRef(userId, roomId), (snapshot) => {
     const data = snapshot.exists() ? snapshot.data() : {};
     const until = timestampToDate(data.mutedUntil);
-    onStatus({ muted: data.muted === true && (!until || until.getTime() > Date.now()), mutedUntil: until });
+    onStatus({ muted: data.muted === true && (!until || until.getTime() > Date.now()), mutedUntil: until, reason: String(data.reason ?? '') });
   }, onError);
 }
 
 export async function getGeneralChatMuteStatus(userId: string, roomId = GENERAL_CHAT_ID): Promise<ChatMuteStatus> {
   const snapshot = await getDoc(muteRef(userId, roomId));
-  if (!snapshot.exists()) return { muted: false, mutedUntil: null };
+  if (!snapshot.exists()) return { muted: false, mutedUntil: null, reason: '' };
   const data = snapshot.data();
   const until = timestampToDate(data.mutedUntil);
-  return { muted: data.muted === true && (!until || until.getTime() > Date.now()), mutedUntil: until };
+  return { muted: data.muted === true && (!until || until.getTime() > Date.now()), mutedUntil: until, reason: String(data.reason ?? '') };
 }
 
 export async function toggleGeneralChatMute(userId: string, adminId: string, minutes = 60, roomId = GENERAL_CHAT_ID) {
@@ -315,11 +315,26 @@ export async function toggleGeneralChatMute(userId: string, adminId: string, min
   return muted;
 }
 
-export async function setGeneralChatMute(userId: string, adminId: string, minutes: number | null, roomId = GENERAL_CHAT_ID) {
+export async function setGeneralChatMute(
+  userId: string,
+  adminId: string,
+  duration: number | Date | null,
+  roomId = GENERAL_CHAT_ID,
+  reason = '',
+) {
+  const until = duration instanceof Date
+    ? Timestamp.fromDate(duration)
+    : duration && duration > 0
+      ? Timestamp.fromDate(new Date(Date.now() + duration * 60 * 1000))
+      : null;
+  if (until && until.toDate().getTime() <= Date.now()) throw new Error('وقت انتهاء الكتم يجب أن يكون في المستقبل.');
   await setDoc(muteRef(userId, roomId), {
-    userId, muted: true,
-    mutedUntil: minutes && minutes > 0 ? Timestamp.fromDate(new Date(Date.now() + minutes * 60 * 1000)) : null,
-    updatedAt: serverTimestamp(), updatedBy: adminId,
+    userId,
+    muted: true,
+    mutedUntil: until,
+    reason: reason.trim().slice(0, 500),
+    updatedAt: serverTimestamp(),
+    updatedBy: adminId,
   }, { merge: true });
 }
 
