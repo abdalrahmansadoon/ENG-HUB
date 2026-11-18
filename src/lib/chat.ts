@@ -1,6 +1,6 @@
 import {
   addDoc, collection, deleteDoc, doc, getDoc, getDocs, limit, onSnapshot, orderBy, query,
-  runTransaction, serverTimestamp, setDoc, updateDoc, writeBatch, type Unsubscribe,
+  runTransaction, serverTimestamp, setDoc, Timestamp, updateDoc, writeBatch, type Unsubscribe,
 } from 'firebase/firestore';
 import { db } from './firebase';
 
@@ -32,6 +32,64 @@ export interface ChatMessage {
 const GENERAL_CHAT_ID = 'general';
 const EDIT_WINDOW_MS = 15 * 60 * 1000;
 const ALLOWED_REACTIONS = ['👍', '❤️', '😂', '😮', '🙏', '👏'];
+
+export interface ChatMuteStatus {
+  muted: boolean;
+  mutedUntil: Date | null;
+}
+
+const muteRef = (userId: string) => doc(requireDb(), 'conversations', GENERAL_CHAT_ID, 'mutes', userId);
+
+export function subscribeGeneralChatMuteStatus(
+  userId: string,
+  onStatus: (status: ChatMuteStatus) => void,
+  onError: (error: Error) => void,
+): Unsubscribe {
+  return onSnapshot(muteRef(userId), (snapshot) => {
+    const data = snapshot.exists() ? snapshot.data() : {};
+    const until = timestampToDate(data.mutedUntil);
+    onStatus({
+      muted: data.muted === true && (!until || until.getTime() > Date.now()),
+      mutedUntil: until,
+    });
+  }, onError);
+}
+
+export async function getGeneralChatMuteStatus(userId: string): Promise<ChatMuteStatus> {
+  const snapshot = await getDoc(muteRef(userId));
+  if (!snapshot.exists()) return { muted: false, mutedUntil: null };
+  const data = snapshot.data();
+  const until = timestampToDate(data.mutedUntil);
+  return {
+    muted: data.muted === true && (!until || until.getTime() > Date.now()),
+    mutedUntil: until,
+  };
+}
+
+export async function toggleGeneralChatMute(userId: string, adminId: string, minutes = 60) {
+  const ref = muteRef(userId);
+  const current = await getGeneralChatMuteStatus(userId);
+  const muted = !current.muted;
+  await setDoc(ref, {
+    userId,
+    muted,
+    mutedUntil: muted ? Timestamp.fromDate(new Date(Date.now() + minutes * 60 * 1000)) : null,
+    updatedAt: serverTimestamp(),
+    updatedBy: adminId,
+  }, { merge: true });
+  return muted;
+}
+
+export async function createGeneralChatWarning(userId: string, adminId: string, reason: string) {
+  const text = reason.trim();
+  if (!text) throw new Error('اكتب سبب التحذير أولاً.');
+  await addDoc(collection(requireDb(), 'conversations', GENERAL_CHAT_ID, 'warnings'), {
+    userId,
+    reason: text.slice(0, 500),
+    createdBy: adminId,
+    createdAt: serverTimestamp(),
+  });
+}
 
 function requireDb() {
   if (!db) throw new Error('Firebase غير متصل.');
