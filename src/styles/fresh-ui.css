@@ -1607,3 +1607,39 @@ img { max-width:100%; }
   .eh-app .chat-lightbox-thumbs { min-height:65px; }
   .eh-app .chat-lightbox-thumbs button { width:45px;height:44px;flex-basis:45px; }
 }
+
+
+/* Remaining semantic utility states */
+.eh-app .eh-page-heading-action { display:flex;align-items:center;gap:8px; }
+.eh-app .eh-agenda-card,.eh-app .eh-subject-overview,.eh-app .eh-task-preview { min-width:0; }
+.eh-app .status-chip.status-completed { color:var(--green);background:color-mix(in srgb,var(--green) 11%,var(--surface2)); }
+.eh-app .status-chip.status-in-progress { color:var(--blue);background:color-mix(in srgb,var(--blue) 11%,var(--surface2)); }
+.eh-app .avatar-purple { display:grid;place-items:center;overflow:hidden;background:linear-gradient(145deg,#8878f4,#5948d2);color:#fff; }
+.eh-app .avatar-purple img { width:100%;height:100%;object-fit:cover;border-radius:inherit; }
+.eh-app .chat-profile-avatar { flex:0 0 auto; }
+.eh-app .lecture-level { border-color:color-mix(in srgb,var(--blue) 24%,var(--border)); }
+.eh-app .exam-list-title { margin-top:25px; }
+.eh-app .admin-storage-summary { margin-top:13px; }
+.eh-app .color-picker { display:flex;min-height:43px;align-items:center;padding:8px 10px;border:1px solid var(--border2);border-radius:10px;background:var(--surface2); }
+.eh-app .color-picker>div { display:flex;align-items:center;gap:9px;flex-wrap:wrap; }
+.eh-app .color-picker button { width:23px;height:23px;border:2px solid transparent;border-radius:50%;box-shadow:0 0 0 1px var(--border); }
+.eh-app .color-picker button.selected { outline:2px solid var(--purple);outline-offset:3px; }
+.eh-app .profile-edit-photo .avatar-purple { width:46px;height:46px;border-radius:50%; }
+.eh-app .onboarding-photo-copy { min-width:0;display:flex;flex-direction:column;align-items:flex-start;gap:4px; }
+.eh-app .onboarding-photo-copy b { color:var(--text);font-size:12px; }
+.eh-app .onboarding-photo-copy>span { color:var(--muted);font-size:10px; }
+.eh-app .photo-pick-button { display:inline-flex;align-items:center;gap:6px;cursor:pointer; }
+.eh-app .photo-pick-button input { display:none; }
+.eh-app .profile-onboarding-card .onboarding-brand .brand-mark { width:44px;height:44px;display:grid;place-items:center;border-radius:13px;background:linear-gradient(145deg,#8978f4,#5948d2);color:#fff;font:800 15px Inter,sans-serif; }
+.eh-app .profile-onboarding-card .brand-copy strong { color:var(--text);font:800 17px Inter,sans-serif; }
+.eh-app .profile-onboarding-card .brand-copy span { color:var(--muted);font:700 8px Inter,sans-serif; }
+.eh-app .profile-onboarding-card .onboarding-account-email { display:flex;flex-direction:column;gap:4px;padding:12px 14px;border:1px solid var(--border);border-radius:11px;background:var(--surface2); }
+.eh-app .profile-onboarding-card .onboarding-account-email b { color:var(--muted);font-size:9px; }
+.eh-app .profile-onboarding-card .onboarding-account-email span { color:var(--text);font:12px Inter,sans-serif; }
+.eh-app .profile-onboarding-card .onboarding-submit { width:100%;min-height:51px;display:flex;align-items:center;justify-content:center;gap:8px;border-radius:12px; }
+@media(max-width:720px) {
+  .eh-app .eh-page-heading-action { width:100%; }
+  .eh-app .eh-page-heading-action>.eh-button { width:100%; }
+  .eh-app .onboarding-photo-row { align-items:flex-start; }
+  .eh-app .onboarding-photo-copy { flex:1; }
+}
