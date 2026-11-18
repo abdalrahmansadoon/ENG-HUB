@@ -54,13 +54,13 @@ export function ChatPage({ user, cloudinarySettings, isDemo, isAdmin, roomId, ro
   const [lightboxIndex, setLightboxIndex] = useState(0);
   const [lightboxScale, setLightboxScale] = useState(1);
   const lightbox = lightboxItems[lightboxIndex] ?? null;
-  const slowRemainingSeconds = slowMode.enabled && !isAdmin && slowCooldownUntil
-    ? Math.max(0, Math.ceil((slowCooldownUntil.getTime() - slowNow) / 1000)) : 0;
   const [muteState, setMuteState] = useState<ChatMuteStatus>({ muted: false, mutedUntil: null, reason: '' });
   const [slowMode, setSlowMode] = useState<ChatSlowModeStatus>({ enabled: false, seconds: 0 });
   const [slowCooldownUntil, setSlowCooldownUntil] = useState<Date | null>(null);
   const [slowNow, setSlowNow] = useState(Date.now());
   const [slowModeSettingsOpen, setSlowModeSettingsOpen] = useState(false);
+  const slowRemainingSeconds = slowMode.enabled && !isAdmin && slowCooldownUntil
+    ? Math.max(0, Math.ceil((slowCooldownUntil.getTime() - slowNow) / 1000)) : 0;
   const [lockState, setLockState] = useState<ChatLockStatus>({ locked: false, startAt: null, endAt: null, reason: '', autoExpire: false });
   const [warnings, setWarnings] = useState<ChatWarning[]>([]);
   const [announcements, setAnnouncements] = useState<ChatAnnouncement[]>([]);
