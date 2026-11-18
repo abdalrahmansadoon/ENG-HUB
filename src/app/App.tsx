@@ -1192,7 +1192,7 @@ function ChatPage({ user, cloudinarySettings, isDemo, isAdmin }: {
               }}/>
             </div>
             <textarea ref={composerRef} rows={1} maxLength={5000} value={draft} disabled={muteState.muted || sending} onChange={(event) => setDraft(event.target.value)} placeholder={muteState.muted ? 'الدردشة مقفلة لحسابك مؤقتاً' : editingMessage ? 'عدّل نص الرسالة...' : 'اكتب رسالة لزملائك...'} aria-label="نص الرسالة" onKeyDown={(event) => {
-              if (event.key === 'Enter' && !event.shiftKey && !event.isComposing) {
+              if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) {
                 event.preventDefault();
                 void send();
               }
