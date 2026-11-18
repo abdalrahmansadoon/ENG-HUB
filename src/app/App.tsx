@@ -1109,6 +1109,8 @@ function ChatPage({ user, cloudinarySettings, isDemo, isAdmin, onBack }: {
   const bottomRef = useRef<HTMLDivElement>(null);
   const composerRef = useRef<HTMLTextAreaElement>(null);
   const pressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const swipeStart = useRef<{ x: number; y: number; startedAt: number } | null>(null);
+  const longPressTriggered = useRef(false);
 
   useEffect(() => {
     if (isDemo) {
@@ -1453,13 +1455,50 @@ function ChatPage({ user, cloudinarySettings, isDemo, isAdmin, onBack }: {
               className={'chat-msg ' + (mine ? 'sent' : 'received') + (grouped ? ' chat-msg-grouped' : '') + (message.pinned ? ' chat-msg-pinned' : '')}
               onContextMenu={(event) => onMessageContextMenu(event, message)}
               onPointerDown={(event) => {
-                if (event.pointerType !== 'touch') return;
+                if (event.pointerType !== 'touch' || (event.target as HTMLElement).closest('button,a,input,textarea')) return;
                 if (pressTimer.current) clearTimeout(pressTimer.current);
-                pressTimer.current = setTimeout(() => openContextMenu(message, event.clientX, event.clientY), 520);
+                longPressTriggered.current = false;
+                swipeStart.current = { x: event.clientX, y: event.clientY, startedAt: Date.now() };
+                pressTimer.current = setTimeout(() => {
+                  longPressTriggered.current = true;
+                  swipeStart.current = null;
+                  openContextMenu(message, event.clientX, event.clientY);
+                }, 520);
               }}
-              onPointerMove={() => { if (pressTimer.current) clearTimeout(pressTimer.current); }}
-              onPointerUp={() => { if (pressTimer.current) clearTimeout(pressTimer.current); }}
-              onPointerCancel={() => { if (pressTimer.current) clearTimeout(pressTimer.current); }}
+              onPointerMove={(event) => {
+                const start = swipeStart.current;
+                if (!start || event.pointerType !== 'touch') return;
+                const dx = event.clientX - start.x;
+                const dy = event.clientY - start.y;
+                if (Math.abs(dx) > 12 && Math.abs(dx) > Math.abs(dy) * 1.2) {
+                  if (pressTimer.current) clearTimeout(pressTimer.current);
+                  const visualOffset = Math.max(-44, Math.min(44, dx * 0.24));
+                  event.currentTarget.style.transform = `translateX(${visualOffset}px)`;
+                } else if (Math.abs(dy) > 14 && Math.abs(dy) > Math.abs(dx) * 1.2) {
+                  if (pressTimer.current) clearTimeout(pressTimer.current);
+                  event.currentTarget.style.transform = '';
+                  swipeStart.current = null;
+                }
+              }}
+              onPointerUp={(event) => {
+                if (pressTimer.current) clearTimeout(pressTimer.current);
+                const start = swipeStart.current;
+                event.currentTarget.style.transform = '';
+                swipeStart.current = null;
+                if (!start || longPressTriggered.current || event.pointerType !== 'touch') return;
+                const dx = event.clientX - start.x;
+                const dy = event.clientY - start.y;
+                const elapsed = Date.now() - start.startedAt;
+                if (Math.abs(dx) >= 64 && Math.abs(dx) > Math.abs(dy) * 1.25 && elapsed < 900) {
+                  beginReply(message);
+                  setNotice(`الرد على ${message.senderName}`);
+                }
+              }}
+              onPointerCancel={(event) => {
+                if (pressTimer.current) clearTimeout(pressTimer.current);
+                swipeStart.current = null;
+                event.currentTarget.style.transform = '';
+              }}
             >
               {!mine && !grouped && <div className="chat-profile-avatar chat-profile-avatar-outside">
                 {message.senderPhotoURL ? <img src={message.senderPhotoURL} alt=""/> : senderInitial}
