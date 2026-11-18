@@ -24,6 +24,13 @@ service cloud.firestore {
       return signedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.status == 'active';
     }
     function owns(userId) { return signedIn() && request.auth.uid == userId; }
+    function isGeneralChatLocked() {
+      let settingsPath = /databases/$(database)/documents/conversations/general/settings/chat;
+      return exists(settingsPath)
+        && get(settingsPath).data.locked == true
+        && (!('startAt' in get(settingsPath).data) || get(settingsPath).data.startAt == null || get(settingsPath).data.startAt <= request.time)
+        && (!('endAt' in get(settingsPath).data) || get(settingsPath).data.endAt == null || get(settingsPath).data.endAt > request.time);
+    }
 
     // Admin documents are provisioned manually in Firebase Console, never from the client.
     match /admins/{email} {
@@ -37,7 +44,7 @@ service cloud.firestore {
         && request.resource.data.role == 'student'
         && request.resource.data.status == 'active'
         && request.resource.data.profileCompleted == true;
-      allow read: if owns(userId) || isAdmin() || (activeUser() && resource.data.profileVisibility == 'public');
+      allow read: if owns(userId) || isAdmin() || (activeUser() && (!('profileVisibility' in resource.data) || resource.data.profileVisibility == 'public'));
       allow update: if owns(userId)
         && request.resource.data.role == resource.data.role
         && request.resource.data.status == resource.data.status
@@ -48,6 +55,9 @@ service cloud.firestore {
         ])
         || isAdmin();
       allow delete: if owns(userId) || isAdmin();
+      match /hiddenChatMessages/{roomId} {
+        allow read, create, update, delete: if owns(userId) && activeUser();
+      }
     }
 
     match /roles/{roleId} {
@@ -171,6 +181,10 @@ service cloud.firestore {
         && request.resource.data.createdBy == request.auth.uid;
       allow update: if isModerator();
       allow delete: if isAdmin();
+      match /settings/{settingId} {
+        allow read: if activeUser() && settingId == 'chat';
+        allow create, update, delete: if isModerator() && settingId == 'chat';
+      }
       match /members/{userId} {
         allow read: if activeUser() && (owns(userId) || isModerator());
         allow create: if isModerator() || (
@@ -201,6 +215,7 @@ service cloud.firestore {
         allow create: if activeUser()
           && exists(/databases/$(database)/documents/conversations/$(conversationId)/members/$(request.auth.uid))
           && request.resource.data.senderId == request.auth.uid
+          && (isModerator() || !isGeneralChatLocked())
           && (!exists(/databases/$(database)/documents/conversations/$(conversationId)/mutes/$(request.auth.uid))
             || get(/databases/$(database)/documents/conversations/$(conversationId)/mutes/$(request.auth.uid)).data.muted != true
             || (get(/databases/$(database)/documents/conversations/$(conversationId)/mutes/$(request.auth.uid)).data.mutedUntil is timestamp
@@ -212,10 +227,16 @@ service cloud.firestore {
             && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['text', 'edited', 'editedAt', 'attachments'])
             && request.time < resource.data.createdAt + duration.value(15, 'm'))
           || (activeUser()
+            && resource.data.senderId == request.auth.uid
+            && request.resource.data.senderId == resource.data.senderId
+            && request.resource.data.deleted == true
+            && request.resource.data.deletedBy == request.auth.uid
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['deleted', 'deletedAt', 'deletedBy', 'text', 'attachments']))
+          || (activeUser()
             && exists(/databases/$(database)/documents/conversations/$(conversationId)/members/$(request.auth.uid))
             && request.resource.data.senderId == resource.data.senderId
             && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['reactions']));
-        allow delete: if isModerator() || (activeUser() && resource.data.senderId == request.auth.uid);
+        allow delete: if isModerator();
       }
     }
 
