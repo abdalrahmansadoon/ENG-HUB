@@ -955,6 +955,31 @@ function AcademicHubPage({ subjects, lecturers, lectures, parts, files, exams, t
     </>}
 
     {subject && !lecturer && !subjectCategory && <>
+      <div className="eh-section-heading">
+        <div><span className="eh-eyebrow">COURSE CONTENT</span><h2>أقسام المادة</h2><p>اختر نوع المحتوى الذي تريد فتحه داخل مقرر {subject.name}.</p></div>
+        <span className="eh-result-count">{contentNodes.length} عنصر</span>
+      </div>
+      <div className="eh-subject-category-grid">
+        {([
+          { id: 'lectures', title: 'المحاضرات', description: 'المدرسون والمحاضرات ومقاطع الفيديو', icon: Video },
+          { id: 'files', title: 'الملفات والمراجع', description: 'المذكرات والشرائح والملفات المرفقة', icon: FileText },
+          { id: 'exams', title: 'الاختبارات', description: 'الاختبارات والتدريبات والتقييمات', icon: ClipboardList },
+          { id: 'assignments', title: 'الواجبات والتكليفات', description: 'المهام والتسليمات الخاصة بالمقرر', icon: BookOpenCheck },
+          { id: 'resources', title: 'مصادر إضافية', description: 'روابط ومراجع ومصادر خارجية', icon: BookMarked },
+          { id: 'custom', title: 'مجلدات إضافية', description: 'أي أقسام خاصة حسب طبيعة المادة', icon: FolderOpen },
+        ] as const).map((item) => {
+          const Icon = item.icon;
+          const count = contentNodes.filter((node) => node.category === item.id && node.parentId === null).length;
+          return <button type="button" className="eh-subject-category-card" key={item.id} onClick={() => onSelectCategory(item.id)}>
+            <span className="eh-subject-category-icon"><Icon size={22}/></span>
+            <span className="eh-subject-category-copy"><b>{item.title}</b><small>{item.description}</small></span>
+            <span className="eh-subject-category-count">{count}</span>
+            <ChevronLeft size={17}/>
+          </button>;
+        })}
+      </div>
+      <p className="eh-academic-tip">داخل كل قسم يمكنك إنشاء مجلدات متداخلة، وإضافة عناصر مختلفة، وربط المحاضرات بالفيديوهات والملفات والاختبارات ذات الصلة.</p>
+    </>}
     {lecturer && !lecture && <>
       <section className="eh-academic-level">
         <span className="eh-lecturer-avatar large">{lecturer.photoURL?<img src={lecturer.photoURL} alt=""/>:<GraduationCap size={25}/>}</span>
