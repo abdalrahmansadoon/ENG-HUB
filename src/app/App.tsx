@@ -955,69 +955,6 @@ function AcademicHubPage({ subjects, lecturers, lectures, parts, files, exams, t
     </>}
 
     {subject && !lecturer && !subjectCategory && <>
-      <section className="eh-academic-level">
-        <span className="eh-academic-subject-icon large" style={{'--subject-color':subject.color} as React.CSSProperties}>{subject.icon||'∑'}</span>
-        <div className="eh-academic-level-copy"><span className="eh-eyebrow">SUBJECT OVERVIEW · {subject.code}</span><h2>{subject.name}</h2><p>{subject.description||'اختر القسم المناسب للدخول إلى محتوى هذا المقرر.'}</p></div>
-        <div className="eh-academic-level-count"><b>{lectures.filter((item)=>item.subjectId===subject.id).length}</b><span>محاضرة</span></div>
-      </section>
-      <div className="eh-section-heading"><div><span className="eh-eyebrow">COURSE CONTENT</span><h2>محتويات المادة</h2><p>كل مقرر له بنية مستقلة يمكن تخصيصها حسب احتياجه.</p></div></div>
-      <div className="eh-subject-category-grid">
-        {[
-          {id:'lectures' as const,title:'المحاضرات',desc:'المدرسون والمحاضرات والفيديوهات',icon:Video,count:contentNodes.filter((x)=>x.category==='lectures'&&x.parentId===null).length},
-          {id:'files' as const,title:'الملفات والمراجع',desc:'المذكرات والكتب والشرائح',icon:FileText,count:contentNodes.filter((x)=>x.category==='files'&&x.parentId===null).length},
-          {id:'exams' as const,title:'الاختبارات',desc:'اختبارات المادة والتدريبات',icon:ClipboardList,count:contentNodes.filter((x)=>x.category==='exams'&&x.parentId===null).length},
-          {id:'assignments' as const,title:'الواجبات',desc:'التكليفات ومهام التسليم',icon:BookMarked,count:contentNodes.filter((x)=>x.category==='assignments'&&x.parentId===null).length},
-          {id:'resources' as const,title:'مصادر إضافية',desc:'روابط ومراجع ومصادر خارجية',icon:Link2,count:contentNodes.filter((x)=>x.category==='resources'&&x.parentId===null).length},
-          {id:'custom' as const,title:'مجلدات مخصصة',desc:'أي أقسام إضافية تحتاجها المادة',icon:FolderOpen,count:contentNodes.filter((x)=>x.category==='custom'&&x.parentId===null).length},
-          {id:'chat' as const,title:'مناقشات المادة',desc:'غرفة نقاش خاصة بطلاب هذا المقرر',icon:MessageCircle,count:'مباشر'},
-        ].map((item)=>{const Icon=item.icon;return <button type="button" key={item.id} className="eh-subject-category-card" onClick={()=>onSelectCategory(item.id)}>
-          <span className="eh-subject-category-icon"><Icon size={23}/></span>
-          <span className="eh-subject-category-copy"><b>{item.title}</b><small>{item.desc}</small></span>
-          <span className="eh-subject-category-count">{item.count}</span><ChevronLeft size={18}/>
-        </button>;})}
-      </div>
-      {canEdit&&<p className="eh-academic-tip">يمكنك إنشاء مجلدات إضافية وعناصر مخصصة من داخل كل قسم، ثم ربطها بمحاضرات أو فيديوهات أو اختبارات أخرى.</p>}
-    </>}
-
-    {subject && !lecturer && subjectCategory === 'lectures' && <>
-      <section className="eh-academic-level">
-        <span className="eh-academic-subject-icon large" style={{'--subject-color':subject.color} as React.CSSProperties}>{subject.icon||'∑'}</span>
-        <div className="eh-academic-level-copy"><span className="eh-eyebrow">LECTURE DIRECTORY · {subject.code}</span><h2>محاضرات {subject.name}</h2><p>يمكن إضافة مدرسين أولاً أو إنشاء المحاضرات مباشرة إذا كان المحاضر ثابتاً أو غير مطلوب.</p></div>
-        <div className="eh-academic-level-count"><b>{subjectLecturers.length}</b><span>مدرس</span></div>
-        <div className="eh-academic-level-count"><b>{legacyLectures.length}</b><span>بدون مدرس</span></div>
-      </section>
-      <div className="eh-section-heading"><div><span className="eh-eyebrow">LECTURERS</span><h2>المدرسون والمعيدون</h2><p>اختر المدرس لعرض محاضراته، أو اترك المادة بدون مدرس محدد.</p></div>
-        {canEdit&&<div className="eh-academic-actions"><button type="button" className="eh-button" onClick={onAddLecturer}><Plus size={15}/> إضافة مدرس</button><button type="button" className="eh-button primary" onClick={onAddLecture}><Plus size={15}/> محاضرة مباشرة</button></div>}
-      </div>
-      <div className="eh-lecturer-grid">
-        {subjectLecturers.map((item,index)=><button type="button" className="eh-lecturer-card" key={item.id} onClick={()=>onSelectLecturer(item.id)}>
-          <span className="eh-lecturer-avatar">{item.photoURL?<img src={item.photoURL} alt=""/>:<GraduationCap size={24}/>}</span>
-          <span className="eh-lecturer-copy"><b>{item.name}</b><small>{item.bio||item.description||'مدرس في '+subject.name}</small><em>{lectures.filter((x)=>x.lecturerId===item.id).length} محاضرة</em></span>
-          <span className="eh-lecturer-index">{String(index+1).padStart(2,'0')}</span><ChevronLeft size={17}/>
-        </button>)}
-      </div>
-      {legacyLectures.length>0 && <section className="eh-surface-card eh-legacy-block"><div className="eh-card-heading"><div><span className="eh-eyebrow">DIRECT LECTURES</span><h2>محاضرات بدون مدرس محدد</h2><p>المحاضرات التي أنشئت مباشرة داخل المادة.</p></div></div>{legacyLectures.map((item)=><button type="button" className="eh-legacy-lecture" key={item.id} onClick={()=>onSelectLecture(item.id)}><span><Video size={17}/></span><b>{item.title}</b><small>{item.duration||'متاحة'}</small><ChevronLeft size={16}/></button>)}</section>}
-      {subjectLecturers.length===0&&legacyLectures.length===0&&<div className="eh-surface-card"><EmptyState title="لم تتم إضافة محتويات المحاضرات" body={canEdit?'يمكنك إضافة مدرس أو إنشاء محاضرة مباشرة دون تعيين مدرس.':'ستظهر المحاضرات هنا عند نشرها.'}/></div>}
-    </>}
-
-      <section className="eh-academic-level">
-        <span className="eh-academic-subject-icon large" style={{'--subject-color':subject.color} as React.CSSProperties}>{subject.icon||'∑'}</span>
-        <div className="eh-academic-level-copy"><span className="eh-eyebrow">SUBJECT DETAILS · {subject.code}</span><h2>{subject.name}</h2><p>{subject.description||'اختر أحد المدرسين لعرض محاضراته.'}</p></div>
-        <div className="eh-academic-level-count"><b>{subjectLecturers.length}</b><span>مدرس</span></div>
-        <div className="eh-academic-level-count"><b>{lectures.filter((x)=>x.subjectId===subject.id).length}</b><span>محاضرة</span></div>
-      </section>
-      <div className="eh-section-heading"><div><span className="eh-eyebrow">LECTURERS</span><h2>المدرسون والمعيدون</h2><p>اختر المدرس للانتقال إلى قائمة محاضراته</p></div></div>
-      <div className="eh-lecturer-grid">
-        {subjectLecturers.map((item,index)=><button type="button" className="eh-lecturer-card" key={item.id} onClick={()=>onSelectLecturer(item.id)}>
-          <span className="eh-lecturer-avatar">{item.photoURL?<img src={item.photoURL} alt=""/>:<GraduationCap size={24}/>}</span>
-          <span className="eh-lecturer-copy"><b>{item.name}</b><small>{item.bio||item.description||'مدرس في '+subject.name}</small><em>{lectures.filter((x)=>x.lecturerId===item.id).length} محاضرة</em></span>
-          <span className="eh-lecturer-index">{String(index+1).padStart(2,'0')}</span><ChevronLeft size={17}/>
-        </button>)}
-      </div>
-      {subjectLecturers.length===0 && <div className="eh-surface-card"><EmptyState title="لم تتم إضافة مدرسين" body={canEdit?'أضف المدرسين والمعيدين إلى المادة أولاً.':'سيظهر المدرسون هنا عندما تتم إضافتهم.'}/></div>}
-      {legacyLectures.length>0 && <section className="eh-surface-card eh-legacy-block"><div className="eh-card-heading"><div><span className="eh-eyebrow">LEGACY CONTENT</span><h2>محاضرات محفوظة سابقاً</h2><p>تم الاحتفاظ بالمحاضرات القديمة حتى لا تفقد روابط الفيديو.</p></div></div>{legacyLectures.map((item)=><button type="button" className="eh-legacy-lecture" key={item.id} onClick={()=>onSelectLecture(item.id)}><span><Video size={17}/></span><b>{item.title}</b><small>{item.lecturerName||item.instructor||'بدون مدرس'}</small><ChevronLeft size={16}/></button>)}</section>}
-    </>}
-
     {lecturer && !lecture && <>
       <section className="eh-academic-level">
         <span className="eh-lecturer-avatar large">{lecturer.photoURL?<img src={lecturer.photoURL} alt=""/>:<GraduationCap size={25}/>}</span>
