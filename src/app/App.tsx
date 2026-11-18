@@ -17,7 +17,7 @@ import { enablePushNotifications, listenForForegroundMessages } from '../lib/mes
 import { isFirebaseConfigured } from '../lib/firebase';
 import { readLocal, writeLocal } from '../lib/storage';
 import { createExamCloud, createLectureCloud, createLecturePartCloud, createLecturerCloud, createSubjectCloud, createTaskCloud, deleteTaskCloud, saveFileMetadataCloud, subscribeExams, subscribeFiles, subscribeLectureParts, subscribeLecturers, subscribeLectures, subscribeSubjects, subscribeTasks, updateTaskStatusCloud } from '../lib/cloudData';
-import { createGeneralChatWarning, deleteGeneralChatMessage, editGeneralChatMessage, getGeneralChatMuteStatus, joinGeneralChat, sendGeneralChatMessage, subscribeGeneralChat, subscribeGeneralChatMuteStatus, toggleGeneralChatMute, toggleGeneralChatPin, toggleGeneralChatReaction, type ChatAttachment, type ChatMessage, type ChatMuteStatus } from '../lib/chat';
+import { createGeneralChatWarning, deleteGeneralChatMessage, editGeneralChatMessage, getGeneralChatMuteStatus, hideGeneralChatMessageForUser, joinGeneralChat, sendGeneralChatMessage, softDeleteGeneralChatMessage, subscribeGeneralChat, subscribeGeneralChatMuteStatus, toggleGeneralChatMute, toggleGeneralChatPin, toggleGeneralChatReaction, type ChatAttachment, type ChatMessage, type ChatMuteStatus } from '../lib/chat';
 import type { AppNotification, AppUser, Exam, Lecture, LecturePart, Lecturer, LibraryFile, Priority, StudyTask, Subject, TaskStatus } from '../types';
 import { AppShell } from './layout/AppShell';
 import { readEngHubRoute, buildEngHubHash, type SubjectCategory } from '../lib/routes';
@@ -1162,7 +1162,7 @@ function ChatPage({ user, cloudinarySettings, isDemo, isAdmin, onBack }: {
       try {
         await joinGeneralChat({ uid: user.uid, displayName: user.displayName, photoURL: user.photoURL });
         if (cancelled) return;
-        unsubscribe = subscribeGeneralChat(setMessages, (reason) => setError(reason.message));
+        unsubscribe = subscribeGeneralChat(user.uid, setMessages, (reason) => setError(reason.message));
       } catch (reason) {
         setError(reason instanceof Error ? reason.message : 'تعذر فتح المحادثة العامة.');
       } finally {
