@@ -88,19 +88,6 @@ export function AcademicContentArea({
       {activeNode && <button type="button" className="eh-content-back" onClick={() => onNavigate(category, activeNode.parentId || undefined)}><ArrowDown size={14}/> رجوع</button>}
     </nav>
 
-    {!activeNode && <section className="eh-content-category-grid">
-      {categories.map((item) => {
-        const Icon = item.icon;
-        const count = nodes.filter((node) => node.category === item.id && node.parentId === null).length;
-        return <button type="button" className={category === item.id ? 'eh-content-category selected' : 'eh-content-category'} key={item.id} onClick={() => onNavigate(item.id)}>
-          <span className="eh-content-category-icon"><Icon size={23}/></span>
-          <span className="eh-content-category-copy"><b>{item.title}</b><small>{item.description}</small></span>
-          <span className="eh-content-category-count">{count}</span>
-          <ChevronLeft size={17}/>
-        </button>;
-      })}
-    </section>}
-
     <section className="eh-content-items-section">
       <div className="eh-content-items-heading">
         <div><span className="eh-eyebrow">{category.toUpperCase()} · CONTENT</span><h3>{activeNode?.title ?? (categories.find((item) => item.id === category)?.title || 'المحتوى')}</h3></div>
