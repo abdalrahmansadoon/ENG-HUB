@@ -520,7 +520,7 @@ function App() {
         />}
         {page === 'exams' && <ExamsPage exams={exams} setExams={setExams} canEdit={isAdmin} onAdd={() => setExamModal(true)}/>}
         {page === 'files' && <FilesPage files={files} onUpload={addFile} cloudinaryReady={isCloudinaryConfigured(cloudinarySettings)} isDemo={isDemo}/>}
-        {page === 'chat' && <ChatPage user={activeUser} cloudinarySettings={cloudinarySettings} isDemo={isDemo} isAdmin={isAdmin} onBack={() => setPage('home')} onOpenProfile={(uid) => { setPublicProfileUid(uid); setPage('student-profile'); }}/ >}
+        {page === 'chat' && <ChatPage user={activeUser} cloudinarySettings={cloudinarySettings} isDemo={isDemo} isAdmin={isAdmin} onBack={() => setPage('home')} onOpenProfile={(uid) => { setPublicProfileUid(uid); setPage('student-profile'); }}/>}
         {page === 'student-profile' && <PublicStudentProfilePage uid={publicProfileUid} currentUid={activeUser.uid} onBack={() => setPage('chat')}/>}
         {page === 'planner' && <PlannerPage tasks={tasks}/>}
         {page === 'analytics' && <AnalyticsPage tasks={tasks} subjects={subjects} lectures={lectures}/>}
