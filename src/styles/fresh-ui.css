@@ -1937,3 +1937,12 @@ img { max-width:100%; }
   .eh-app .eh-profile-form-footer { align-items:flex-start;flex-direction:column; }
   .eh-app .eh-profile-form-footer .eh-button { width:100%; }
 }
+
+
+/* On narrow screens the global search remains tappable and visible. */
+@media(max-width:720px) {
+  .eh-app .eh-search { width:min(125px,34vw);height:36px;padding:0 8px;justify-content:flex-start;border-color:var(--border);background:var(--surface); }
+  .eh-app .eh-search input { display:block;min-width:0;width:100%;font-size:9px; }
+  .eh-app .eh-search input::placeholder { color:var(--dim); }
+  .eh-app .eh-search kbd { display:none; }
+}
