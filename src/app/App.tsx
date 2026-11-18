@@ -2110,23 +2110,23 @@ function LecturerModal({ subject, onClose, onSave }: {
 
 function LectureModal({ lecturers, selectedLecturerId, onClose, onSave }: {
   lecturers: Lecturer[]; selectedLecturerId: string; onClose: () => void;
-  onSave: (data: { title: string; description?: string; lecturerId: string; duration?: string }) => void;
+  onSave: (data: { title: string; description?: string; lecturerId?: string; duration?: string }) => void;
 }) {
   const [title, setTitle] = useState('');
-  const [lecturerId, setLecturerId] = useState(selectedLecturerId || lecturers[0]?.id || '');
+  const [lecturerId, setLecturerId] = useState(selectedLecturerId || '');
   const [description, setDescription] = useState('');
   const [duration, setDuration] = useState('');
   const availableLecturers = lecturers.filter((item) => item.status === 'active');
   return <div className="modal-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
     <section className="modal-card" role="dialog" aria-modal="true" aria-labelledby="lecture-modal-title">
-      <div className="modal-head"><div><h2 id="lecture-modal-title">إنشاء محاضرة</h2><p>المحاضرة تتبع مدرساً داخل المادة، وتُضاف أجزاؤها بعد إنشائها.</p></div><button type="button" className="icon-button" onClick={onClose} aria-label="إغلاق"><X size={18}/></button></div>
-      {availableLecturers.length === 0 ? <EmptyState title="أضف مدرساً أولاً" body="الترتيب الأكاديمي هو: مادة، ثم مدرس، ثم محاضرة، ثم أجزاء الفيديو."/> : <form className="form-stack" onSubmit={(event) => { event.preventDefault(); onSave({ title: title.trim(), lecturerId, description: description.trim(), duration: duration.trim() }); }}>
-        <label>اختيار المدرس<select required value={lecturerId} onChange={(event) => setLecturerId(event.target.value)}>{availableLecturers.map((item) => <option key={item.id} value={item.id}>{item.subjectName} — {item.name}</option>)}</select></label>
+      <div className="modal-head"><div><h2 id="lecture-modal-title">إنشاء محاضرة</h2><p>يمكنك ربطها بمدرس أو إنشاؤها مباشرة داخل المادة.</p></div><button type="button" className="icon-button" onClick={onClose} aria-label="إغلاق"><X size={18}/></button></div>
+      <form className="form-stack" onSubmit={(event) => { event.preventDefault(); onSave({ title: title.trim(), ...(lecturerId ? { lecturerId } : {}), description: description.trim(), duration: duration.trim() }); }}>
+        <label>المدرس (اختياري)<select value={lecturerId} onChange={(event) => setLecturerId(event.target.value)}><option value="">بدون مدرس — إنشاء مباشر داخل المادة</option>{availableLecturers.map((item) => <option key={item.id} value={item.id}>{item.subjectName} — {item.name}</option>)}</select></label>
         <label>عنوان المحاضرة<input autoFocus required maxLength={120} value={title} onChange={(event) => setTitle(event.target.value)} placeholder="مثال: مقدمة في المتجهات"/></label>
         <div className="form-row"><label>المدة الإجمالية (اختياري)<input maxLength={40} value={duration} onChange={(event) => setDuration(event.target.value)} placeholder="مثال: 90 دقيقة"/></label><label>وصف المحاضرة<input maxLength={180} value={description} onChange={(event) => setDescription(event.target.value)} placeholder="موضوعات المحاضرة"/></label></div>
-        <p className="settings-hint">بعد الحفظ ستتمكن من الدخول إلى المحاضرة وإضافة عدد غير محدود من الأجزاء وروابط الفيديو.</p>
-        <div className="modal-actions"><button type="button" className="btn btn-outline" onClick={onClose}>إلغاء</button><button type="submit" className="btn btn-primary" disabled={!title.trim() || !lecturerId}><Plus size={15}/> إنشاء المحاضرة</button></div>
-      </form>}
+        <p className="settings-hint">بعد الحفظ ستتمكن من إضافة أي عدد من أجزاء الفيديو والملفات والاختبارات المرتبطة بالمحاضرة.</p>
+        <div className="modal-actions"><button type="button" className="btn btn-outline" onClick={onClose}>إلغاء</button><button type="submit" className="btn btn-primary" disabled={!title.trim()}><Plus size={15}/> إنشاء المحاضرة</button></div>
+      </form>
     </section>
   </div>;
 }
