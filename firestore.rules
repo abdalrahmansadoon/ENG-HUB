@@ -24,8 +24,8 @@ service cloud.firestore {
       return signedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.status == 'active';
     }
     function owns(userId) { return signedIn() && request.auth.uid == userId; }
-    function isGeneralChatLocked() {
-      let settingsPath = /databases/$(database)/documents/conversations/general/settings/chat;
+    function isChatLocked(conversationId) {
+      let settingsPath = /databases/$(database)/documents/conversations/$(conversationId)/settings/chat;
       return exists(settingsPath)
         && get(settingsPath).data.locked == true
         && (!('startAt' in get(settingsPath).data) || get(settingsPath).data.startAt == null || get(settingsPath).data.startAt <= request.time)
@@ -176,13 +176,21 @@ service cloud.firestore {
     match /conversations/{conversationId} {
       allow read: if activeUser() && exists(/databases/$(database)/documents/conversations/$(conversationId)/members/$(request.auth.uid));
       allow create: if activeUser()
-        && conversationId == 'general'
-        && request.resource.data.type == 'global'
-        && request.resource.data.createdBy == request.auth.uid;
+        && request.resource.data.createdBy == request.auth.uid
+        && (
+          (conversationId == 'general' && request.resource.data.type == 'global')
+          || (
+            request.resource.data.type == 'course'
+            && request.resource.data.courseId is string
+            && conversationId == 'course_' + request.resource.data.courseId
+            && exists(/databases/$(database)/documents/subjects/$(request.resource.data.courseId))
+            && get(/databases/$(database)/documents/subjects/$(request.resource.data.courseId)).data.isPublished == true
+          )
+        );
       allow update: if isModerator();
       allow delete: if isAdmin();
       match /settings/{settingId} {
-        allow read: if activeUser() && settingId == 'chat';
+        allow read: if activeUser() && exists(/databases/$(database)/documents/conversations/$(conversationId)/members/$(request.auth.uid)) && settingId == 'chat';
         allow create, update, delete: if isModerator() && settingId == 'chat';
       }
       match /members/{userId} {
@@ -190,8 +198,15 @@ service cloud.firestore {
         allow create: if isModerator() || (
           activeUser()
           && owns(userId)
-          && conversationId == 'general'
-          && get(/databases/$(database)/documents/conversations/$(conversationId)).data.type == 'global'
+          && (
+            (conversationId == 'general' && get(/databases/$(database)/documents/conversations/$(conversationId)).data.type == 'global')
+            || (
+              get(/databases/$(database)/documents/conversations/$(conversationId)).data.type == 'course'
+              && conversationId == 'course_' + get(/databases/$(database)/documents/conversations/$(conversationId)).data.courseId
+              && exists(/databases/$(database)/documents/subjects/$(get(/databases/$(database)/documents/conversations/$(conversationId)).data.courseId))
+              && get(/databases/$(database)/documents/subjects/$(get(/databases/$(database)/documents/conversations/$(conversationId)).data.courseId)).data.isPublished == true
+            )
+          )
         );
         allow update: if isModerator() || (
           activeUser()
@@ -215,7 +230,7 @@ service cloud.firestore {
         allow create: if activeUser()
           && exists(/databases/$(database)/documents/conversations/$(conversationId)/members/$(request.auth.uid))
           && request.resource.data.senderId == request.auth.uid
-          && (isModerator() || !isGeneralChatLocked())
+          && (isModerator() || !isChatLocked(conversationId))
           && (!exists(/databases/$(database)/documents/conversations/$(conversationId)/mutes/$(request.auth.uid))
             || get(/databases/$(database)/documents/conversations/$(conversationId)/mutes/$(request.auth.uid)).data.muted != true
             || (get(/databases/$(database)/documents/conversations/$(conversationId)/mutes/$(request.auth.uid)).data.mutedUntil is timestamp
