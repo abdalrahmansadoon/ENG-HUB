@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode, type MouseEvent } from 'react';
+import { Fragment, useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode, type MouseEvent } from 'react';
 import {
   Activity, AlarmClock, AlertCircle, ArrowDownLeft, ArrowLeft, ArrowUpLeft, Bell, BookOpen,
   BookOpenCheck, CalendarDays, Check, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight,
@@ -1105,7 +1105,7 @@ function ChatPage({ user, cloudinarySettings, isDemo, isAdmin, onBack }: {
           const grouped = !mine && previous?.senderId === message.senderId && !showDay;
           const senderInitial = message.senderName.trim().slice(0, 1) || '؟';
           const messageText = message.text || message.attachments[0]?.name || 'مرفق';
-          return <React.Fragment key={message.id}>
+          return <Fragment key={message.id}>
             {showDay && <div className="chat-date-divider"><span>{formatDay(message.createdAt)}</span></div>}
             <article
               id={'chat-message-' + message.id}
@@ -1156,7 +1156,7 @@ function ChatPage({ user, cloudinarySettings, isDemo, isAdmin, onBack }: {
               </div>
               {Object.entries(message.reactions ?? {}).some(([, users]) => users.length > 0) && <div className="chat-message-reactions">{Object.entries(message.reactions ?? {}).map(([emoji, users]) => users.length > 0 && <button type="button" key={emoji} className={users.includes(user.uid) ? 'mine' : ''} onClick={() => void handleReaction(message, emoji)}><span>{emoji}</span><small>{users.length}</small></button>)}</div>}
             </article>
-          </React.Fragment>;
+          </Fragment>;
         })}
         <div ref={bottomRef}/>
       </main>
