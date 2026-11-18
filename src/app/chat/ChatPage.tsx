@@ -9,13 +9,13 @@ import type { AppUser } from '../../types';
 import { isCloudinaryConfigured, type CloudinarySettings } from '../../lib/cloudinary';
 import { uploadFile } from '../../lib/uploads';
 import {
-  adminSoftDeleteGeneralChatMessage, clearChatBackground, clearGeneralChatLock,
+  adminSoftDeleteGeneralChatMessage, clearChatBackground, clearGeneralChatLock, markChatRoomRead,
   createChatAnnouncement, createGeneralChatWarning, deleteChatAnnouncement,
   deleteGeneralChatMessage, editGeneralChatMessage, getGeneralChatMuteStatus,
   hideGeneralChatMessageForUser, joinGeneralChat, saveChatBackground,
   sendGeneralChatMessage, setGeneralChatLock, setGeneralChatMute, setGeneralChatSlowMode,
   softDeleteGeneralChatMessage, subscribeChatAnnouncements, subscribeChatBackground,
-  subscribeGeneralChat, subscribeGeneralChatLockStatus, subscribeGeneralChatMuteStatus, subscribeGeneralChatSlowMode, subscribeGeneralChatSlowModeCooldown,
+  subscribeChatReadState, subscribeGeneralChat, subscribeGeneralChatLockStatus, subscribeGeneralChatMuteStatus, subscribeGeneralChatSlowMode, subscribeGeneralChatSlowModeCooldown,
   subscribeGeneralChatWarnings, toggleGeneralChatPin, toggleGeneralChatReaction,
   unmuteGeneralChatUser, updateChatAnnouncement, type ChatAnnouncement, type ChatAttachment,
   type ChatLockStatus, type ChatMessage, type ChatMuteStatus, type ChatSlowModeStatus, type ChatWarning,
@@ -73,10 +73,17 @@ export function ChatPage({ user, cloudinarySettings, isDemo, isAdmin, roomId, ro
   const [moderationBusy, setModerationBusy] = useState(false);
   const [contextMuted, setContextMuted] = useState(false);
   const [notice, setNotice] = useState('');
+  const [chatReadAt, setChatReadAt] = useState<Date | null>(null);
+  const [chatReadReady, setChatReadReady] = useState(false);
+  const [showUnreadJump, setShowUnreadJump] = useState(false);
   const [filePreviews, setFilePreviews] = useState<Array<{ key: string; url: string }>>([]);
   const fileInput = useRef<HTMLInputElement>(null);
   const backgroundFileInput = useRef<HTMLInputElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const messagesListRef = useRef<HTMLElement>(null);
+  const initialReadPositioned = useRef(false);
+  const stickToBottom = useRef(true);
+  const lastReadMessageId = useRef('');
   const composerRef = useRef<HTMLTextAreaElement>(null);
   const pressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const swipeStart = useRef<{ x: number; y: number; startedAt: number } | null>(null);
@@ -109,6 +116,23 @@ export function ChatPage({ user, cloudinarySettings, isDemo, isAdmin, roomId, ro
       unsubscribe?.();
     };
   }, [user.uid, user.displayName, user.photoURL, isDemo, roomId, roomTitle, courseId]);
+
+  useEffect(() => {
+    initialReadPositioned.current = false;
+    stickToBottom.current = true;
+    lastReadMessageId.current = '';
+    setChatReadReady(false);
+    setShowUnreadJump(false);
+    if (isDemo) {
+      setChatReadAt(new Date());
+      setChatReadReady(true);
+      return;
+    }
+    return subscribeChatReadState(user.uid, roomId, (date) => {
+      setChatReadAt(date);
+      setChatReadReady(true);
+    }, (reason) => setError(reason.message));
+  }, [user.uid, isDemo, roomId]);
 
   useEffect(() => {
     if (isDemo) { setMuteState({ muted: false, mutedUntil: null, reason: '' }); return; }
@@ -194,10 +218,6 @@ export function ChatPage({ user, cloudinarySettings, isDemo, isAdmin, roomId, ro
   }, [files]);
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
-  }, [messages.length]);
-
-  useEffect(() => {
     const close = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         setContextMessage(null);
@@ -233,6 +253,77 @@ export function ChatPage({ user, cloudinarySettings, isDemo, isAdmin, roomId, ro
       .toLowerCase().includes(search.trim().toLowerCase()),
   );
   const pinnedMessages = messages.filter((message) => message.pinned);
+  const unreadMessages = useMemo(() => {
+    if (!chatReadReady || !chatReadAt) return [];
+    return messages.filter((message) =>
+      message.senderId !== user.uid
+      && !message.deleted
+      && message.createdAt !== null
+      && message.createdAt.getTime() > chatReadAt.getTime(),
+    );
+  }, [messages, chatReadReady, chatReadAt, user.uid]);
+  const visibleUnreadMessages = visibleMessages.filter((message) => unreadMessages.some((unread) => unread.id === message.id));
+  const firstVisibleUnreadId = visibleUnreadMessages[0]?.id ?? '';
+
+  const markRoomAsRead = () => {
+    const latest = messages[messages.length - 1];
+    if (!latest) {
+      void markChatRoomRead(user.uid, roomId).catch((reason) => setError(reason instanceof Error ? reason.message : 'تعذر حفظ حالة القراءة.'));
+      return;
+    }
+    if (lastReadMessageId.current === latest.id) return;
+    lastReadMessageId.current = latest.id;
+    void markChatRoomRead(user.uid, roomId).then(() => {
+      setChatReadAt(latest.createdAt ?? new Date());
+      setShowUnreadJump(false);
+    }).catch((reason) => {
+      lastReadMessageId.current = '';
+      setError(reason instanceof Error ? reason.message : 'تعذر حفظ حالة القراءة.');
+    });
+  };
+
+  const handleMessagesScroll = () => {
+    const viewport = messagesListRef.current;
+    if (!viewport) return;
+    const atBottom = viewport.scrollHeight - viewport.scrollTop - viewport.clientHeight <= 96;
+    stickToBottom.current = atBottom;
+    if (atBottom) markRoomAsRead();
+    else setShowUnreadJump(unreadMessages.length > 0);
+  };
+
+  const jumpToLatest = () => {
+    stickToBottom.current = true;
+    setShowUnreadJump(false);
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+    markRoomAsRead();
+  };
+
+  useEffect(() => {
+    if (!chatReadReady || loading) return;
+    const frame = window.requestAnimationFrame(() => {
+      if (!initialReadPositioned.current) {
+        initialReadPositioned.current = true;
+        if (chatReadAt && unreadMessages.length > 0) {
+          stickToBottom.current = false;
+          setShowUnreadJump(true);
+          document.getElementById('chat-message-' + unreadMessages[0].id)?.scrollIntoView({ behavior: 'auto', block: 'start' });
+        } else {
+          stickToBottom.current = true;
+          bottomRef.current?.scrollIntoView({ behavior: 'auto', block: 'end' });
+          markRoomAsRead();
+        }
+        return;
+      }
+      if (stickToBottom.current) {
+        bottomRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+        markRoomAsRead();
+      } else {
+        setShowUnreadJump(unreadMessages.length > 0);
+      }
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [messages.length, chatReadReady, chatReadAt, loading, roomId, unreadMessages.length]);
+
   const editAllowed = (message: ChatMessage) => Boolean(
     message.createdAt && message.senderId === user.uid && Date.now() - message.createdAt.getTime() <= 15 * 60 * 1000,
   );
@@ -659,7 +750,12 @@ export function ChatPage({ user, cloudinarySettings, isDemo, isAdmin, roomId, ro
           : <div className="chat-pinned-strip-list">{pinnedMessages.slice(0,3).map((message) => <button type="button" key={message.id} onClick={() => jumpToMessage(message.id)}><b>{message.senderName}</b><span>{message.text || message.attachments[0]?.name || 'مرفق'}</span></button>)}</div>}
       </div>
 
+      {showUnreadJump && unreadMessages.length > 0 && <button type="button" className="chat-unread-jump" onClick={jumpToLatest}>
+        <span>{unreadMessages.length} {unreadMessages.length === 1 ? 'رسالة جديدة' : 'رسائل جديدة'}</span><ArrowDown size={15}/>
+      </button>}
       <main
+        ref={messagesListRef}
+        onScroll={handleMessagesScroll}
         className="chat-messages-rebuilt"
         aria-live="polite"
         style={chatBackgroundUrl ? {
@@ -680,6 +776,7 @@ export function ChatPage({ user, cloudinarySettings, isDemo, isAdmin, roomId, ro
           const messageText = message.text || message.attachments[0]?.name || 'مرفق';
           return <Fragment key={message.id}>
             {showDay && <div className="chat-date-divider"><span>{formatDay(message.createdAt)}</span></div>}
+            {firstVisibleUnreadId === message.id && <div className="chat-unread-divider"><span>{visibleUnreadMessages.length} رسالة غير مقروءة</span></div>}
             <article
               id={'chat-message-' + message.id}
               className={'chat-msg ' + (mine ? 'sent' : 'received') + (grouped ? ' chat-msg-grouped' : '') + (message.pinned ? ' chat-msg-pinned' : '')}
