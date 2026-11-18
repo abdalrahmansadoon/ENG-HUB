@@ -31,9 +31,6 @@ const navGroups = [
     { id: 'home', label: 'الرئيسية', icon: Home },
     { id: 'tasks', label: 'المهام', icon: ListChecks },
     { id: 'courses', label: 'المواد الدراسية', icon: BookOpen },
-    { id: 'lectures', label: 'المحاضرات', icon: Video },
-    { id: 'exams', label: 'الاختبارات', icon: ClipboardList },
-    { id: 'files', label: 'مكتبة الملفات', icon: FolderOpen },
   ] },
   { title: 'التواصل والتنظيم', items: [
     { id: 'chat', label: 'المحادثات', icon: MessageCircle },
@@ -484,6 +481,17 @@ function App() {
   const themeClass = dark ? 'theme-dark' : 'theme-light';
   if (!user) return <AuthScreen themeClass={themeClass} onLogin={login} onGoogle={loginWithGoogle} />;
   if (!profileComplete) return <ProfileCompletionScreen themeClass={themeClass} user={user} cloudinarySettings={defaultCloudinarySettings} onComplete={completeProfile} />;
+
+  if (page === 'chat') return (
+    <div className={`eh-app ${dark ? 'eh-dark theme-dark' : 'eh-light theme-light'} eh-focus-chat`} dir="rtl">
+      <ChatPage user={activeUser} cloudinarySettings={cloudinarySettings} isDemo={isDemo} isAdmin={isAdmin}
+        roomId={selectedSubjectId ? `course_${selectedSubjectId}` : 'general'}
+        roomTitle={selectedSubjectId ? `مناقشات ${subjects.find((item) => item.id === selectedSubjectId)?.name ?? 'المادة'}` : 'المحادثة العامة'}
+        courseId={selectedSubjectId || undefined}
+        onBack={() => { setPage('home'); setSelectedSubjectId(''); setSelectedSubjectCategory(''); setSelectedContentNodeId(''); }}
+        onOpenProfile={(uid) => { setPublicProfileUid(uid); setPage('student-profile'); }} />
+    </div>
+  );
 
   return (
     <AppShell
