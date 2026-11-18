@@ -415,6 +415,7 @@ function App() {
     setSelectedContentNodeId(nodeId || '');
     setSelectedLecturerId(nodeId && lecturers.some((item) => item.id === nodeId) ? nodeId : '');
     setSelectedLectureId(nodeId && lectures.some((item) => item.id === nodeId) ? nodeId : '');
+    setPage(category === 'chat' ? 'chat' : 'courses');
   };
 
   const addExam = async (data: { title: string; subjectName: string; date: string; duration: string; questions: number }) => {
@@ -920,6 +921,7 @@ function AcademicHubPage({ subjects, lecturers, lectures, parts, selectedSubject
           {id:'assignments' as const,title:'الواجبات',desc:'التكليفات ومهام التسليم',icon:BookMarked,count:0},
           {id:'resources' as const,title:'مصادر إضافية',desc:'روابط ومراجع ومصادر خارجية',icon:Link2,count:0},
           {id:'custom' as const,title:'مجلدات مخصصة',desc:'أي أقسام إضافية تحتاجها المادة',icon:FolderOpen,count:0},
+          {id:'chat' as const,title:'مناقشات المادة',desc:'غرفة نقاش خاصة بطلاب هذا المقرر',icon:MessageCircle,count:0},
         ].map((item)=>{const Icon=item.icon;return <button type="button" key={item.id} className="eh-subject-category-card" onClick={()=>onSelectCategory(item.id)}>
           <span className="eh-subject-category-icon"><Icon size={23}/></span>
           <span className="eh-subject-category-copy"><b>{item.title}</b><small>{item.desc}</small></span>
