@@ -1491,6 +1491,7 @@ function ProfilePage({ user, isDemo, onToggleRole, onLogout, onDeleteAccount, on
   const [photoPreview, setPhotoPreview] = useState('');
   const [savingProfile, setSavingProfile] = useState(false);
   const [profileMessage, setProfileMessage] = useState('');
+  const [profileLinkCopied, setProfileLinkCopied] = useState(false);
   const [showDelete, setShowDelete] = useState(false);
   const [deletePassword, setDeletePassword] = useState('');
   const [deleteError, setDeleteError] = useState('');
@@ -1558,6 +1559,25 @@ function ProfilePage({ user, isDemo, onToggleRole, onLogout, onDeleteAccount, on
     }
   };
 
+  const copyPublicProfileLink = async () => {
+    const link = window.location.origin + window.location.pathname + '#/students/' + encodeURIComponent(user.uid);
+    try {
+      if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(link);
+      else {
+        const field = document.createElement('textarea');
+        field.value = link; field.setAttribute('readonly', '');
+        field.style.position = 'fixed'; field.style.opacity = '0';
+        document.body.appendChild(field); field.select();
+        const copied = document.execCommand('copy'); field.remove();
+        if (!copied) throw new Error('clipboard-unavailable');
+      }
+      setProfileLinkCopied(true);
+      window.setTimeout(() => setProfileLinkCopied(false), 1800);
+    } catch {
+      setProfileMessage('تعذر نسخ الرابط. تحقق من صلاحية الحافظة في المتصفح.');
+    }
+  };
+
   return <div className="eh-profile-page">
     <PageHeader eyebrow="YOUR ACCOUNT" title="الملف الشخصي والإعدادات" description="تحكم في بياناتك وخصوصيتك وطريقة ظهور منصة ENG HUB."/>
     <section className="eh-profile-hero">
@@ -1592,6 +1612,10 @@ function ProfilePage({ user, isDemo, onToggleRole, onLogout, onDeleteAccount, on
               <label><span><b>إظهار النبذة في الملف العام</b><small>يمكنك إخفاء النبذة دون جعل الملف خاصاً.</small></span><input type="checkbox" checked={showBioOnPublicProfile} onChange={(event) => setShowBioOnPublicProfile(event.target.checked)} disabled={profileVisibility === 'private'}/></label>
               <label><span><b>إظهار الفرقة والفصل الدراسي</b><small>تحكم في ظهور المعلومات الدراسية داخل الملف العام.</small></span><input type="checkbox" checked={showAcademicInfoOnPublicProfile} onChange={(event) => setShowAcademicInfoOnPublicProfile(event.target.checked)} disabled={profileVisibility === 'private'}/></label>
             </div>
+            {profileVisibility === 'public' && <button type="button" className="eh-button eh-profile-share-link" onClick={() => void copyPublicProfileLink()}>
+              {profileLinkCopied ? <Check size={15}/> : <Copy size={15}/>}
+              {profileLinkCopied ? 'تم نسخ رابط ملفك العام' : 'نسخ رابط ملفك العام'}
+            </button>}
           </section>
           {profileMessage&&<div className="eh-inline-feedback" role="status">{profileMessage}</div>}
           <div className="eh-profile-form-footer"><small>آخر البيانات المحفوظة تظهر في ملفك مباشرة.</small><button type="submit" className="eh-button primary" disabled={savingProfile||name.trim().length<2}>{savingProfile?<span className="spinner"/>:<Check size={16}/>} حفظ التغييرات</button></div>
