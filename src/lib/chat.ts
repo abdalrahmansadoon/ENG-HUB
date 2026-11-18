@@ -175,7 +175,11 @@ export function subscribeGeneralChat(
   const hiddenRef = doc(firestore, 'users', userId, 'hiddenChatMessages', normalizedRoomId);
   let allMessages: ChatMessage[] = [];
   let hiddenIds = new Set<string>();
-  const emit = () => onMessages(allMessages.filter((message) => !hiddenIds.has(message.id)));
+  let hiddenBefore: Date | null = null;
+  const emit = () => onMessages(allMessages.filter((message) => {
+    if (hiddenIds.has(message.id)) return false;
+    return !hiddenBefore || !message.createdAt || message.createdAt.getTime() > hiddenBefore.getTime();
+  }));
   const stopMessages = onSnapshot(messagesQuery, (snapshot) => {
     allMessages = snapshot.docs.map((entry) => {
       const data = entry.data();
@@ -202,10 +206,12 @@ export function subscribeGeneralChat(
     onReady?.();
   }, onError);
   const stopHidden = onSnapshot(hiddenRef, (snapshot) => {
-    const ids = snapshot.exists() && Array.isArray(snapshot.data().messageIds)
-      ? snapshot.data().messageIds.filter((id: unknown): id is string => typeof id === 'string')
+    const hiddenData = snapshot.exists() ? snapshot.data() : {};
+    const ids = Array.isArray(hiddenData.messageIds)
+      ? hiddenData.messageIds.filter((id: unknown): id is string => typeof id === 'string')
       : [];
     hiddenIds = new Set(ids);
+    hiddenBefore = timestampToDate(hiddenData.hiddenBefore);
     emit();
   }, onError);
   return () => { stopMessages(); stopHidden(); };
@@ -316,6 +322,15 @@ export async function adminSoftDeleteGeneralChatMessage(messageId: string, admin
   const snapshot = await getDoc(ref);
   if (!snapshot.exists()) throw new Error('هذه الرسالة لم تعد موجودة.');
   await updateDoc(ref, { deleted: true, deletedAt: serverTimestamp(), deletedBy: adminId, text: '', attachments: [] });
+}
+
+export async function clearGeneralChatHistoryForUser(userId: string, roomId = GENERAL_CHAT_ID) {
+  if (!userId) throw new Error('يجب تسجيل الدخول لمسح سجل المحادثة.');
+  const ref = doc(requireDb(), 'users', userId, 'hiddenChatMessages', normalizeRoomId(roomId));
+  await setDoc(ref, {
+    hiddenBefore: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  }, { merge: true });
 }
 
 export async function hideGeneralChatMessageForUser(userId: string, messageId: string, roomId = GENERAL_CHAT_ID) {
