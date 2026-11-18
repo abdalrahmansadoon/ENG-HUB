@@ -2,11 +2,12 @@ import { useMemo, useState, type FormEvent } from 'react';
 import {
   ArrowDown, ArrowUpLeft, BookOpen, Check, ChevronLeft, ChevronRight, ClipboardList,
   Download, ExternalLink, File, FileText, Folder, FolderPlus, GraduationCap, Layers3,
-  Link2, Lock, MoreHorizontal, Pencil, Play, Plus, Search, ShieldCheck, Trash2, Video, X,
+  Link2, Lock, MoreHorizontal, Pencil, Play, Plus, Search, ShieldCheck, Sparkles, Trash2, Video, X,
 } from 'lucide-react';
 import type { Subject } from '../../types';
 import type {
   AcademicContentCategory, AcademicContentKind, AcademicContentNode, CreateAcademicContentInput,
+  isAcademicContentContainer,
 } from '../../types/academicContent';
 
 const categories: Array<{ id: AcademicContentCategory; title: string; description: string; icon: typeof BookOpen }> = [
@@ -28,6 +29,7 @@ const kinds: Array<{ id: AcademicContentKind; label: string }> = [
   { id: 'assignment', label: 'واجب أو تكليف' },
   { id: 'link', label: 'رابط خارجي' },
   { id: 'note', label: 'محتوى نصي' },
+  { id: 'custom', label: 'نوع مخصص جديد' },
 ];
 
 interface Props {
@@ -81,7 +83,7 @@ export function AcademicContentArea({
       <div className="eh-content-studio-actions">
         <button type="button" className="eh-button eh-content-subject-back" onClick={onBackToSubject}><ArrowUpLeft size={15}/> أقسام المادة</button>
         <label className="eh-content-search"><Search size={16}/><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="ابحث داخل هذا القسم"/></label>
-        {isAdmin && <button type="button" className="eh-button primary" onClick={openAdd}><Plus size={16}/> إضافة محتوى</button>}
+        {isAdmin && (!activeNode || isAcademicContentContainer(activeNode)) && <button type="button" className="eh-button primary" onClick={openAdd}><Plus size={16}/> إضافة محتوى</button>}
       </div>
     </div>
 
@@ -103,17 +105,18 @@ export function AcademicContentArea({
       </div>
       {children.length > 0 ? <div className="eh-content-item-grid">
         {children.map((node, index) => {
-          const isFolder = node.kind === 'folder' || node.kind === 'lecturer' || node.kind === 'lecture';
-          const Icon = node.kind === 'folder' ? Folder : node.kind === 'lecturer' ? GraduationCap : node.kind === 'lecture' ? BookOpen : node.kind === 'video' ? Video : node.kind === 'exam' ? ClipboardList : node.kind === 'file' ? FileText : node.kind === 'link' ? ExternalLink : File;
+          const isFolder = isAcademicContentContainer(node);
+          const Icon = node.kind === 'folder' || node.kind === 'custom' ? Folder : node.kind === 'lecturer' ? GraduationCap : node.kind === 'lecture' ? BookOpen : node.kind === 'video' ? Video : node.kind === 'exam' ? ClipboardList : node.kind === 'file' ? FileText : node.kind === 'link' ? ExternalLink : File;
           const isDraft = node.publicationStatus === 'draft';
+          const kindLabel = node.kind === 'custom' ? (node.customTypeName || 'نوع مخصص') : (kinds.find((kind) => kind.id === node.kind)?.label ?? node.kind);
           return <article className="eh-content-item-card" key={node.id}>
             <button type="button" className="eh-content-item-open" onClick={() => isFolder ? onNavigate(category, node.id) : onNavigate(category, node.id)}>
-              <span className={`eh-content-item-icon kind-${node.kind}`}><Icon size={22}/></span>
-              <span className="eh-content-item-main"><b>{node.title}</b><small>{node.description || kinds.find((kind) => kind.id === node.kind)?.label}</small></span>
+              <span className={`eh-content-item-icon kind-${node.kind}`} style={node.kind === 'custom' && node.customTypeColor ? { color: node.customTypeColor, borderColor: node.customTypeColor } : undefined}>{node.kind === 'custom' && node.customTypeIcon ? <span className="eh-custom-kind-symbol">{node.customTypeIcon}</span> : <Icon size={22}/>}</span>
+              <span className="eh-content-item-main"><b>{node.title}</b><small>{node.description || kindLabel}</small></span>
               <ChevronLeft size={16}/>
             </button>
             <div className="eh-content-item-meta">
-              <span>{node.kind === 'folder' ? 'مجلد' : node.kind === 'lecturer' ? 'مدرس / معيد' : node.kind === 'lecture' ? 'محاضرة' : node.kind === 'video' ? 'فيديو' : node.kind === 'file' ? 'ملف' : node.kind === 'exam' ? 'اختبار' : node.kind === 'assignment' ? 'واجب' : node.kind === 'link' ? 'رابط' : 'محتوى'}</span>
+              <span>{node.kind === 'custom' ? kindLabel : node.kind === 'folder' ? 'مجلد' : node.kind === 'lecturer' ? 'مدرس / معيد' : node.kind === 'lecture' ? 'محاضرة' : node.kind === 'video' ? 'فيديو' : node.kind === 'file' ? 'ملف' : node.kind === 'exam' ? 'اختبار' : node.kind === 'assignment' ? 'واجب' : node.kind === 'link' ? 'رابط' : 'محتوى'}</span>
               {node.duration && <span>{node.duration}</span>}
               {isDraft && <span className="eh-content-draft"><Lock size={11}/> مسودة</span>}
               {node.linkedNodeIds.length > 0 && <span><Link2 size={12}/> {node.linkedNodeIds.length} روابط مرتبطة</span>}
@@ -139,6 +142,7 @@ export function AcademicContentArea({
       {(activeNode.kind === 'link' || activeNode.kind === 'exam' || activeNode.kind === 'assignment') && activeNode.url && <a className="eh-related-content-link" href={activeNode.url} target="_blank" rel="noreferrer"><ExternalLink size={17}/><span><b>{activeNode.kind === 'exam' ? 'فتح الاختبار' : activeNode.kind === 'assignment' ? 'فتح التكليف' : 'فتح الرابط'}</b><small>{activeNode.url}</small></span><ChevronLeft size={15}/></a>}
       {activeNode.kind === 'note' && <div className="eh-content-note">{activeNode.description || activeNode.title}</div>}
       {activeNode.kind === 'folder' && <p className="eh-content-note">افتح العناصر الموجودة داخل هذا المجلد من القائمة أعلاه.</p>}
+      {activeNode.kind === 'custom' && <p className="eh-content-note">{activeNode.canContainChildren ? 'هذا نوع مجلد مخصص. يمكنك إضافة أي أنواع من المحتوى بداخله.' : (activeNode.description || 'هذا عنصر من نوع مخصص.')}</p>}
       {['exam','assignment'].includes(activeNode.kind) && !activeNode.url && <div className="eh-content-note">{activeNode.description || 'تفاصيل هذا العنصر متاحة في صفحة المحتوى المرتبط.'}</div>}
       {activeNode.kind === 'file' && !activeNode.url && <div className="eh-content-note">لم يعد رابط الملف متاحاً. تواصل مع مدير المادة لإعادة رفعه.</div>}
       {activeNode.kind === 'lecture' && <p className="eh-content-note">هذه مساحة للمحاضرة. أضف تحتها أي عدد من الفيديوهات والملفات والاختبارات أو المجلدات الفرعية.</p>
@@ -147,12 +151,12 @@ export function AcademicContentArea({
       {linked.length > 0 && <div className="eh-related-content"><div className="eh-content-items-heading"><div><span className="eh-eyebrow">CONNECTED MATERIALS</span><h3>محتوى مرتبط بهذا العنصر</h3></div><span>{linked.length} مرتبط</span></div>
         <div className="eh-related-content-grid">{linked.map((node) => <button type="button" className="eh-related-content-link" key={node.id} onClick={() => onNavigate(node.category, node.id)}>
           <span className="eh-related-icon">{node.kind === 'video' ? <Video size={17}/> : node.kind === 'exam' ? <ClipboardList size={17}/> : node.kind === 'folder' ? <Folder size={17}/> : <FileText size={17}/>}</span>
-          <span><b>{node.title}</b><small>{kinds.find((item) => item.id === node.kind)?.label ?? node.kind}</small></span><ChevronLeft size={15}/>
+          <span><b>{node.title}</b><small>{node.kind === 'custom' ? (node.customTypeName || 'نوع مخصص') : (kinds.find((item) => item.id === node.kind)?.label ?? node.kind)}</small></span><ChevronLeft size={15}/>
         </button>)}</div>
       </div>}
       {isAdmin && <div className="eh-content-detail-actions">
         {activeNode.createdBy !== 'legacy' && <button type="button" className="eh-button" onClick={() => openEdit(activeNode)}><Pencil size={15}/> تعديل العنصر</button>}
-        <button type="button" className="eh-button primary" onClick={openAdd}><Plus size={16}/> إضافة عنصر داخل {activeNode.kind === 'folder' ? 'المجلد' : 'هذا القسم'}</button>
+        {isAcademicContentContainer(activeNode) && <button type="button" className="eh-button primary" onClick={openAdd}><Plus size={16}/> إضافة عنصر داخل {activeNode.kind === 'folder' || activeNode.kind === 'custom' ? 'المجلد' : 'هذا القسم'}</button>}
       </div>}
     </section>}
 
@@ -195,7 +199,11 @@ function AcademicContentModal({ category, parent, initialNode, nodes, onClose, o
   onUpload: (file: File) => Promise<{ url: string; mimeType: string }>;
   busy: boolean;
 }) {
-  const [kind, setKind] = useState<AcademicContentKind>(initialNode?.kind ?? (parent?.kind === 'lecture' ? 'video' : 'folder'));
+  const [kind, setKind] = useState<AcademicContentKind>(initialNode?.kind ?? 'folder');
+  const [customTypeName, setCustomTypeName] = useState(initialNode?.customTypeName ?? '');
+  const [customTypeIcon, setCustomTypeIcon] = useState(initialNode?.customTypeIcon ?? '✳');
+  const [customTypeColor, setCustomTypeColor] = useState(initialNode?.customTypeColor ?? '#4169e1');
+  const [canContainChildren, setCanContainChildren] = useState(initialNode?.canContainChildren ?? true);
   const [title, setTitle] = useState(initialNode?.title ?? '');
   const [description, setDescription] = useState(initialNode?.description ?? '');
   const [url, setUrl] = useState(initialNode?.url ?? '');
@@ -207,15 +215,26 @@ function AcademicContentModal({ category, parent, initialNode, nodes, onClose, o
   const [error, setError] = useState('');
   const [mimeType, setMimeType] = useState(initialNode?.mimeType ?? '');
   const needsUrl = ['video','file','exam','assignment','link'].includes(kind);
-  const availableLinks = nodes.filter((node) => node.id !== (initialNode?.id ?? parent?.id) && node.kind !== 'folder' && node.publicationStatus === 'published');
+  const availableLinks = nodes.filter((node) => node.id !== (initialNode?.id ?? parent?.id) && !isAcademicContentContainer(node) && node.publicationStatus === 'published');
+  const customTypePresets = [...new Map(nodes
+    .filter((node) => node.kind === 'custom' && node.customTypeName)
+    .map((node) => [node.customTypeName!, {
+      name: node.customTypeName!, icon: node.customTypeIcon || '✳', color: node.customTypeColor || '#4169e1',
+      canContainChildren: node.canContainChildren === true,
+    }])).values()];
   const submit = async (event: FormEvent) => {
     event.preventDefault(); setError('');
     if (title.trim().length < 2) { setError('اكتب عنواناً واضحاً.'); return; }
     if (needsUrl && !url.trim()) { setError('أضف رابطاً أو ارفع الملف.'); return; }
+    if (kind === 'custom' && customTypeName.trim().length < 2) { setError('اكتب اسماً للنوع المخصص.'); return; }
     const payload: CreateAcademicContentInput = {
       parentId: initialNode?.parentId ?? parent?.id ?? null,
       kind, category: itemCategory, title: title.trim(), description: description.trim(),
       ...(url.trim() ? { url: url.trim() } : {}), ...(mimeType ? { mimeType } : {}),
+      ...(kind === 'custom' ? {
+        customTypeName: customTypeName.trim(), customTypeIcon: customTypeIcon.trim() || '✳',
+        customTypeColor, canContainChildren,
+      } : {}),
       duration: duration.trim(), linkedNodeIds, publicationStatus,
       sortOrder: initialNode?.sortOrder ?? Date.now(),
     };
@@ -234,8 +253,18 @@ function AcademicContentModal({ category, parent, initialNode, nodes, onClose, o
     <section className="modal-card eh-content-modal" role="dialog" aria-modal="true" aria-labelledby="eh-content-modal-title">
       <div className="modal-head"><div><span className="eh-eyebrow">CONTENT BUILDER</span><h2 id="eh-content-modal-title">{initialNode ? 'تعديل المحتوى' : 'إضافة محتوى للمادة'}</h2><p>{initialNode ? 'عدّل بيانات هذا العنصر وروابطه مع الاحتفاظ بمكانه.' : parent ? 'سيتم إنشاء العنصر داخل: ' + parent.title : 'أنشئ بنية المادة بالطريقة التي تناسبك.'}</p></div><button type="button" className="icon-button" onClick={onClose} aria-label="إغلاق"><X size={18}/></button></div>
       <form className="form-stack" onSubmit={(event) => void submit(event)}>
-        <div className="eh-content-kind-grid">{kinds.map((item) => <button key={item.id} type="button" className={kind === item.id ? 'selected' : ''} onClick={() => setKind(item.id)}><span>{item.id === 'folder' ? <FolderPlus size={17}/> : item.id === 'video' ? <Video size={17}/> : item.id === 'file' ? <FileText size={17}/> : item.id === 'exam' ? <ClipboardList size={17}/> : item.id === 'lecture' ? <GraduationCap size={17}/> : <MoreHorizontal size={17}/>}</span>{item.label}</button>)}</div>
+        <div className="eh-content-kind-grid">{kinds.map((item) => <button key={item.id} type="button" className={kind === item.id ? 'selected' : ''} onClick={() => setKind(item.id)}><span>{item.id === 'folder' ? <FolderPlus size={17}/> : item.id === 'video' ? <Video size={17}/> : item.id === 'file' ? <FileText size={17}/> : item.id === 'exam' ? <ClipboardList size={17}/> : item.id === 'lecture' ? <GraduationCap size={17}/> : item.id === 'custom' ? <Sparkles size={17}/> : <MoreHorizontal size={17}/>}</span>{item.label}</button>)}</div>
         <label>اسم العنصر<input required minLength={2} maxLength={140} autoFocus value={title} onChange={(event) => setTitle(event.target.value)} placeholder={kind === 'folder' ? 'مثال: المحاضرات الإضافية' : 'عنوان المحتوى'}/></label>
+        {kind === 'custom' && <section className="eh-custom-kind-fields">
+          <div className="eh-custom-kind-heading"><b>إعداد النوع المخصص</b><small>يمكنك إنشاء نوع مثل: سكشن، ورشة، بنك مسائل، مشروع، أو أي تصنيف يناسب المادة.</small></div>
+          {customTypePresets.length > 0 && <div className="eh-custom-type-presets"><span>أنواع أنشأتها سابقاً</span><div>{customTypePresets.map((preset) => <button key={preset.name} type="button" onClick={() => { setCustomTypeName(preset.name); setCustomTypeIcon(preset.icon); setCustomTypeColor(preset.color); setCanContainChildren(preset.canContainChildren); }}>{preset.icon} {preset.name}</button>)}<button type="button" className="new-type" onClick={() => { setCustomTypeName(''); setCustomTypeIcon('✳'); setCustomTypeColor('#4169e1'); setCanContainChildren(true); }}>+ نوع جديد</button></div></div>}
+          <label>اسم النوع<input required minLength={2} maxLength={50} value={customTypeName} onChange={(event) => setCustomTypeName(event.target.value)} placeholder="مثال: سكشن / بنك مسائل / مشروع"/></label>
+          <div className="form-row">
+            <label>الرمز أو الإيموجي<input maxLength={5} value={customTypeIcon} onChange={(event) => setCustomTypeIcon(event.target.value)} placeholder="✳"/></label>
+            <label>لون النوع<input type="color" value={customTypeColor} onChange={(event) => setCustomTypeColor(event.target.value)} /></label>
+          </div>
+          <label className="eh-custom-container-toggle"><input type="checkbox" checked={canContainChildren} onChange={(event) => setCanContainChildren(event.target.checked)}/><span><b>اجعل هذا النوع مجلداً قابلاً للتداخل</b><small>عند التفعيل يمكنك إضافة مجلدات ومحاضرات وملفات وفيديوهات واختبارات داخله، وعند الإلغاء يصبح عنصراً مستقلاً.</small></span></label>
+        </section>}
         <div className="form-row">
           <label>القسم<select value={itemCategory} onChange={(event) => setItemCategory(event.target.value as AcademicContentCategory)}>{categories.map((item) => <option value={item.id} key={item.id}>{item.title}</option>)}</select></label>
           <label>حالة النشر<select value={publicationStatus} onChange={(event) => setPublicationStatus(event.target.value as 'published'|'draft')}><option value="published">منشور للطلاب</option><option value="draft">مسودة للمدير</option></select></label>
@@ -246,7 +275,7 @@ function AcademicContentModal({ category, parent, initialNode, nodes, onClose, o
         <label>وصف أو ملاحظات<textarea rows={3} maxLength={1400} value={description} onChange={(event) => setDescription(event.target.value)} placeholder="تفاصيل المحتوى أو تعليمات الطالب..."/></label>
         {availableLinks.length > 0 && <div className="eh-content-link-picker"><b>ربط هذا العنصر بملفات أو فيديوهات أو اختبارات أخرى</b><small>يمكن اختيار أكثر من عنصر، وتظهر الروابط في صفحة المحتوى بعد النشر.</small><div>{availableLinks.map((node) => <label key={node.id}><input type="checkbox" checked={linkedNodeIds.includes(node.id)} onChange={(event) => setLinkedNodeIds((current) => event.target.checked ? [...current, node.id] : current.filter((id) => id !== node.id))}/><span>{node.title}</span><small>{kinds.find((item) => item.id === node.kind)?.label ?? node.kind}</small></label>)}</div></div>}
         {error && <p className="auth-error">{error}</p>}
-        <div className="modal-actions"><button type="button" className="btn btn-outline" onClick={onClose}>إلغاء</button><button type="submit" className="btn btn-primary" disabled={busy || uploading || !title.trim() || (needsUrl && !url.trim())}>{busy || uploading ? 'جارٍ الحفظ...' : <><Check size={15}/> {initialNode ? 'حفظ التعديلات' : 'حفظ المحتوى'}</>}</button></div>
+        <div className="modal-actions"><button type="button" className="btn btn-outline" onClick={onClose}>إلغاء</button><button type="submit" className="btn btn-primary" disabled={busy || uploading || !title.trim() || (needsUrl && !url.trim()) || (kind === 'custom' && customTypeName.trim().length < 2)}>{busy || uploading ? 'جارٍ الحفظ...' : <><Check size={15}/> {initialNode ? 'حفظ التعديلات' : 'حفظ المحتوى'}</>}</button></div>
       </form>
     </section>
   </div>;
