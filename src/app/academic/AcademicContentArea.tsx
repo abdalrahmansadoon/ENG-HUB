@@ -146,8 +146,8 @@ export function AcademicContentArea({
         })}
       </div> : <div className="eh-content-empty">
         <span><Layers3 size={28}/></span>
-        <b>{search ? 'لا توجد نتائج' : 'هذا القسم جاهز لإضافة محتواه'}</b>
-        <p>{isAdmin ? 'أضف مجلداً أو محاضرة أو فيديو أو ملفاً أو اختباراً، ويمكنك ربط العناصر ببعضها.' : 'سيظهر المحتوى هنا عندما ينشره مدير المادة.'}</p>
+        <b>{search ? 'لا توجد نتائج' : activeNode && !isAcademicContentContainer(activeNode) ? 'هذا عنصر مستقل' : 'هذا القسم جاهز لإضافة محتواه'}</b>
+        <p>{activeNode && !isAcademicContentContainer(activeNode) ? 'هذا النوع لا يقبل عناصر بداخله. استخدم زر الرجوع لاختيار مجلد أو إنشاء عنصر جديد في المستوى المناسب.' : isAdmin ? 'أضف مجلداً أو مدرساً أو محاضرة أو فيديو أو ملفاً أو اختباراً، أو أنشئ نوعاً مخصصاً يناسب المادة.' : 'سيظهر المحتوى هنا عندما ينشره مدير المادة.'}</p>
         {isAdmin && (!activeNode || isAcademicContentContainer(activeNode)) && <button type="button" className="eh-button primary" onClick={openAdd}><Plus size={16}/> إنشاء أول عنصر</button>}
       </div>}
     </section>
