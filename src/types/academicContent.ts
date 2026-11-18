@@ -1,5 +1,3 @@
-import type { Timestamp } from 'firebase/firestore';
-
 export type AcademicContentKind =
   | 'folder'
   | 'lecturer'
@@ -9,7 +7,8 @@ export type AcademicContentKind =
   | 'exam'
   | 'assignment'
   | 'link'
-  | 'note';
+  | 'note'
+  | 'custom';
 
 export type AcademicContentCategory =
   | 'lectures'
@@ -33,6 +32,14 @@ export interface AcademicContentNode {
   mimeType?: string;
   duration?: string;
   linkedNodeIds: string[];
+  /** Display label for administrator-defined content types. */
+  customTypeName?: string;
+  /** Optional emoji or short text symbol for an administrator-defined type. */
+  customTypeIcon?: string;
+  /** Hex color selected for an administrator-defined type. */
+  customTypeColor?: string;
+  /** Custom nodes can be folders or standalone items. */
+  canContainChildren?: boolean;
   publicationStatus: AcademicPublicationStatus;
   sortOrder: number;
   createdBy: string;
@@ -50,6 +57,17 @@ export interface CreateAcademicContentInput {
   mimeType?: string;
   duration?: string;
   linkedNodeIds?: string[];
+  customTypeName?: string;
+  customTypeIcon?: string;
+  customTypeColor?: string;
+  canContainChildren?: boolean;
   publicationStatus?: AcademicPublicationStatus;
   sortOrder?: number;
+}
+
+export function isAcademicContentContainer(
+  node: Pick<AcademicContentNode, 'kind' | 'canContainChildren'>,
+): boolean {
+  if (node.kind === 'folder' || node.kind === 'lecturer' || node.kind === 'lecture') return true;
+  return node.kind === 'custom' && node.canContainChildren === true;
 }
