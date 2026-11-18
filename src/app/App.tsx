@@ -586,7 +586,7 @@ function App() {
           onOpenProfile={(uid) => { setPublicProfileUid(uid); setPage('student-profile'); }}
         />}
         {page === 'student-profile' && <PublicStudentProfilePage uid={publicProfileUid} currentUid={activeUser.uid} onBack={() => setPage('chat')}/>}
-        {page === 'planner' && <PlannerPage tasks={tasks}/>}
+        {page === 'planner' && <PlannerPage tasks={tasks} userId={activeUser.uid}/>}
         {page === 'analytics' && <AnalyticsPage tasks={tasks} subjects={subjects} lectures={lectures} exams={exams}/>}
         {page === 'notifications' && <NotificationsPage items={notifications} setItems={setNotifications}/>}
         {page === 'admin' && <AdminPage tasks={tasks} subjects={subjects} lecturers={lecturers} lectures={lectures} exams={exams} files={files} currentUser={activeUser} cloudinarySettings={cloudinarySettings} academicCalendar={academicCalendar} onSaveAcademicCalendar={async (settings) => { await saveAcademicCalendar(settings, activeUser.uid); setAcademicCalendar(settings); setToast('تم حفظ السنة والفصل الدراسي الحاليين لجميع الطلاب.'); }} onNewTask={() => setTaskModal(true)} onAddSubject={() => setSubjectModal(true)} onAddLecturer={() => { setPage('courses'); setSelectedSubjectId(''); setSelectedLecturerId(''); setSelectedLectureId(''); }} onAddLecture={() => setLectureModal(true)} onAddExam={() => setExamModal(true)} onSaved={() => setToast('تم حفظ إعدادات Cloudinary في Firestore')} onError={(message) => setToast(message)}/>}
@@ -648,6 +648,7 @@ function ProfileCompletionScreen({ user, cloudinarySettings, onComplete, themeCl
   const [photoPreview, setPhotoPreview] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const profileProgress = Math.round(([displayName.trim().length >= 2, Boolean(photoFile || photoURL), Boolean(phone.trim() || bio.trim())].filter(Boolean).length / 3) * 100);
 
   useEffect(() => {
     if (!photoFile) { setPhotoPreview(''); return; }
@@ -683,6 +684,7 @@ function ProfileCompletionScreen({ user, cloudinarySettings, onComplete, themeCl
       <div className="eyebrow">COMPLETE YOUR ACCOUNT</div>
       <h1>أكمل إعداد حسابك</h1>
       <p className="onboarding-subtitle">هذه الخطوة مطلوبة قبل الدخول إلى مساحة الدراسة. اختر الاسم والصورة التي سيراها زملاؤك.</p>
+      <div className="eh-onboarding-progress"><div><span>تجهيز ملفك الشخصي</span><b>{profileProgress}%</b></div><div className="eh-onboarding-progress-track"><span style={{width:profileProgress+'%'}}/></div><small>يمكنك إضافة الصورة والنبذة الآن أو تعديلهما لاحقاً.</small></div>
       <form className="form-stack" onSubmit={submit}>
         <div className="onboarding-photo-row">
           <div className="onboarding-avatar">{photoPreview || photoURL ? <img src={photoPreview || photoURL} alt="صورتك الشخصية"/> : displayName.trim().slice(0, 1) || <Users size={26}/>}</div>
@@ -1207,7 +1209,7 @@ function FilesPage({ files, onUpload, cloudinaryReady, isDemo, canUpload }: { fi
   </div>;
 }
 
-function PlannerPage({ tasks }: { tasks: StudyTask[] }) {
+function PlannerPage({ tasks, userId }: { tasks: StudyTask[]; userId: string }) {
   const [seconds,setSeconds]=useState(25*60);
   const [running,setRunning]=useState(false);
   const [mode,setMode]=useState<'focus'|'break'>('focus');
@@ -1215,7 +1217,7 @@ function PlannerPage({ tasks }: { tasks: StudyTask[] }) {
   const [sessionLength,setSessionLength]=useState(25*60);
   const [completedSessions,setCompletedSessions]=useState(0);
   const [taskOrder,setTaskOrder]=useState<string[]>(()=>{
-    try{return JSON.parse(window.localStorage.getItem('enghub-task-priority-order')||'[]') as string[];}catch{return [];}
+    try{return JSON.parse(window.localStorage.getItem('enghub-task-priority-order:'+userId)||'[]') as string[];}catch{return [];}
   });
   useEffect(()=>{
     if(!running)return;
@@ -1237,7 +1239,7 @@ function PlannerPage({ tasks }: { tasks: StudyTask[] }) {
     const index=current.indexOf(id);const next=index+direction;
     if(index<0||next<0||next>=current.length)return;
     [current[index],current[next]]=[current[next],current[index]];
-    setTaskOrder(current);window.localStorage.setItem('enghub-task-priority-order',JSON.stringify(current));
+    setTaskOrder(current);window.localStorage.setItem('enghub-task-priority-order:'+userId,JSON.stringify(current));
   };
   const timeLabel=String(Math.floor(seconds/60)).padStart(2,'0')+':'+String(seconds%60).padStart(2,'0');
   const today=new Date();
