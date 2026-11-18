@@ -752,3 +752,20 @@ button,input,textarea,select{font-family:inherit}
   --eh-accent-wash:#edf2ff;
   --eh-teal-wash:#e8f8f5;
 }
+
+
+/* Student chat preferences menu mirrors the admin tools menu without exposing moderation actions */
+.eh-app .chat-student-tools{position:relative;flex:0 0 auto}
+.eh-app .chat-student-tools>summary{list-style:none;cursor:pointer}
+.eh-app .chat-student-tools>summary::-webkit-details-marker{display:none}
+.eh-app .chat-student-tools>div{
+  position:absolute;top:calc(100% + 8px);inset-inline-end:0;z-index:140;min-width:210px;
+  display:grid;gap:4px;padding:6px;border:1px solid var(--eh-stroke-strong);
+  border-radius:13px;background:var(--eh-card-bg);box-shadow:0 18px 44px rgba(6,17,34,.2)
+}
+.eh-app .chat-student-tools>div button{
+  display:flex;align-items:center;gap:9px;min-height:42px;padding:10px 11px;
+  border:0;border-radius:9px;background:transparent;color:var(--eh-ink);font-size:11px;text-align:start
+}
+.eh-app .chat-student-tools>div button:hover{background:var(--eh-accent-wash);color:var(--eh-accent)}
+.eh-app .chat-student-tools>div button.danger{color:var(--eh-danger)}
