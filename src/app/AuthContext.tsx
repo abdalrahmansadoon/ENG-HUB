@@ -17,6 +17,7 @@ import { doc, getDoc, serverTimestamp, setDoc } from 'firebase/firestore';
 import { auth, db, isFirebaseConfigured } from '../lib/firebase';
 import { readLocal, writeLocal } from '../lib/storage';
 import { deleteOwnAccountData } from '../lib/account';
+import { syncPublicProfile } from '../lib/publicProfiles';
 import type { AppUser, UserRole } from '../types';
 
 type ProfileInput = {
@@ -122,6 +123,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             ? 'moderator'
             : 'student';
 
+        // Migrate existing account data into a deliberately small public-only projection.
+        // Keep the private users/{uid} document private; never expose email or phone here.
+        try {
+          await syncPublicProfile({
+            uid: firebaseUser.uid,
+            displayName: String(profile.displayName || firebaseUser.displayName || ''),
+            photoURL: (profile.photoURL as string | null | undefined) ?? firebaseUser.photoURL,
+            bio: typeof profile.bio === 'string' ? profile.bio : '',
+            academicYear: String(profile.academicYear || ''),
+            term: String(profile.term || ''),
+            profileVisibility: profile.profileVisibility === 'private' ? 'private' : 'public',
+            showBioOnPublicProfile: profile.showBioOnPublicProfile !== false,
+            showAcademicInfoOnPublicProfile: profile.showAcademicInfoOnPublicProfile !== false,
+          });
+        } catch (publicProfileError) {
+          console.warn('ENG HUB public profile sync is pending Firestore rules publication.', publicProfileError);
+        }
+
         const isGoogleAccount = firebaseUser.providerData.some((provider) => provider.providerId === 'google.com');
         const profileName = String(profile.displayName || firebaseUser.displayName || '').trim();
         const legacyEmailProfileIsComplete = !isGoogleAccount
@@ -211,6 +230,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         term: 'الترم الأول',
         createdAt: serverTimestamp(),
       });
+    }
+
+    try {
+      await syncPublicProfile({
+        uid: firebaseUser.uid,
+        displayName,
+        photoURL,
+        bio,
+        academicYear: user?.academicYear || 'السنة الإعدادية',
+        term: user?.term || 'الترم الأول',
+        profileVisibility,
+        showBioOnPublicProfile,
+        showAcademicInfoOnPublicProfile,
+      });
+    } catch (publicProfileError) {
+      console.warn('ENG HUB profile saved privately; public projection will sync after rules are published.', publicProfileError);
     }
 
     const previousRole = user?.role ?? 'student';
