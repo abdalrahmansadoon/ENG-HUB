@@ -856,3 +856,11 @@ button,input,textarea,select{font-family:inherit}
 .profile-onboarding .photo-pick-button{display:inline-flex!important;align-items:center!important;justify-content:center!important;min-height:38px!important;padding:0 15px!important;border-radius:10px!important;background:#edf2ff!important;border:1px solid #d8e3ff!important;color:#3154c8!important;font-weight:700!important}
 .profile-onboarding .onboarding-submit{width:100%!important}
 @media(max-width:700px){.auth-screen .auth-form{padding:24px 19px!important}.profile-onboarding-card{padding:22px 17px!important}}
+
+.eh-focus-chat .chat-profile-link{width:38px;height:38px;min-width:38px;display:grid;place-items:center;padding:0;border-radius:50%;overflow:hidden;border:2px solid var(--eh-stroke-strong);background:var(--eh-accent-wash);color:var(--eh-accent);font-weight:800}
+.eh-focus-chat .chat-profile-link img{width:100%;height:100%;display:block;object-fit:cover;border-radius:50%}
+.eh-focus-chat .chat-topbar-room{min-width:0}
+.eh-focus-chat .chat-topbar-room>div:last-child{min-width:0}
+.eh-focus-chat .chat-topbar-room b{color:var(--eh-ink)}
+.eh-focus-chat .chat-topbar-room span{color:var(--eh-muted)}
+.eh-focus-chat .chat-topbar-actions{gap:8px}
