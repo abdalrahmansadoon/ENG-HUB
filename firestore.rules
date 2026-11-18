@@ -386,7 +386,7 @@ service cloud.firestore {
     }
     match /systemSettings/{settingId} {
       allow read: if activeUser();
-      allow write: if settingId == 'cloudinary' && isAdmin();
+      allow write: if settingId in ['cloudinary', 'academicCalendar'] && isAdmin();
     }
   }
 }
