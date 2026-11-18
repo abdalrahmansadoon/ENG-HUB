@@ -587,3 +587,42 @@ button,input,textarea,select{font-family:inherit}
 .auth-screen .brand-mark img,.profile-onboarding .brand-mark img,.boot-screen .brand-mark img{
   width:100%;height:100%;display:block;object-fit:cover;border-radius:inherit;
 }
+
+
+/* Final identity refinements for the new product surfaces */
+.eh-app .eh-profile-share-link{
+  margin-top:12px;min-height:42px;padding:0 14px;border:1px solid var(--eh-stroke-strong);
+  border-radius:11px;background:var(--eh-accent-wash);color:var(--eh-accent);
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;font-size:11px;font-weight:800
+}
+.eh-app .eh-profile-share-link:hover{border-color:var(--eh-accent);background:var(--eh-accent);color:#fff}
+.eh-app .eh-content-detail-actions{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin-top:16px}
+.eh-app .eh-content-detail-actions .eh-button{min-height:40px}
+.eh-app .eh-content-item-admin{display:flex;align-items:center;gap:5px}
+.eh-app .eh-content-item-admin button{
+  width:33px;height:33px;display:grid;place-items:center;border:1px solid var(--eh-stroke);
+  border-radius:9px;background:var(--eh-card-soft);color:var(--eh-sub);transition:.18s ease
+}
+.eh-app .eh-content-item-admin button:hover{border-color:var(--eh-accent);background:var(--eh-accent-wash);color:var(--eh-accent)}
+.eh-app .eh-content-item-admin button:last-child:hover{border-color:var(--eh-danger);background:var(--eh-danger-wash);color:var(--eh-danger)}
+.eh-app .eh-content-detail{min-width:0;overflow:hidden}
+.eh-app .eh-related-content-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,220px),1fr));gap:10px}
+.eh-app .eh-related-content-link{min-width:0;display:flex;align-items:center;gap:10px;padding:12px;border:1px solid var(--eh-stroke);border-radius:12px;background:var(--eh-card-soft);color:var(--eh-ink);text-align:start}
+.eh-app .eh-related-content-link:hover{border-color:var(--eh-accent);background:var(--eh-accent-wash);color:var(--eh-accent)}
+.eh-app .chat-msg .msg-actions{display:none!important}
+.eh-app .chat-msg{touch-action:pan-y;overscroll-behavior:contain}
+.eh-app .chat-swipe-reply-indicator{inset-inline-end:-43px;z-index:2}
+.eh-app .chat-msg.sent .chat-swipe-reply-indicator{inset-inline-end:auto;inset-inline-start:-43px}
+.eh-app .chat-context-menu{max-width:calc(100vw - 20px);max-height:calc(100dvh - 20px);overflow:auto}
+.eh-app .chat-context-menu button{min-height:42px;touch-action:manipulation}
+.eh-app .chat-admin-tools>div button{min-height:42px}
+.eh-app .eh-page-heading{min-width:0}
+.eh-app .eh-page-heading h1{overflow-wrap:anywhere}
+.eh-app .eh-brand-symbol img{object-fit:cover;object-position:center}
+.eh-app .eh-profile-privacy-options{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.eh-app .eh-profile-privacy-options button{min-height:42px;display:flex;align-items:center;justify-content:center;gap:8px;border:1px solid var(--eh-stroke-strong);border-radius:11px;background:var(--eh-card-bg);color:var(--eh-sub);font-size:11px;font-weight:750}
+.eh-app .eh-profile-privacy-options button.selected{border-color:var(--eh-accent);background:var(--eh-accent-wash);color:var(--eh-accent)}
+@media(max-width:680px){
+  .eh-app .eh-content-detail-actions{display:grid;grid-template-columns:1fr}
+  .eh-app .eh-profile-share-link{width:100%}
+}
