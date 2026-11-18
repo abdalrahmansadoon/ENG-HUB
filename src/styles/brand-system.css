@@ -509,3 +509,31 @@ button,input,textarea,select{font-family:inherit}
 .eh-app .eh-chat-warning-recipient>div{display:flex;flex-direction:column;gap:2px}
 .eh-app .eh-chat-warning-recipient b{font-size:12px;color:var(--eh-ink)}
 .eh-app .eh-chat-warning-recipient small{font-size:10px;color:var(--eh-sub)}
+
+/* Course chat announcements and personal wallpaper */
+.eh-app .chat-announcement-stack{flex:0 0 auto;display:grid;gap:8px;max-height:220px;overflow:auto;padding:9px 14px;background:var(--eh-card-soft);border-bottom:1px solid var(--eh-stroke);overscroll-behavior:contain}
+.eh-app .chat-announcement-card{position:relative;min-width:0;padding:12px 14px;border:1px solid color-mix(in srgb,var(--eh-accent) 25%,var(--eh-stroke));border-radius:13px;background:linear-gradient(115deg,color-mix(in srgb,var(--eh-accent) 8%,var(--eh-card-bg)),var(--eh-card-bg));box-shadow:0 5px 16px rgba(18,40,74,.035)}
+.eh-app .chat-announcement-head{display:flex;align-items:center;gap:9px}
+.eh-app .chat-announcement-icon{width:34px;height:34px;flex:0 0 34px;display:grid;place-items:center;border-radius:10px;background:var(--eh-accent-wash);color:var(--eh-accent)}
+.eh-app .chat-announcement-head>div:nth-child(2){display:flex;flex-direction:column;gap:2px;flex:1;min-width:0}
+.eh-app .chat-announcement-head b{font-size:11px;color:var(--eh-accent)}
+.eh-app .chat-announcement-head small{font-size:9px;color:var(--eh-muted)}
+.eh-app .chat-announcement-card p{margin:8px 2px 0;color:var(--eh-ink);font-size:12px;line-height:1.8;white-space:pre-wrap;overflow-wrap:anywhere}
+.eh-app .chat-announcement-actions{position:relative;flex:0 0 auto}
+.eh-app .chat-announcement-actions summary{list-style:none;cursor:pointer;width:30px;height:30px;border:1px solid var(--eh-stroke);border-radius:9px;background:var(--eh-card-soft);color:var(--eh-sub);display:grid;place-items:center}
+.eh-app .chat-announcement-actions summary::-webkit-details-marker{display:none}
+.eh-app .chat-announcement-actions>div{position:absolute;top:34px;inset-inline-end:0;z-index:30;min-width:145px;padding:5px;border:1px solid var(--eh-stroke-strong);border-radius:11px;background:var(--eh-card-bg);box-shadow:0 14px 35px rgba(8,18,36,.18);display:grid;gap:3px}
+.eh-app .chat-announcement-actions button{display:flex;align-items:center;gap:7px;padding:8px;border:0;border-radius:8px;background:transparent;color:var(--eh-ink);font-size:10px;text-align:start}
+.eh-app .chat-announcement-actions button:hover{background:var(--eh-accent-wash);color:var(--eh-accent)}
+.eh-app .chat-announcement-actions button.danger{color:var(--eh-danger)}
+.eh-app .eh-announcement-preview{display:flex;align-items:flex-start;gap:10px;padding:12px;border:1px solid color-mix(in srgb,var(--eh-accent) 22%,var(--eh-stroke));border-radius:12px;background:var(--eh-accent-wash)}
+.eh-app .eh-announcement-preview>span{width:36px;height:36px;flex:0 0 36px;display:grid;place-items:center;border-radius:10px;background:var(--eh-accent);color:white}
+.eh-app .eh-announcement-preview>div{min-width:0;flex:1}
+.eh-app .eh-announcement-preview b{font-size:11px;color:var(--eh-accent)}
+.eh-app .eh-announcement-preview p{font-size:11px;color:var(--eh-ink);line-height:1.8;white-space:pre-wrap;overflow-wrap:anywhere;margin:4px 0 0}
+.eh-app .chat-messages-rebuilt[style*="background-image"]{background-repeat:no-repeat;background-attachment:local}
+@media(max-width:600px){
+  .eh-app .chat-announcement-stack{max-height:160px;padding:7px}
+  .eh-app .chat-announcement-card{padding:10px}
+  .eh-app .chat-announcement-card p{font-size:11px}
+}
