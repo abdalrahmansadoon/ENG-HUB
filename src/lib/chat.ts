@@ -274,12 +274,12 @@ export async function deleteGeneralChatRoomMessages(roomId = GENERAL_CHAT_ID) {
 }
 
 /* Moderation state and schedules are stored per room, not globally. */
-export async function subscribeGeneralChatMuteStatus(
+export function subscribeGeneralChatMuteStatus(
   userId: string,
   onStatus: (status: ChatMuteStatus) => void,
   onError: (error: Error) => void,
   roomId = GENERAL_CHAT_ID,
-): Promise<Unsubscribe> {
+ ): Unsubscribe {
   return onSnapshot(muteRef(userId, roomId), (snapshot) => {
     const data = snapshot.exists() ? snapshot.data() : {};
     const until = timestampToDate(data.mutedUntil);
