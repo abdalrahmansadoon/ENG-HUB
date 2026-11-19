@@ -21,6 +21,13 @@ import { readLocal, writeLocal } from '../lib/storage';
 import { createExamCloud, createLectureCloud, createLecturePartCloud, createLecturerCloud, createSubjectCloud, createTaskCloud, deleteTaskCloud, deleteSubjectCloud, saveFileMetadataCloud, subscribeExams, subscribeFiles, subscribeLectureParts, subscribeLecturers, subscribeLectures, subscribeSubjects, subscribeTasks, updateTaskStatusCloud } from '../lib/cloudData';
 import type { AppNotification, AppUser, Exam, Lecture, LecturePart, Lecturer, LibraryFile, Priority, StudyTask, Subject, TaskStatus } from '../types';
 import { AppShell } from './layout/AppShell';
+function renderSubjectIcon(value: string | undefined, size = 24) {
+  const raw = (value || '').trim();
+  const name = raw.toLowerCase().startsWith('lucide:') ? raw.slice(7).replace(/\s+/g, '') : raw;
+  const Icon = name ? (LucideIcons as unknown as Record<string, LucideIcon>)[name] : undefined;
+  return Icon ? <Icon size={size} strokeWidth={1.8}/> : raw && !raw.toLowerCase().startsWith('lucide:') ? raw : <BookOpen size={size} strokeWidth={1.8}/>;
+}
+
 const ChatPage = lazy(() => import('./chat/ChatPage').then((module) => ({ default: module.ChatPage })));
 import { readEngHubRoute, buildEngHubHash, type SubjectCategory } from '../lib/routes';
 import { subscribeAcademicContent, createAcademicContentNode, updateAcademicContentNode, deleteAcademicContentNode, subscribeCompletedAcademicContent } from '../lib/academicContent';
@@ -781,7 +788,7 @@ function Dashboard({ userName, tasks, subjects, exams, lectures, onGo, onNewTask
       <div className="eh-surface-card eh-subject-overview">
         <div className="eh-card-heading"><div><span className="eh-eyebrow">ACADEMIC LIBRARY</span><h2>المواد الدراسية</h2><p>{subjects.length} مواد متاحة لك</p></div><button type="button" className="eh-round-link" onClick={() => onGo('courses')} aria-label="عرض المواد"><ArrowLeft size={17}/></button></div>
         {subjects.slice(0,4).map((subject) => <button type="button" className="eh-subject-line" key={subject.id} onClick={() => onGo('courses')}>
-          <span className="eh-subject-symbol" style={{'--subject-color':subject.color} as React.CSSProperties}>{subject.icon?.startsWith('lucide:') && (LucideIcons as unknown as Record<string, LucideIcon>)[subject.icon.slice(7)] ? (() => { const HomeSubjectIcon = (LucideIcons as unknown as Record<string, LucideIcon>)[subject.icon.slice(7)]; return <HomeSubjectIcon size={20} strokeWidth={1.8}/>; })() : subject.icon || '∑'}</span>
+          <span className="eh-subject-symbol" style={{'--subject-color':subject.color} as React.CSSProperties}>{renderSubjectIcon(subject.icon, 20)}</span>
           <span><b>{subject.name}</b><small>{subject.code}</small></span>
           <span className="eh-subject-line-meta">{lectures.filter((item)=>item.subjectId===subject.id).length} محاضرة</span>
           <ChevronLeft size={16}/>
@@ -980,7 +987,7 @@ function AcademicHubPage({ subjects, lecturers, lectures, parts, files, exams, t
 
     {subject && !lecturer && !subjectCategory && <>
       <section className="eh-academic-level">
-        <span className="eh-academic-subject-icon large" style={{'--subject-color':subject.color} as React.CSSProperties}>{subject.icon || '∑'}</span>
+        <span className="eh-academic-subject-icon large" style={{'--subject-color':subject.color} as React.CSSProperties}>{renderSubjectIcon(subject.icon, 42)}</span>
         <div className="eh-academic-level-copy">
           <span className="eh-eyebrow">SUBJECT WORKSPACE · {subject.code}</span>
           <h2>{subject.name}</h2>
