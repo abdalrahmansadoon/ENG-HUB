@@ -942,7 +942,7 @@ function AcademicHubPage({ subjects, lecturers, lectures, parts, files, exams, t
       {subject && subjectCategory && <><ChevronLeft size={14}/><span>{({lectures:'المحاضرات',files:'الملفات',exams:'الاختبارات',assignments:'الواجبات',resources:'المصادر الإضافية',custom:'المجلدات المخصصة'} as Record<SubjectCategory,string>)[subjectCategory]}</span></>}
       {lecturer && <><ChevronLeft size={14}/><button type="button" className={!lecture?'active':''} onClick={() => onSelectLecture('')}>{lecturer.name}</button></>}
       {lecture && <><ChevronLeft size={14}/><span>{lecture.title}</span></>}
-      <button type="button" className="eh-crumb-back" onClick={onBack}><ArrowLeft size={14}/> رجوع</button>}
+      <button type="button" className="eh-crumb-back" onClick={onBack}><ArrowLeft size={14}/> رجوع</button>
     </nav>}
 
     {!subject && <>
