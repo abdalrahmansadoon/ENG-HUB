@@ -1,7 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import {
   ArrowLeft, Bell, ChevronDown, ChevronLeft, Command, Menu, PanelLeftClose, PanelLeftOpen,
-  Moon, Search, Settings, ShieldCheck, Sun, X, type LucideIcon,
+  Moon, Search, Settings, Sun, X, type LucideIcon,
 } from 'lucide-react';
 import type { AppUser } from '../../types';
 
@@ -48,7 +48,7 @@ export function AppShell({
   const initials = user.displayName.trim().slice(0, 1) || 'ط';
   const [collapsed, setCollapsed] = useState(() => window.localStorage.getItem('enghub-sidebar-collapsed') === '1');
   const toggleCollapsed = () => setCollapsed((value) => { window.localStorage.setItem('enghub-sidebar-collapsed', value ? '0' : '1'); return !value; });
-  const rootNav = [...navGroups.flatMap((group) => group.items), ...(isAdmin ? [{ id: 'admin', label: 'لوحة الإدارة', icon: ShieldCheck }] : [])];
+  const rootNav = navGroups.flatMap((group) => group.items);
   useEffect(() => {
     const handleShortcuts = (event: KeyboardEvent) => {
       const key = event.key.toLowerCase();
@@ -101,14 +101,6 @@ export function AppShell({
               })}
             </section>
           ))}
-          {isAdmin && (
-            <section className="eh-nav-group">
-              <h2>إدارة المنصة</h2>
-              <button type="button" className={`eh-nav-link ${page === 'admin' ? 'active' : ''}`} title="لوحة الإدارة" data-tooltip="لوحة الإدارة" onClick={() => onNavigate('admin')}>
-                <ShieldCheck size={19}/><span>لوحة الإدارة</span>{page === 'admin' && <i/>}
-              </button>
-            </section>
-          )}
         </nav>
 
         <div className="eh-sidebar-bottom">
