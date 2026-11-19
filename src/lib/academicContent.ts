@@ -50,6 +50,7 @@ export function subscribeAcademicContent(
         linkedNodeIds: Array.isArray(data.linkedNodeIds) ? data.linkedNodeIds.filter((id): id is string => typeof id === 'string') : [],
         customTypeName: typeof data.customTypeName === 'string' ? data.customTypeName : undefined,
         customTypeIcon: typeof data.customTypeIcon === 'string' ? data.customTypeIcon : undefined,
+        iconName: typeof data.iconName === 'string' ? data.iconName : undefined,
         customTypeColor: typeof data.customTypeColor === 'string' ? data.customTypeColor : undefined,
         canContainChildren: typeof data.canContainChildren === 'boolean' ? data.canContainChildren : undefined,
         publicationStatus: data.publicationStatus === 'draft' ? 'draft' : 'published',
@@ -89,6 +90,7 @@ export async function createAcademicContentNode(
     linkedNodeIds: [...new Set(input.linkedNodeIds ?? [])],
     customTypeName: input.kind === 'custom' ? input.customTypeName?.trim() ?? 'نوع مخصص' : null,
     customTypeIcon: input.kind === 'custom' ? input.customTypeIcon?.trim() ?? '✳' : null,
+    iconName: input.iconName?.trim() || null,
     customTypeColor: input.kind === 'custom' ? input.customTypeColor ?? '#4169e1' : null,
     canContainChildren: input.kind === 'custom' ? input.canContainChildren === true : null,
     publicationStatus: input.publicationStatus ?? 'published',
@@ -103,7 +105,7 @@ export async function createAcademicContentNode(
 export async function updateAcademicContentNode(
   subjectId: string,
   nodeId: string,
-  patch: Partial<Pick<AcademicContentNode, 'kind' | 'title' | 'description' | 'url' | 'mimeType' | 'duration' | 'parentId' | 'category' | 'linkedNodeIds' | 'customTypeName' | 'customTypeIcon' | 'customTypeColor' | 'canContainChildren' | 'publicationStatus' | 'sortOrder'>>,
+  patch: Partial<Pick<AcademicContentNode, 'kind' | 'title' | 'description' | 'url' | 'mimeType' | 'duration' | 'parentId' | 'category' | 'linkedNodeIds' | 'customTypeName' | 'customTypeIcon' | 'iconName' | 'customTypeColor' | 'canContainChildren' | 'publicationStatus' | 'sortOrder'>>,
 ) {
   const allowed: Record<string, any> = { ...patch, updatedAt: serverTimestamp() };
   if (typeof patch.title === 'string') allowed.title = patch.title.trim();
