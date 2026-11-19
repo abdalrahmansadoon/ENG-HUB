@@ -206,6 +206,7 @@ export function AcademicContentArea({
       <header><span className="eh-content-detail-label">CONTENT DETAILS</span><h3>{activeNode.title}</h3>{activeNode.description && <p>{activeNode.description}</p>}</header>
       {(activeNode.kind === 'video' || activeNode.kind === 'lecture') && activeNode.url && <AcademicVideo url={activeNode.url} title={activeNode.title}/>} 
       {activeNode.kind === 'exam' && <button type="button" className="eh-button primary eh-exam-pdf-button" onClick={() => openExamPrintSheet(activeNode, subject.name)}><Download size={16}/> تنزيل الاختبار بصيغة PDF</button>}
+      {activeNode.kind === 'video' && activeNode.url && <a className="eh-button eh-content-download" href={activeNode.url} target="_blank" rel="noreferrer" download><Download size={15}/> تنزيل الفيديو</a>}
       {activeNode.kind === 'video' && <div className="eh-video-completion">
         <div><b>{completedVideoIds.has(activeNode.id) ? 'أحسنت! أنهيت هذا الفيديو' : 'هل أكملت مشاهدة الفيديو؟'}</b><small>يُسجل التقدم لهذا الفيديو وحده، دون اعتبار بقية المحاضرة مكتملة.</small></div>
         <button type="button" className={completedVideoIds.has(activeNode.id) ? 'is-complete' : ''} disabled={completionBusy} onClick={() => void toggleVideoCompleted(activeNode.id)}>{completionBusy ? 'جارٍ الحفظ…' : completedVideoIds.has(activeNode.id) ? 'مكتمل · تراجع' : 'تحديد كمكتمل'}</button>
