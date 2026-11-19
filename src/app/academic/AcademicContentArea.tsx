@@ -12,7 +12,8 @@ import type {
 } from '../../types/academicContent';
 
 function escapePrintText(value: string) {
-  return value.replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char] || char));
+  const entities: Record<string, string> = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+  return value.replace(/[&<>"']/g, (char) => entities[char] ?? char);
 }
 
 function openExamPrintSheet(node: AcademicContentNode, subjectName: string) {
