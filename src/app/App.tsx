@@ -781,7 +781,7 @@ function Dashboard({ userName, tasks, subjects, exams, lectures, onGo, onNewTask
       <div className="eh-surface-card eh-subject-overview">
         <div className="eh-card-heading"><div><span className="eh-eyebrow">ACADEMIC LIBRARY</span><h2>المواد الدراسية</h2><p>{subjects.length} مواد متاحة لك</p></div><button type="button" className="eh-round-link" onClick={() => onGo('courses')} aria-label="عرض المواد"><ArrowLeft size={17}/></button></div>
         {subjects.slice(0,4).map((subject) => <button type="button" className="eh-subject-line" key={subject.id} onClick={() => onGo('courses')}>
-          <span className="eh-subject-symbol" style={{'--subject-color':subject.color} as React.CSSProperties}>{subject.icon || '∑'}</span>
+          <span className="eh-subject-symbol" style={{'--subject-color':subject.color} as React.CSSProperties}>{subject.icon?.startsWith('lucide:') && (LucideIcons as unknown as Record<string, LucideIcon>)[subject.icon.slice(7)] ? (() => { const HomeSubjectIcon = (LucideIcons as unknown as Record<string, LucideIcon>)[subject.icon.slice(7)]; return <HomeSubjectIcon size={20} strokeWidth={1.8}/>; })() : subject.icon || '∑'}</span>
           <span><b>{subject.name}</b><small>{subject.code}</small></span>
           <span className="eh-subject-line-meta">{lectures.filter((item)=>item.subjectId===subject.id).length} محاضرة</span>
           <ChevronLeft size={16}/>
@@ -970,7 +970,7 @@ function AcademicHubPage({ subjects, lecturers, lectures, parts, files, exams, t
     {!subject && <>
       <div className="eh-academic-subject-grid">
         {subjects.map((item,index) => <button type="button" className="eh-academic-subject-card" key={item.id} onClick={() => onSelectSubject(item.id)}>
-          <div className="eh-academic-card-top"><span className="eh-academic-subject-icon" style={{'--subject-color':item.color} as React.CSSProperties}>{item.icon?.startsWith('lucide:') && (LucideIcons as unknown as Record<string, LucideIcon>)[item.icon.slice(7)] ? (() => { const SubjectIcon = (LucideIcons as unknown as Record<string, LucideIcon>)[item.icon!.slice(7)]; return <SubjectIcon size={27} strokeWidth={1.8}/>; })() : item.icon || '∑'}</span><span className="eh-course-index">{String(index+1).padStart(2,'0')}</span></div>
+          <div className="eh-academic-card-top"><span className="eh-academic-subject-icon" style={{'--subject-color':item.color} as React.CSSProperties}>{item.icon?.startsWith('lucide:') && (LucideIcons as unknown as Record<string, LucideIcon>)[item.icon.slice(7)] ? (() => { const SubjectIcon = (LucideIcons as unknown as Record<string, LucideIcon>)[item.icon!.slice(7)]; return <SubjectIcon size={27} strokeWidth={1.8}/>; })() : item.icon?.startsWith('lucide:') ? <BookOpen size={27}/> : item.icon || '∑'}</span><span className="eh-course-index">{String(index+1).padStart(2,'0')}</span></div>
           <span className="eh-course-code">{item.code}</span><h3>{item.name}</h3><p>{item.description||'المحتوى التعليمي والمحاضرات الخاصة بهذا المقرر.'}</p>
           <div className="eh-course-card-footer"><span><Users size={14}/>{lecturers.filter((x)=>x.subjectId===item.id).length} مدرس</span><span><Video size={14}/>{lectures.filter((x)=>x.subjectId===item.id).length} محاضرة</span><ChevronLeft size={16}/></div>
         </button>)}
