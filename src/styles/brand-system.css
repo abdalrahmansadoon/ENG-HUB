@@ -1282,3 +1282,100 @@ button,input,textarea,select{font-family:inherit}
   .eh-app .eh-mobile-nav button span { font-size:7px!important; }
   .eh-app .eh-surface-card,.eh-app .panel { border-radius:13px!important; }
 }
+
+
+/* ENG HUB — focused mobile refinement: authentication, profile and chat */
+.auth-screen{
+  width:100%!important;min-width:0;max-width:100%;overflow-x:clip;
+}
+.auth-screen .auth-form-side{min-width:0;width:100%}
+.auth-screen .auth-form{min-width:0;width:min(100%,440px)}
+.auth-screen .auth-form label{display:flex;flex-direction:column;gap:8px;min-width:0}
+.auth-screen .auth-form input{width:100%;max-width:100%;min-width:0}
+.profile-onboarding{width:100%;max-width:100%;overflow-x:clip}
+.profile-onboarding-card{min-width:0;max-width:100%;max-height:calc(100dvh - 32px);overflow-y:auto;overscroll-behavior:contain}
+.profile-onboarding-card .form-stack{min-width:0}
+.profile-onboarding-card .form-stack label{display:flex;flex-direction:column;gap:7px;min-width:0}
+.profile-onboarding-card .form-stack input,.profile-onboarding-card .form-stack textarea{width:100%;max-width:100%;min-width:0}
+.eh-app .eh-profile-page{width:100%;min-width:0;max-width:1180px;margin-inline:auto}
+.eh-app .eh-profile-hero{overflow:hidden}
+.eh-app .eh-profile-identity{min-width:0}
+.eh-app .eh-profile-name{min-width:0}
+.eh-app .eh-profile-grid{grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr)}
+.eh-app .eh-profile-settings-column{min-width:0}
+.eh-app .eh-profile-form>label{min-width:0}
+.eh-app .eh-profile-form input,.eh-app .eh-profile-form textarea{width:100%;max-width:100%;min-width:0}
+.eh-app .eh-profile-photo-picker{min-width:0;flex-wrap:wrap}
+.eh-app .eh-profile-photo-picker .eh-button{flex:0 0 auto}
+.eh-focus-chat{width:100%;max-width:100%;min-width:0;overflow:hidden!important}
+.eh-focus-chat .chat-reference-page{width:100%;max-width:100%;min-width:0;overflow:hidden}
+.eh-focus-chat .chat-reference-shell{width:100%;max-width:100%;min-width:0;overflow:hidden}
+.eh-focus-chat .chat-topbar-room{min-width:0;overflow:hidden}
+.eh-focus-chat .chat-topbar-room>div:last-child{min-width:0;overflow:hidden}
+.eh-focus-chat .chat-topbar-room b,.eh-focus-chat .chat-topbar-room span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.eh-focus-chat .chat-topbar-actions{min-width:0;flex:0 0 auto}
+.eh-focus-chat .chat-messages-rebuilt{width:100%;min-width:0;overflow-x:hidden;overflow-y:auto;overscroll-behavior:contain}
+.eh-focus-chat .chat-composer-shell{width:100%;min-width:0}
+.eh-focus-chat .chat-input-group{width:100%;min-width:0}
+.eh-focus-chat .chat-input-wrap{min-width:0;flex:1}
+.eh-focus-chat .chat-input-wrap textarea{width:100%;min-width:0;max-width:100%;max-height: min(30dvh,180px);overflow-y:auto;resize:none}
+.eh-focus-chat .chat-msg{min-width:0;max-width:min(78%,720px);overflow-wrap:anywhere}
+.eh-focus-chat .chat-msg img,.eh-focus-chat .chat-msg video{max-width:100%;height:auto}
+.eh-focus-chat .chat-reference-emoji-panel,.eh-focus-chat .chat-context-menu{max-width:calc(100vw - 20px)}
+@media(max-width:850px){
+  .auth-screen{grid-template-columns:minmax(0,1fr)!important}
+  .auth-screen .auth-visual{display:none!important}
+  .auth-screen .auth-form-side{min-height:100dvh;padding:clamp(18px,5vw,34px) clamp(14px,5vw,28px)!important}
+  .auth-screen .auth-form{width:100%;max-width:480px;gap:14px}
+  .auth-screen .auth-form h2{font-size:clamp(25px,6vw,31px)}
+  .auth-screen .auth-mobile-brand{margin-bottom:10px}
+  .profile-onboarding{place-items:start center;padding:14px!important}
+  .profile-onboarding-card{width:min(100%,620px)!important;max-height:none;padding:clamp(18px,4vw,28px)!important}
+}
+@media(max-width:760px){
+  .eh-app .eh-profile-grid{grid-template-columns:minmax(0,1fr)!important;gap:12px}
+  .eh-app .eh-profile-identity{align-items:center;gap:12px}
+  .eh-app .eh-profile-name h2{font-size:clamp(17px,4.5vw,22px)}
+  .eh-app .eh-profile-academic-facts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));width:100%;gap:8px}
+  .eh-app .eh-profile-academic-facts>div{min-width:0}
+  .eh-app .eh-profile-form{padding-inline:13px}
+  .eh-app .eh-profile-form-footer{align-items:stretch;flex-direction:column}
+  .eh-app .eh-profile-form-footer .eh-button{width:100%;justify-content:center}
+  .eh-app .eh-profile-settings .eh-card-heading{padding:15px}
+  .eh-app .eh-setting-entry{min-width:0;gap:9px}
+  .eh-app .eh-setting-entry>div{min-width:0;flex:1}
+  .eh-focus-chat .chat-topbar{gap:6px;padding:7px 8px;min-height:58px}
+  .eh-focus-chat .chat-topbar-btn{width:35px;height:35px;flex-basis:35px;border-radius:10px}
+  .eh-focus-chat .chat-topbar-avatar{width:36px;height:36px;flex-basis:36px;border-radius:11px}
+  .eh-focus-chat .chat-topbar-room{gap:7px}
+  .eh-focus-chat .chat-topbar-room b{font-size:11px}
+  .eh-focus-chat .chat-topbar-room span{font-size:9px}
+  .eh-focus-chat .chat-topbar-actions{gap:4px}
+  .eh-focus-chat .chat-topbar-search{display:none!important}
+  .eh-focus-chat .chat-messages-rebuilt{padding:12px 10px}
+  .eh-focus-chat .chat-msg{max-width:88%}
+  .eh-focus-chat .chat-composer-shell{padding:8px 9px max(10px,env(safe-area-inset-bottom))}
+  .eh-focus-chat .chat-input-group{gap:4px;padding:5px}
+  .eh-focus-chat .chat-composer-btn{width:34px;height:36px;flex:0 0 34px}
+  .eh-focus-chat .chat-send-btn{width:38px;height:38px;flex:0 0 38px}
+  .eh-focus-chat .chat-input-wrap textarea{font-size:14px;line-height:1.6}
+  .eh-focus-chat .chat-composer-note{display:none}
+}
+@media(max-width:420px){
+  .auth-screen .auth-form-side{padding:16px 12px!important}
+  .auth-screen .auth-form{gap:12px}
+  .auth-screen .auth-form input{min-height:47px;font-size:14px}
+  .profile-onboarding .onboarding-photo-row{align-items:flex-start!important;gap:11px;flex-wrap:wrap}
+  .profile-onboarding .onboarding-photo-copy{min-width:0;flex:1}
+  .profile-onboarding .onboarding-account-email{min-width:0;overflow-wrap:anywhere}
+  .eh-app .eh-profile-identity{align-items:flex-start;flex-wrap:wrap}
+  .eh-app .eh-profile-avatar{width:68px;height:68px;flex:0 0 68px}
+  .eh-app .eh-profile-name{flex:1 1 calc(100% - 84px)}
+  .eh-app .eh-profile-academic-facts{grid-template-columns:minmax(0,1fr)}
+  .eh-app .eh-profile-photo-picker .eh-button{width:100%;justify-content:center}
+  .eh-focus-chat .chat-topbar-room span{display:none}
+  .eh-focus-chat .chat-topbar-room b{max-width:38vw}
+  .eh-focus-chat .chat-profile-link{display:none}
+  .eh-focus-chat .chat-topbar-actions{gap:3px}
+  .eh-focus-chat .chat-msg{max-width:92%}
+}
