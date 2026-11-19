@@ -51,11 +51,11 @@ jobs:
       - name: Upload site artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          name: eng-hub-pages-dist
+          name: eng-hub-pages-${{ github.run_id }}-${{ github.run_attempt }}
           path: ./dist
 
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
         with:
-          artifact_name: eng-hub-pages-dist
+          artifact_name: eng-hub-pages-${{ github.run_id }}-${{ github.run_attempt }}
