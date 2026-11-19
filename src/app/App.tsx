@@ -10,6 +10,8 @@ import {
   ImagePlus, Volume2, VolumeX, Maximize, Trash2, Pencil, Monitor, Smartphone, Unlock,
   Copy, Pin, Smile, CheckCheck, Flag, Minus, Info, RotateCcw,
 } from 'lucide-react';
+import * as LucideIcons from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { useAuth, registerAccount } from './AuthContext';
 import { defaultCloudinarySettings, isCloudinaryConfigured, saveCloudinarySettings, subscribeCloudinarySettings, type CloudinarySettings } from '../lib/cloudinary';
 import { uploadFile } from '../lib/uploads';
@@ -968,7 +970,7 @@ function AcademicHubPage({ subjects, lecturers, lectures, parts, files, exams, t
     {!subject && <>
       <div className="eh-academic-subject-grid">
         {subjects.map((item,index) => <button type="button" className="eh-academic-subject-card" key={item.id} onClick={() => onSelectSubject(item.id)}>
-          <div className="eh-academic-card-top"><span className="eh-academic-subject-icon" style={{'--subject-color':item.color} as React.CSSProperties}>{item.icon||'∑'}</span><span className="eh-course-index">{String(index+1).padStart(2,'0')}</span></div>
+          <div className="eh-academic-card-top"><span className="eh-academic-subject-icon" style={{'--subject-color':item.color} as React.CSSProperties}>{item.icon?.startsWith('lucide:') && (LucideIcons as unknown as Record<string, LucideIcon>)[item.icon.slice(7)] ? (() => { const SubjectIcon = (LucideIcons as unknown as Record<string, LucideIcon>)[item.icon!.slice(7)]; return <SubjectIcon size={27} strokeWidth={1.8}/>; })() : item.icon || '∑'}</span><span className="eh-course-index">{String(index+1).padStart(2,'0')}</span></div>
           <span className="eh-course-code">{item.code}</span><h3>{item.name}</h3><p>{item.description||'المحتوى التعليمي والمحاضرات الخاصة بهذا المقرر.'}</p>
           <div className="eh-course-card-footer"><span><Users size={14}/>{lecturers.filter((x)=>x.subjectId===item.id).length} مدرس</span><span><Video size={14}/>{lectures.filter((x)=>x.subjectId===item.id).length} محاضرة</span><ChevronLeft size={16}/></div>
         </button>)}
@@ -1833,46 +1835,48 @@ function SubjectModal({ onClose, onSave }: {
   const [name, setName] = useState('');
   const [code, setCode] = useState('');
   const [description, setDescription] = useState('');
-  const [icon, setIcon] = useState('∫');
-  const [color, setColor] = useState('#8b7cff');
-  const colors = ['#8b7cff', '#41c8ad', '#f0ad62', '#5d9eff', '#ec82ad', '#9aabbd', '#d1a25b'];
-
+  const [icon, setIcon] = useState('lucide:BookOpen');
+  const [color, setColor] = useState('#4169e1');
+  const [iconSearch, setIconSearch] = useState('');
+  const [showAllIcons, setShowAllIcons] = useState(false);
+  const colors = ['#4169e1', '#168d83', '#d38a16', '#9a63cf', '#d15b82', '#287fa8', '#64748b', '#c65d36'];
+  const suggestedIcons = ['BookOpen','Calculator','Sigma','Atom','Binary','BrainCircuit','Dna','Microscope','FlaskConical','Ruler','DraftingCompass','PencilRuler','CircuitBoard','Cpu','Code2','Database','Network','Monitor','Cog','Wrench','Building2','Layers3','Boxes','Workflow','ChartNoAxesCombined','ChartLine','Pi','SquareRadical','FunctionSquare','Braces','NotebookPen','GraduationCap','BookMarked','FileText','Lightbulb','Rocket','Globe2','Languages','Landmark','Waves'];
+  const allIconNames = Object.keys(LucideIcons).filter((key) => /^[A-Z]/.test(key) && key !== 'Icon' && key !== 'createLucideIcon' && typeof (LucideIcons as unknown as Record<string, unknown>)[key] === 'object');
+  const iconNames = [...new Set([...suggestedIcons.filter((key) => allIconNames.includes(key)), ...allIconNames])];
+  const matchingIcons = iconNames.filter((key) => key.toLowerCase().includes(iconSearch.trim().toLowerCase()));
+  const visibleIcons = (iconSearch.trim() ? matchingIcons : showAllIcons ? matchingIcons : matchingIcons.slice(0, 64));
+  const SelectedIcon = icon.startsWith('lucide:') ? (LucideIcons as unknown as Record<string, LucideIcon>)[icon.slice(7)] : undefined;
   const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    onSave({ name: name.trim(), code: code.trim().toUpperCase(), description: description.trim(), icon: icon.trim() || '✳', color });
+    onSave({ name: name.trim(), code: code.trim().toUpperCase(), description: description.trim(), icon: icon || 'lucide:BookOpen', color });
   };
 
   return (
-    <div className="modal-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
-      <section className="modal-card" role="dialog" aria-modal="true" aria-labelledby="subject-modal-title">
-        <div className="modal-head">
-          <div><h2 id="subject-modal-title">إضافة مادة دراسية</h2><p>أضف بيانات المقرر ليظهر في مساحة الدراسة.</p></div>
-          <button type="button" className="icon-button" onClick={onClose} aria-label="إغلاق"><X size={18}/></button>
+    <div className="modal-backdrop eh-subject-create-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
+      <section className="modal-card eh-subject-create-modal" role="dialog" aria-modal="true" aria-labelledby="subject-modal-title">
+        <div className="eh-subject-create-hero">
+          <div className="eh-subject-create-hero-copy"><span className="eh-eyebrow">COURSE DESIGNER · ENG HUB</span><h2 id="subject-modal-title">أنشئ مساحة المادة</h2><p>صمّم هوية المقرر واختر أيقونته ولونه قبل إضافة المحاضرات والملفات والاختبارات.</p></div>
+          <div className="eh-subject-live-preview" style={{'--subject-color':color} as React.CSSProperties}>
+            <div className="eh-subject-preview-icon">{SelectedIcon ? <SelectedIcon size={31} strokeWidth={1.7}/> : icon}</div>
+            <span>{code.trim().toUpperCase() || 'COURSE CODE'}</span><b>{name.trim() || 'اسم المادة الدراسية'}</b><small>{description.trim() || 'وصف مختصر للمقرر سيظهر هنا'}</small>
+          </div>
+          <button type="button" className="icon-button eh-subject-create-close" onClick={onClose} aria-label="إغلاق"><X size={18}/></button>
         </div>
-        <form className="form-stack" onSubmit={submit}>
-          <label>اسم المادة
-            <input required maxLength={100} autoFocus value={name} onChange={(event) => setName(event.target.value)} placeholder="مثال: Calculus 1"/>
-          </label>
-          <div className="form-row">
-            <label>كود المادة
-              <input required maxLength={20} value={code} onChange={(event) => setCode(event.target.value)} placeholder="MTH 101" dir="ltr"/>
-            </label>
-            <label>وصف المادة (اختياري)
-              <input maxLength={180} value={description} onChange={(event) => setDescription(event.target.value)} placeholder="نبذة قصيرة عن المقرر"/>
-            </label>
+        <form className="form-stack eh-subject-create-form" onSubmit={submit}>
+          <div className="eh-subject-fields-grid">
+            <label>اسم المادة <input required maxLength={100} autoFocus value={name} onChange={(event) => setName(event.target.value)} placeholder="مثال: Calculus 1"/></label>
+            <label>كود المادة <input required maxLength={20} value={code} onChange={(event) => setCode(event.target.value)} placeholder="MTH 101" dir="ltr"/></label>
           </div>
-          <div className="form-row">
-            <label>رمز المادة
-              <input value={icon} onChange={(event) => setIcon(event.target.value)} maxLength={4} placeholder="∫"/>
-            </label>
-            <label>لون المادة
-              <span className="color-picker"><div>{colors.map((item) => <button key={item} type="button" className={color === item ? 'selected' : ''} style={{ background: item }} onClick={() => setColor(item)} aria-label={`اختيار اللون ${item}`} aria-pressed={color === item}/>)}</div></span>
-            </label>
-          </div>
-          <div className="modal-actions">
-            <button type="button" className="btn btn-outline" onClick={onClose}>إلغاء</button>
-            <button type="submit" className="btn btn-primary" disabled={!name.trim() || !code.trim()}><Plus size={15}/> إضافة المادة</button>
-          </div>
+          <label>وصف المادة <span className="eh-subject-optional">اختياري</span><textarea rows={2} maxLength={180} value={description} onChange={(event) => setDescription(event.target.value)} placeholder="اكتب نبذة قصيرة توضح محتوى المقرر وأهم موضوعاته"/></label>
+          <section className="eh-subject-icon-section">
+            <div className="eh-subject-section-heading"><div><b>اختر أيقونة المادة</b><small>أيقونة مميزة ستظهر على بطاقة المقرر في الصفحة الرئيسية للمواد</small></div><span>{iconNames.length.toLocaleString('ar-EG')} أيقونة</span></div>
+            <div className="eh-subject-icon-search"><Search size={16}/><input value={iconSearch} onChange={(event) => {setIconSearch(event.target.value);setShowAllIcons(true);}} placeholder="ابحث مثل: Calculator أو Atom أو Book…" dir="auto"/>{iconSearch && <button type="button" onClick={() => setIconSearch('')} aria-label="مسح البحث"><X size={14}/></button>}</div>
+            <div className="eh-subject-icon-grid">{visibleIcons.map((key) => {const ItemIcon=(LucideIcons as unknown as Record<string,LucideIcon>)[key];return <button type="button" key={key} title={key} aria-label={'اختيار '+key} aria-pressed={icon==='lucide:'+key} className={icon==='lucide:'+key?'selected':''} onClick={()=>setIcon('lucide:'+key)}><ItemIcon size={21}/><small>{key}</small></button>;})}</div>
+            {!iconSearch && !showAllIcons && matchingIcons.length>visibleIcons.length && <button type="button" className="eh-subject-show-icons" onClick={()=>setShowAllIcons(true)}>استعراض مكتبة الأيقونات كاملة ({matchingIcons.length.toLocaleString('ar-EG')})</button>}
+            {iconSearch && matchingIcons.length===0 && <p className="eh-subject-no-icons">لم نعثر على أيقونة بهذا الاسم. جرّب كلمة أخرى بالإنجليزية.</p>}
+          </section>
+          <section className="eh-subject-color-section"><div className="eh-subject-section-heading"><div><b>لون هوية المادة</b><small>سيُستخدم اللون في أيقونة البطاقة والعناصر البصرية المرتبطة بالمقرر</small></div></div><div className="eh-subject-color-options">{colors.map((item)=><button key={item} type="button" className={color===item?'selected':''} style={{'--swatch':item} as React.CSSProperties} onClick={()=>setColor(item)} aria-label={'اختيار اللون '+item} aria-pressed={color===item}><span/></button>)}<label className="eh-subject-custom-color" title="لون مخصص"><input type="color" value={color} onChange={(event)=>setColor(event.target.value)}/><span><Plus size={16}/></span></label></div></section>
+          <div className="eh-subject-create-footer"><div><b>جاهز لإنشاء المادة؟</b><small>يمكنك إضافة المحتوى وتنظيمه بعد إنشاء المقرر.</small></div><div className="modal-actions"><button type="button" className="btn btn-outline" onClick={onClose}>إلغاء</button><button type="submit" className="btn btn-primary" disabled={!name.trim()||!code.trim()}><Plus size={16}/> إنشاء المادة</button></div></div>
         </form>
       </section>
     </div>
