@@ -48,7 +48,8 @@ export function readEngHubRoute(hash = window.location.hash): EngHubRoute {
 export function buildEngHubHash(route: EngHubRoute): string {
   if (route.page === 'student-profile') return route.profileUid ? '#/students/' + encode(route.profileUid) : '#/students';
   if (route.page === 'chat' && route.subjectId) return '#/courses/' + encode(route.subjectId) + '/category/chat';
-  if (route.page !== 'courses') return '#/' + encode(route.page || 'home');
+  if (route.page === 'home' || !route.page) return '';
+  if (route.page !== 'courses') return '#/' + encode(route.page);
   if (!route.subjectId) return '#/courses';
   const root = '#/courses/' + encode(route.subjectId);
   if (!route.category) return root;
