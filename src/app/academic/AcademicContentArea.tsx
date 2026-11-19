@@ -275,23 +275,23 @@ function AcademicVideo({ url, title }: { url: string; title: string }) {
   let embed = '';
   try {
     const parsed = new URL(url);
-    const host = parsed.hostname.replace(/^www\\./, '');
+    const host = parsed.hostname.replace(/^www\./, '');
     if (host === 'youtu.be') embed = 'https://www.youtube-nocookie.com/embed/' + parsed.pathname.split('/').filter(Boolean)[0] + '?rel=0&modestbranding=1';
     else if (host === 'youtube.com' || host.endsWith('.youtube.com')) embed = 'https://www.youtube-nocookie.com/embed/' + (parsed.searchParams.get('v') || parsed.pathname.split('/').filter(Boolean).pop()) + '?rel=0&modestbranding=1';
     else if (host.endsWith('vimeo.com')) embed = 'https://player.vimeo.com/video/' + parsed.pathname.split('/').filter(Boolean).pop() + '?dnt=1';
     else if (host === 'mega.nz') {
-      if (/^\\/embed\\//i.test(parsed.pathname)) embed = 'https://mega.nz' + parsed.pathname + parsed.hash;
+      if (/^\/embed\//i.test(parsed.pathname)) embed = 'https://mega.nz' + parsed.pathname + parsed.hash;
       else {
-        const fileMatch = parsed.pathname.match(/^\\/file\\/([^/]+)$/i);
+        const fileMatch = parsed.pathname.match(/^\/file\/([^/]+)$/i);
         if (fileMatch && parsed.hash.length > 1) embed = 'https://mega.nz/embed/' + fileMatch[1] + parsed.hash;
         else {
-          const legacy = url.match(/mega\\.nz\\/#!([^!#]+)!([^#\\s]+)/i);
+          const legacy = url.match(/mega\.nz\/#!([^!#]+)!([^#\s]+)/i);
           if (legacy) embed = 'https://mega.nz/embed/' + legacy[1] + '#' + legacy[2];
         }
       }
     }
   } catch { /* validated when saved */ }
-  const directVideo = /\\.(mp4|webm|mov|m4v|ogg)(?:[?#].*)?$/i.test(url);
+  const directVideo = /\.(mp4|webm|mov|m4v|ogg)(?:[?#].*)?$/i.test(url);
   return <section className="eh-video-player-shell">
     <div className="eh-video-player-topline"><div><span className="eh-eyebrow">NOW PLAYING</span><b>{title}</b></div><a href={url} target="_blank" rel="noreferrer"><ExternalLink size={14}/> فتح المصدر</a></div>
     {embed ? <div className="eh-content-video"><iframe src={embed} title={title} allow="accelerometer; autoplay; encrypted-media; picture-in-picture; fullscreen" allowFullScreen loading="lazy" referrerPolicy="strict-origin-when-cross-origin"/></div>
