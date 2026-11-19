@@ -16,7 +16,7 @@ import { uploadFile } from '../lib/uploads';
 import { enablePushNotifications, listenForForegroundMessages } from '../lib/messaging';
 import { isFirebaseConfigured } from '../lib/firebase';
 import { readLocal, writeLocal } from '../lib/storage';
-import { createExamCloud, createLectureCloud, createLecturePartCloud, createLecturerCloud, createSubjectCloud, createTaskCloud, deleteTaskCloud, deleteSubjectCloud, saveFileMetadataCloud, subscribeExams, subscribeFiles, subscribeLectureParts, subscribeLecturers, subscribeLectures, subscribeSubjects, subscribeTasks, updateTaskStatusCloud, subscribeAcademicCalendar, saveAcademicCalendar, defaultAcademicCalendar, type AcademicCalendarSettings } from '../lib/cloudData';
+import { createExamCloud, createLectureCloud, createLecturePartCloud, createLecturerCloud, createSubjectCloud, createTaskCloud, deleteTaskCloud, deleteSubjectCloud, saveFileMetadataCloud, subscribeExams, subscribeFiles, subscribeLectureParts, subscribeLecturers, subscribeLectures, subscribeSubjects, subscribeTasks, updateTaskStatusCloud } from '../lib/cloudData';
 import type { AppNotification, AppUser, Exam, Lecture, LecturePart, Lecturer, LibraryFile, Priority, StudyTask, Subject, TaskStatus } from '../types';
 import { AppShell } from './layout/AppShell';
 import { ChatPage } from './chat/ChatPage';
@@ -49,7 +49,7 @@ const iconForKind = { task: ClipboardList, lecture: Video, exam: BookOpenCheck, 
 
 function App() {
   const { user, isDemo, loading, profileComplete, completeProfile, saveProfile, deleteAccount, logout, toggleDemoRole, login, loginWithGoogle } = useAuth();
-  const activeUser = user ?? { uid: '', displayName: 'طالب هندسة', email: '', photoURL: null, role: 'student' as const, academicYear: 'السنة الإعدادية', term: 'الترم الأول' };
+  const activeUser = { ...(user ?? { uid: '', displayName: 'طالب هندسة', email: '', photoURL: null, role: 'student' as const }), academicYear: 'السنة الإعدادية', term: 'الترم الأول' };
   const isAdmin = activeUser.role === 'admin' || activeUser.role === 'super-admin';
   const initialRoute = readEngHubRoute();
   const [page, setPage] = useState(initialRoute.page);
@@ -73,7 +73,6 @@ function App() {
   const [exams, setExams] = useState<Exam[]>([]);
   const [files, setFiles] = useState<LibraryFile[]>([]);
   const [cloudinarySettings, setCloudinarySettings] = useState<CloudinarySettings>(defaultCloudinarySettings);
-  const [academicCalendar, setAcademicCalendar] = useState<AcademicCalendarSettings>(defaultAcademicCalendar);
   const [completedVideoIds, setCompletedVideoIds] = useState<Set<string>>(new Set());
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [taskModal, setTaskModal] = useState(false);
@@ -91,10 +90,6 @@ function App() {
   useEffect(() => {
     if (!user || isDemo) { setCloudinarySettings(defaultCloudinarySettings); return; }
     return subscribeCloudinarySettings(setCloudinarySettings, (error) => setToast(`تعذر قراءة إعدادات Cloudinary: ${error.message}`));
-  }, [user?.uid, isDemo]);
-  useEffect(() => {
-    if (!user || isDemo) { setAcademicCalendar(defaultAcademicCalendar); return; }
-    return subscribeAcademicCalendar(setAcademicCalendar, (error) => setToast(`تعذر قراءة إعدادات السنة الدراسية: ${error.message}`));
   }, [user?.uid, isDemo]);
   useEffect(() => {
     if (!user || isDemo || !isFirebaseConfigured || !activeUser.uid) { setCompletedVideoIds(new Set()); return; }
@@ -528,7 +523,7 @@ function App() {
 
   return (
     <AppShell
-      user={{ ...activeUser, academicYear: academicCalendar.activeYear, term: academicCalendar.activeTerm }}
+      user={activeUser}
       page={page}
       pageTitle={page === 'chat' && selectedSubjectId ? `مناقشات ${subjects.find((item) => item.id === selectedSubjectId)?.name ?? 'المادة'}` : pageTitle(page)}
       navGroups={navGroups}
@@ -577,7 +572,6 @@ function App() {
           onUpload={uploadAcademicAsset}
         />}
         {(page === 'courses' || page === 'lectures') && (!selectedSubjectId || !selectedSubjectCategory) && <>
-          {isAdmin && <AcademicCalendarPanel settings={academicCalendar} onSave={async (settings) => { await saveAcademicCalendar(settings, activeUser.uid); setAcademicCalendar(settings); setToast('تم حفظ السنة والفصل الدراسي الحاليين لجميع الطلاب.'); }} onError={(message) => setToast(message)}/>}
           <AcademicHubPage
           subjects={subjects} lecturers={lecturers} lectures={lectures} parts={lectureParts} files={files} exams={exams} tasks={tasks} contentNodes={academicContentWithLegacy}
           selectedSubjectId={selectedSubjectId} selectedLecturerId={selectedLecturerId} selectedLectureId={selectedLectureId}
@@ -1398,48 +1392,6 @@ function NotificationsPage({ items, setItems }: { items: AppNotification[]; setI
       {visible.length===0&&<EmptyState title={filter==='unread'?'لا توجد تنبيهات غير مقروءة':'لا توجد إشعارات حتى الآن'} body={filter==='unread'?'لقد راجعت جميع الإشعارات.':'ستظهر هنا الإشعارات المتعلقة بمهامك ومحاضراتك.'}/>}
     </section>
   </div>;
-}
-
-function AcademicCalendarPanel({ settings, onSave, onError }: {
-  settings: AcademicCalendarSettings;
-  onSave: (settings: AcademicCalendarSettings) => Promise<void>;
-  onError: (message: string) => void;
-}) {
-  const [draft, setDraft] = useState<AcademicCalendarSettings>(settings);
-  const [yearInput, setYearInput] = useState('');
-  const [termInput, setTermInput] = useState('');
-  const [saving, setSaving] = useState(false);
-  useEffect(() => setDraft(settings), [settings]);
-  const addValue = (kind: 'years' | 'terms') => {
-    const value = (kind === 'years' ? yearInput : termInput).trim();
-    if (!value) return;
-    setDraft(current => ({ ...current, [kind]: Array.from(new Set([...current[kind], value])) }));
-    if (kind === 'years') setYearInput(''); else setTermInput('');
-  };
-  const save = async () => {
-    if (!draft.years.length || !draft.terms.length) { onError('أضف سنة دراسية وفصلاً دراسياً واحداً على الأقل.'); return; }
-    if (!draft.years.includes(draft.activeYear) || !draft.terms.includes(draft.activeTerm)) { onError('اختر سنة وفصلاً دراسياً حاليين من القوائم المتاحة.'); return; }
-    setSaving(true);
-    try { await onSave(draft); }
-    catch (error) { onError(error instanceof Error ? error.message : 'تعذر حفظ التقويم الدراسي.'); }
-    finally { setSaving(false); }
-  };
-  return <section className="panel admin-content-list eh-calendar-admin eh-context-settings">
-    <div className="panel-head"><div><h3>إعدادات السنة والفصل الدراسي</h3><span>تظهر الاختيارات الحالية لجميع الطلاب. تغيير الفصل لا يحذف محتوى الفصول السابقة.</span></div><span className="admin-status"><i/> للمسؤول</span></div>
-    <div className="eh-calendar-current">
-      <label>السنة الدراسية الحالية<select value={draft.activeYear} onChange={event=>setDraft(current=>({...current,activeYear:event.target.value}))}>{draft.years.map(value=><option key={value} value={value}>{value}</option>)}</select></label>
-      <label>الفصل الدراسي الحالي<select value={draft.activeTerm} onChange={event=>setDraft(current=>({...current,activeTerm:event.target.value}))}>{draft.terms.map(value=><option key={value} value={value}>{value}</option>)}</select></label>
-    </div>
-    <div className="eh-calendar-columns">
-      <div><h4>السنوات الدراسية</h4><div className="eh-calendar-add"><input value={yearInput} onChange={event=>setYearInput(event.target.value)} placeholder="مثال: السنة الأولى"/><button type="button" className="btn btn-primary btn-small" onClick={()=>addValue('years')}><Plus size={14}/> إضافة</button></div>
-        {draft.years.map(value=><div className="eh-calendar-item" key={value}><span>{value}</span>{draft.activeYear===value?<b>الحالية</b>:<button type="button" onClick={()=>setDraft(current=>({...current,years:current.years.filter(item=>item!==value)}))}>حذف</button>}</div>)}
-      </div>
-      <div><h4>الفصول الدراسية</h4><div className="eh-calendar-add"><input value={termInput} onChange={event=>setTermInput(event.target.value)} placeholder="مثال: الترم الصيفي"/><button type="button" className="btn btn-primary btn-small" onClick={()=>addValue('terms')}><Plus size={14}/> إضافة</button></div>
-        {draft.terms.map(value=><div className="eh-calendar-item" key={value}><span>{value}</span>{draft.activeTerm===value?<b>الحالي</b>:<button type="button" onClick={()=>setDraft(current=>({...current,terms:current.terms.filter(item=>item!==value)}))}>حذف</button>}</div>)}
-      </div>
-    </div>
-    <div className="eh-calendar-save"><button type="button" className="btn btn-primary" onClick={()=>void save()} disabled={saving}>{saving?<span className="spinner"/>:<Check size={16}/>} حفظ إعدادات الفصل</button></div>
-  </section>;
 }
 
 function CloudinarySettingsPanel({ settings, userId, onSaved, onError }: {
