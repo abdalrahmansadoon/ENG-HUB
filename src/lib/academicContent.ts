@@ -1,5 +1,5 @@
 import {
-  addDoc, collection, doc, onSnapshot, query, serverTimestamp,
+  addDoc, arrayRemove, arrayUnion, collection, doc, onSnapshot, query, serverTimestamp,
   updateDoc, where, writeBatch, setDoc, type Unsubscribe,
 } from 'firebase/firestore';
 import { db } from './firebase';
@@ -99,6 +99,13 @@ export async function createAcademicContentNode(
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   });
+  if (input.linkedNodeIds?.length) {
+    const batch = writeBatch(requireDb());
+    input.linkedNodeIds.forEach((linkedId) => {
+      batch.update(doc(requireDb(), 'subjects', subjectId, 'contentNodes', linkedId), { linkedNodeIds: arrayUnion(ref.id), updatedAt: serverTimestamp() });
+    });
+    await batch.commit();
+  }
   return ref.id;
 }
 
@@ -109,7 +116,19 @@ export async function updateAcademicContentNode(
 ) {
   const allowed: Record<string, any> = { ...patch, updatedAt: serverTimestamp() };
   if (typeof patch.title === 'string') allowed.title = patch.title.trim();
-  if (Array.isArray(patch.linkedNodeIds)) allowed.linkedNodeIds = [...new Set(patch.linkedNodeIds)];
+  if (Array.isArray(patch.linkedNodeIds)) {
+    const firestore = requireDb();
+    const currentRef = doc(firestore, 'subjects', subjectId, 'contentNodes', nodeId);
+    const current = await (await import('firebase/firestore')).getDoc(currentRef);
+    const previousIds = Array.isArray(current.data()?.linkedNodeIds) ? current.data()!.linkedNodeIds.filter((id: unknown): id is string => typeof id === 'string') : [];
+    const nextIds = [...new Set(patch.linkedNodeIds)].filter((id) => id !== nodeId);
+    const batch = writeBatch(firestore);
+    batch.update(currentRef, { ...allowed, linkedNodeIds: nextIds });
+    previousIds.filter((id) => !nextIds.includes(id)).forEach((id) => batch.update(doc(firestore, 'subjects', subjectId, 'contentNodes', id), { linkedNodeIds: arrayRemove(nodeId), updatedAt: serverTimestamp() }));
+    nextIds.filter((id) => !previousIds.includes(id)).forEach((id) => batch.update(doc(firestore, 'subjects', subjectId, 'contentNodes', id), { linkedNodeIds: arrayUnion(nodeId), updatedAt: serverTimestamp() }));
+    await batch.commit();
+    return;
+  }
   await updateDoc(doc(requireDb(), 'subjects', subjectId, 'contentNodes', nodeId), allowed);
 }
 
