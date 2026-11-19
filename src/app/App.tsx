@@ -617,7 +617,6 @@ function App() {
         {page === 'focus' && <FocusModePage userId={activeUser.uid}/>}
         {page === 'analytics' && <AnalyticsPage tasks={tasks} subjects={subjects} lectures={lectures} exams={exams} completedVideos={completedVideoIds.size}/>}
         {page === 'notifications' && <NotificationsPage items={notifications} setItems={setNotifications}/>}
-        {page === 'admin' && <AdminPage tasks={tasks} subjects={subjects} lecturers={lecturers} lectures={lectures} exams={exams} files={files} currentUser={activeUser} cloudinarySettings={cloudinarySettings} academicCalendar={academicCalendar} onSaveAcademicCalendar={async (settings) => { await saveAcademicCalendar(settings, activeUser.uid); setAcademicCalendar(settings); setToast('تم حفظ السنة والفصل الدراسي الحاليين لجميع الطلاب.'); }} onNewTask={() => setTaskModal(true)} onAddSubject={() => setSubjectModal(true)} onDeleteSubject={removeSubject} onAddLecturer={() => { setPage('courses'); setSelectedSubjectId(''); setSelectedLecturerId(''); setSelectedLectureId(''); }} onAddLecture={() => setLectureModal(true)} onAddExam={() => setExamModal(true)} onSaved={() => setToast('تم حفظ إعدادات Cloudinary في Firestore')} onError={(message) => setToast(message)}/>}
         {page === 'profile' && <ProfilePage user={activeUser} isDemo={isDemo} onToggleRole={toggleDemoRole} onLogout={logout} onDeleteAccount={deleteAccount} onSaveProfile={saveProfile} themePreference={themePreference} onThemeChange={setThemePreference} cloudinarySettings={cloudinarySettings} onToggleTheme={() => setThemePreference(dark ? 'light' : 'dark')} dark={dark}/>}
       </div>
       {taskModal && <TaskModal subjects={subjects} userId={activeUser.uid} onClose={() => setTaskModal(false)} onSave={addTask}/>}
@@ -730,7 +729,7 @@ function ProfileCompletionScreen({ user, cloudinarySettings, onComplete, themeCl
 }
 
 function pageTitle(page: string) {
-  const titles: Record<string, string> = { 'student-profile': 'الملف الشخصي للطالب', home: 'الرئيسية', tasks: 'المهام', courses: 'المواد الدراسية', lectures: 'المحاضرات', exams: 'الاختبارات', files: 'مكتبة الملفات', chat: 'المحادثات', planner: 'مخطط المذاكرة', focus: 'مساحة التركيز', analytics: 'إحصائياتي', notifications: 'الإشعارات', admin: 'لوحة الإدارة', profile: 'الملف الشخصي' };
+  const titles: Record<string, string> = { 'student-profile': 'الملف الشخصي للطالب', home: 'الرئيسية', tasks: 'المهام', courses: 'المواد الدراسية', lectures: 'المحاضرات', exams: 'الاختبارات', files: 'مكتبة الملفات', chat: 'المحادثات', planner: 'مخطط المذاكرة', focus: 'مساحة التركيز', analytics: 'إحصائياتي', notifications: 'الإشعارات', profile: 'الملف الشخصي' };
   return titles[page] ?? page;
 }
 
