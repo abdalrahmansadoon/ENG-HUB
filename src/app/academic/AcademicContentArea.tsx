@@ -219,7 +219,18 @@ export function AcademicContentArea({
           {isAcademicContentContainer(activeNode) && <button type="button" className="eh-button primary" onClick={openAdd}><Plus size={16}/> إضافة عنصر</button>}
         </div>}
       </div>
-      <header><span className="eh-content-detail-label">CONTENT DETAILS</span><h3>{activeNode.title}</h3>{activeNode.description && <p>{activeNode.description}</p>}</header>
+      {(activeNode.kind === 'lecturer' || activeNode.kind === 'lecture') ? <section className={`eh-academic-hero eh-academic-hero-${activeNode.kind}`}>
+        <div className="eh-academic-hero-mark">{activeNode.kind === 'lecturer' ? <GraduationCap size={30}/> : <BookOpen size={30}/>}</div>
+        <div className="eh-academic-hero-copy">
+          <span className="eh-content-detail-label">{activeNode.kind === 'lecturer' ? 'LECTURER PROFILE' : 'LECTURE WORKSPACE'}</span>
+          <h2>{activeNode.title}</h2>
+          <p>{activeNode.description || (activeNode.kind === 'lecturer' ? 'صفحة المحاضر وجميع محاضراته ومواده.' : 'مساحة المحاضرة ومصادرها التعليمية.')}</p>
+          <div className="eh-academic-hero-meta"><span><Layers3 size={14}/>{children.length} عنصر</span><span><Video size={14}/>{children.filter((node) => node.kind === 'video').length} فيديو</span><span><FileText size={14}/>{children.filter((node) => node.kind === 'file').length} ملف</span><span><ClipboardList size={14}/>{children.filter((node) => node.kind === 'exam').length} اختبار</span></div>
+        </div>
+      </section> : <header className={`eh-content-detail-heading eh-content-detail-heading-${activeNode.kind}`}>
+        <span className="eh-content-detail-label">{activeNode.kind === 'video' ? 'VIDEO CLASSROOM' : activeNode.kind === 'file' ? 'STUDY RESOURCE' : activeNode.kind === 'exam' ? 'ASSESSMENT' : 'CONTENT DETAILS'}</span>
+        <h2>{activeNode.title}</h2>{activeNode.description && <p>{activeNode.description}</p>}
+      </header>}
       {(activeNode.kind === 'video' || activeNode.kind === 'lecture') && activeNode.url && <AcademicVideo url={activeNode.url} title={activeNode.title} mimeType={activeNode.mimeType}/>} 
       {activeNode.kind === 'video' && siblingVideos.length > 0 && <section className="eh-video-playlist"><div className="eh-content-items-heading"><div><span className="eh-eyebrow">CONTINUE LEARNING</span><h3>فيديوهات أخرى في هذا المجلد</h3></div><span>{siblingVideos.length} فيديو</span></div><div className="eh-video-playlist-list">{siblingVideos.map((video, index) => <button type="button" key={video.id} onClick={() => onNavigate(video.category, video.id)}><span className="eh-video-playlist-number">{String(index + 1).padStart(2, '0')}</span><span className="eh-video-playlist-copy"><b>{video.title}</b><small>{video.duration || 'فيديو تعليمي'}</small></span>{completedVideoIds.has(video.id) ? <CheckCircle2 size={16} className="is-done"/> : <Play size={15}/>}</button>)}</div></section>}
       {activeNode.kind === 'exam' && <button type="button" className="eh-button primary eh-exam-pdf-button" onClick={() => openExamPrintSheet(activeNode, subject.name)}><Download size={16}/> تنزيل الاختبار بصيغة PDF</button>}
