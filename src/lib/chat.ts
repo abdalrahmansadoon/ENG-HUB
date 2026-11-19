@@ -130,7 +130,10 @@ export async function joinGeneralChat(
   const normalizedRoomId = normalizeRoomId(roomId);
   const isCourseRoom = normalizedRoomId.startsWith('course_') && Boolean(courseId);
   const ref = doc(firestore, 'conversations', normalizedRoomId);
-  try {
+  // Do not overwrite an existing room document when a student joins.
+  // The Firestore rules intentionally reserve room metadata updates for moderators.
+  const roomSnapshot = await getDoc(ref);
+  if (!roomSnapshot.exists()) {
     await setDoc(ref, {
       title: roomTitle,
       type: isCourseRoom ? 'course' : 'global',
@@ -138,9 +141,14 @@ export async function joinGeneralChat(
       createdBy: user.uid,
       createdAt: serverTimestamp(),
     });
-  } catch (error) {
-    const code = (error as { code?: string })?.code;
-    if (code !== 'permission-denied') throw error;
+  } else {
+    const roomData = roomSnapshot.data();
+    if (isCourseRoom && (roomData.type !== 'course' || roomData.courseId !== courseId)) {
+      throw new Error('إعداد غرفة مناقشة المادة غير متطابق. تواصل مع مدير المنصة لإصلاح الغرفة.');
+    }
+    if (!isCourseRoom && roomData.type !== 'global') {
+      throw new Error('نوع غرفة المحادثة غير صحيح.');
+    }
   }
   const memberRef = doc(ref, 'members', user.uid);
   const memberSnapshot = await getDoc(memberRef);
