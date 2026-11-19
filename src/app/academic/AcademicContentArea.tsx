@@ -150,7 +150,7 @@ export function AcademicContentArea({
       <div className="eh-content-studio-actions">
         <button type="button" className="eh-button eh-content-subject-back" onClick={onBackToSubject}><ArrowUpLeft size={15}/> أقسام المادة</button>
         <label className="eh-content-search"><Search size={16}/><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="ابحث داخل هذا القسم"/></label>
-        {isAdmin && (!activeNode || isAcademicContentContainer(activeNode)) && <button type="button" className="eh-button primary" onClick={openAdd}><Plus size={16}/> {activeNode ? 'إضافة عنصر داخل هذا القسم' : 'إضافة محتوى'}</button>}
+        {isAdmin && !activeNode && <button type="button" className="eh-button primary" onClick={openAdd}><Plus size={16}/> إضافة محتوى</button>}
       </div>
     </div>
 
