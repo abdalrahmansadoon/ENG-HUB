@@ -58,9 +58,21 @@ service cloud.firestore {
 
     match /users/{userId} {
       allow create: if owns(userId)
+        && request.resource.data.keys().hasOnly([
+          'displayName', 'photoURL', 'phone', 'bio', 'profileVisibility',
+          'showBioOnPublicProfile', 'showAcademicInfoOnPublicProfile',
+          'profileCompleted', 'updatedAt', 'email', 'role', 'status',
+          'academicYear', 'term', 'createdAt'
+        ])
+        && request.resource.data.email == request.auth.token.email
         && request.resource.data.role == 'student'
         && request.resource.data.status == 'active'
-        && request.resource.data.profileCompleted == true;
+        && request.resource.data.profileCompleted == true
+        && request.resource.data.displayName is string
+        && request.resource.data.displayName.size() >= 2
+        && request.resource.data.profileVisibility in ['public', 'private']
+        && request.resource.data.showBioOnPublicProfile is bool
+        && request.resource.data.showAcademicInfoOnPublicProfile is bool;
       allow read: if owns(userId) || isAdmin();
       allow update: if owns(userId)
         && request.resource.data.role == resource.data.role
@@ -348,11 +360,25 @@ service cloud.firestore {
       allow create: if false;
     }
     match /devices/{deviceId} {
+      function validDeviceFields() {
+        return request.resource.data.keys().hasOnly([
+          'userId', 'token', 'platform', 'lastSeenAt', 'updatedAt', 'userAgent'
+        ])
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.token is string
+        && request.resource.data.token.size() >= 20
+        && request.resource.data.platform == 'web'
+        && request.resource.data.lastSeenAt == request.time
+        && request.resource.data.updatedAt == request.time
+        && request.resource.data.userAgent is string;
+      }
       allow read, delete: if activeUser() && resource.data.userId == request.auth.uid;
-      allow update: if activeUser() && resource.data.userId == request.auth.uid
+      allow create: if activeUser() && validDeviceFields();
+      allow update: if activeUser()
+        && resource.data.userId == request.auth.uid
         && request.resource.data.userId == resource.data.userId
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['token', 'platform', 'lastSeenAt', 'updatedAt', 'userAgent']);
-      allow create: if activeUser() && request.resource.data.userId == request.auth.uid;
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['token', 'platform', 'lastSeenAt', 'updatedAt', 'userAgent'])
+        && validDeviceFields();
     }
     match /studySessions/{sessionId} {
       allow read, delete: if activeUser() && resource.data.userId == request.auth.uid;
