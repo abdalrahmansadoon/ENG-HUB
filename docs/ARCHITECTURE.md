@@ -4,10 +4,10 @@
 
 ```text
 Browser / Mobile
-  React + TypeScript + Vite (frontend)
+  React + TypeScript + Vite (frontend on GitHub Pages)
           | Firebase ID token over HTTPS
           v
-  ENG HUB REST API (backend/backend)
+  ENG HUB REST API (Express on Vercel Serverless Functions)
           | Firebase Admin SDK
           v
   Cloud Firestore
@@ -15,8 +15,6 @@ Browser / Mobile
   Cloudinary: binary media storage
   Firebase Authentication: identity provider
   Firebase Cloud Messaging: browser push delivery
-  GitHub Pages: frontend hosting
-  Render (or equivalent): backend hosting
 ```
 
 ## Responsibilities
@@ -32,6 +30,10 @@ Token verification, role checks, server-side validation, privileged reads/writes
 ### Data and media
 
 Firestore remains the data store during migration. Cloudinary remains the media store. Firebase Authentication remains the identity provider. The backend uses Firebase Admin SDK with credentials stored only in the hosting provider's secret environment.
+
+## Hosting
+
+The frontend remains on GitHub Pages. The API is prepared for Vercel Hobby serverless hosting to avoid Render's card-verification flow. Vercel Hobby is free for personal, non-commercial projects and has usage limits; check current plan terms before using it for a commercial service.
 
 ## Migration sequence
 
