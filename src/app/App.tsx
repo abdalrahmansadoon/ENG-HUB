@@ -592,6 +592,7 @@ function App() {
             else setSelectedSubjectId('');
           }}
           onAddSubject={() => setSubjectModal(true)}
+          onDeleteSubject={removeSubject}
           onAddLecturer={() => setLecturerModal(true)}
           onAddLecture={() => setLectureModal(true)}
           onAddPart={() => setLecturePartModal(true)}
@@ -784,7 +785,7 @@ function Dashboard({ userName, tasks, subjects, exams, lectures, onGo, onNewTask
           <span className="eh-subject-line-meta">{lectures.filter((item)=>item.subjectId===subject.id).length} محاضرة</span>
           <ChevronLeft size={16}/>
         </button>)}
-        {subjects.length === 0 && <EmptyState title="لا توجد مواد منشورة" body="عندما يضيف مدير المنصة المقررات ستظهر هنا."/>}
+        {subjects.length === 0 && <EmptyState title="لا توجد مواد منشورة" body="ستظهر المقررات هنا عندما يضيفها المسؤول."/>}
       </div>
     </section>
 
@@ -915,11 +916,11 @@ function TaskActionsMenu({ task, onStatus, onDelete, canEdit }: {
   </details>;
 }
 
-function AcademicHubPage({ subjects, lecturers, lectures, parts, files, exams, tasks, contentNodes, selectedSubjectId, selectedLecturerId, selectedLectureId, subjectCategory, canEdit, onSelectSubject, onSelectCategory, onSelectLecturer, onSelectLecture, onBack, onAddSubject, onAddLecturer, onAddLecture, onAddPart }: {
+function AcademicHubPage({ subjects, lecturers, lectures, parts, files, exams, tasks, contentNodes, selectedSubjectId, selectedLecturerId, selectedLectureId, subjectCategory, canEdit, onSelectSubject, onSelectCategory, onSelectLecturer, onSelectLecture, onBack, onAddSubject, onDeleteSubject, onAddLecturer, onAddLecture, onAddPart }: {
   subjects: Subject[]; lecturers: Lecturer[]; lectures: Lecture[]; parts: LecturePart[]; files: LibraryFile[]; exams: Exam[]; tasks: StudyTask[]; contentNodes: AcademicContentNode[];
   selectedSubjectId: string; selectedLecturerId: string; selectedLectureId: string; subjectCategory: SubjectCategory | ''; canEdit: boolean;
   onSelectSubject: (id: string) => void; onSelectCategory: (category: SubjectCategory) => void; onSelectLecturer: (id: string) => void; onSelectLecture: (id: string) => void; onBack: () => void;
-  onAddSubject: () => void; onAddLecturer: () => void; onAddLecture: () => void; onAddPart: () => void;
+  onAddSubject: () => void; onDeleteSubject: (subject: Subject) => void; onAddLecturer: () => void; onAddLecture: () => void; onAddPart: () => void;
 }) {
   const [playingPart, setPlayingPart] = useState<LecturePart | null>(null);
   const subject = subjects.find((item) => item.id === selectedSubjectId);
@@ -973,7 +974,7 @@ function AcademicHubPage({ subjects, lecturers, lectures, parts, files, exams, t
           <div className="eh-course-card-footer"><span><Users size={14}/>{lecturers.filter((x)=>x.subjectId===item.id).length} مدرس</span><span><Video size={14}/>{lectures.filter((x)=>x.subjectId===item.id).length} محاضرة</span><ChevronLeft size={16}/></div>
         </button>)}
       </div>
-      {subjects.length===0 && <div className="eh-surface-card"><EmptyState title="لا توجد مواد دراسية حتى الآن" body={canEdit?'أنشئ أول مادة، ثم أضف المدرسين والمحاضرات وأجزاء الفيديو.':'ستظهر المواد هنا عند نشرها من لوحة الإدارة.'}/>{canEdit&&<div className="eh-empty-action"><button type="button" className="eh-button primary" onClick={onAddSubject}><Plus size={16}/> إضافة أول مادة</button></div>}</div>}
+      {subjects.length===0 && <div className="eh-surface-card"><EmptyState title="لا توجد مواد دراسية حتى الآن" body={canEdit?'أنشئ أول مادة، ثم أضف المدرسين والمحاضرات وأجزاء الفيديو.':'ستظهر المواد هنا عندما يضيفها المسؤول.'}/>{canEdit&&<div className="eh-empty-action"><button type="button" className="eh-button primary" onClick={onAddSubject}><Plus size={16}/> إضافة أول مادة</button></div>}</div>}
     </>}
 
     {subject && !lecturer && !subjectCategory && <>
@@ -986,6 +987,7 @@ function AcademicHubPage({ subjects, lecturers, lectures, parts, files, exams, t
         </div>
         <div className="eh-academic-level-count"><b>{subjectLecturers.length}</b><span>مدرسون</span></div>
         <div className="eh-academic-level-count"><b>{lectures.filter((item) => item.subjectId === subject.id).length}</b><span>محاضرات</span></div>
+        {canEdit && <button type="button" className="eh-button danger" onClick={() => onDeleteSubject(subject)}><Trash2 size={15}/> حذف المادة</button>}
       </section>
       <div className="eh-section-heading">
         <div><span className="eh-eyebrow">SUBJECT CONTENT</span><h2>محتويات المادة</h2><p>لكل مادة هيكلها الخاص. اختر قسماً للدخول إلى محتوياته ومجلداته.</p></div>
