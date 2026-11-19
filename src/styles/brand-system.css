@@ -1154,3 +1154,24 @@ button,input,textarea,select{font-family:inherit}
 .eh-app.eh-sidebar-collapsed .eh-brand-home .eh-brand-copy{display:none!important}
 .eh-app .eh-brand{display:flex;align-items:center;justify-content:space-between;gap:8px}
 @media(max-width:760px){.eh-app .eh-brand-home{gap:10px}}
+
+/* Admin panel: clearer hierarchy, denser navigation, responsive content management */
+.eh-app .admin-tabs{display:flex;gap:8px;flex-wrap:wrap;padding:8px;margin:0 0 24px;background:var(--surface);border:1px solid var(--border);border-radius:16px;box-shadow:0 8px 24px rgba(18,36,64,.04)}
+.eh-app .admin-tabs button{min-height:42px;padding:9px 16px;border:1px solid transparent;border-radius:11px;background:transparent;color:var(--muted);font-weight:700;font-size:13px;transition:background .18s ease,color .18s ease,transform .18s ease}
+.eh-app .admin-tabs button:hover{background:var(--surface2);color:var(--text)}
+.eh-app .admin-tabs button.active{background:var(--eh-accent-wash);border-color:color-mix(in srgb,var(--eh-accent) 18%,transparent);color:var(--eh-accent)}
+.eh-app .admin-stats{gap:16px;margin-bottom:20px}
+.eh-app .admin-quick-grid{gap:14px;margin:18px 0 22px}
+.eh-app .admin-quick-grid button{min-height:132px;border:1px solid var(--border);border-radius:17px;background:var(--surface);padding:19px;transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease}
+.eh-app .admin-quick-grid button:hover{transform:translateY(-3px);border-color:color-mix(in srgb,var(--eh-accent) 40%,var(--border));box-shadow:0 14px 28px rgba(24,43,74,.08)}
+.eh-app .admin-content-list{border:1px solid var(--border);border-radius:18px;padding:clamp(16px,2vw,24px);box-shadow:0 10px 30px rgba(20,39,68,.035);margin-bottom:18px}
+.eh-app .admin-content-list .panel-head{align-items:center;gap:14px;margin-bottom:16px}
+.eh-app .admin-content-list .panel-head h3{font-size:17px;font-weight:800;letter-spacing:-.2px}
+.eh-app .admin-content-list .panel-head span{font-size:12px;color:var(--muted)}
+.eh-app .eh-admin-subject-row{display:grid;grid-template-columns:42px minmax(140px,1fr) auto auto auto;gap:13px;align-items:center;padding:13px 10px;border-bottom:1px solid var(--border);border-radius:10px}
+.eh-app .eh-admin-subject-copy{min-width:0;display:grid;gap:3px}
+.eh-app .eh-admin-subject-copy b{font-size:13px;color:var(--text)}
+.eh-app .eh-admin-subject-copy span,.eh-app .eh-admin-subject-count{font-size:11px;color:var(--muted)}
+.eh-app .eh-admin-delete{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:34px;padding:6px 10px;border:1px solid color-mix(in srgb,var(--eh-danger) 28%,var(--border));border-radius:9px;background:color-mix(in srgb,var(--eh-danger) 7%,var(--surface));color:var(--eh-danger);font-size:11px;font-weight:800}
+.eh-app .eh-admin-delete:hover{background:color-mix(in srgb,var(--eh-danger) 14%,var(--surface));border-color:var(--eh-danger)}
+@media(max-width:720px){.eh-app .eh-admin-subject-row{grid-template-columns:36px minmax(0,1fr) auto;gap:9px}.eh-app .eh-admin-subject-count{grid-column:2}.eh-app .eh-admin-subject-row .status-chip{display:none}.eh-app .eh-admin-delete{grid-column:3;grid-row:1/3}.eh-app .eh-admin-delete span{display:none}.eh-app .admin-tabs{overflow-x:auto;flex-wrap:nowrap;scrollbar-width:thin}.eh-app .admin-tabs button{white-space:nowrap;flex:0 0 auto}}
