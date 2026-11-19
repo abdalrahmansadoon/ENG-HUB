@@ -1511,3 +1511,57 @@ button,input,textarea,select{font-family:inherit}
  .eh-app .eh-subject-create-footer .modal-actions{width:100%}
  .eh-app .eh-subject-create-footer .modal-actions button{flex:1}
 }
+
+
+/* Academic workspace refinement: branded scrollbars, controls and cards */
+.eh-app,.eh-app *{scrollbar-width:thin;scrollbar-color:color-mix(in srgb,var(--eh-accent) 52%,var(--eh-stroke)) transparent}
+.eh-app *::-webkit-scrollbar{width:9px;height:9px}
+.eh-app *::-webkit-scrollbar-track{background:transparent;border-radius:20px}
+.eh-app *::-webkit-scrollbar-thumb{background:color-mix(in srgb,var(--eh-accent) 42%,var(--eh-stroke));border:2px solid transparent;background-clip:padding-box;border-radius:20px}
+.eh-app *::-webkit-scrollbar-thumb:hover{background:color-mix(in srgb,var(--eh-accent) 70%,var(--eh-stroke));border:2px solid transparent;background-clip:padding-box}
+.eh-app *::-webkit-scrollbar-corner{background:transparent}
+.eh-app :where(input,textarea,select,button){accent-color:var(--eh-accent)}
+.eh-app select{appearance:none;-webkit-appearance:none;min-height:42px;padding:9px 38px 9px 12px;border:1px solid var(--eh-stroke-strong);border-radius:11px;background-color:var(--eh-card-soft);background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236b83a5' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:left 12px center;color:var(--eh-ink);font:inherit;cursor:pointer;transition:border-color .16s,box-shadow .16s}
+.eh-app select:hover{border-color:var(--eh-accent)}
+.eh-app select:focus-visible{outline:0;border-color:var(--eh-accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--eh-accent) 14%,transparent)}
+.eh-app select option,.eh-app select optgroup{background:var(--eh-card-bg);color:var(--eh-ink)}
+.eh-app input[type="date"],.eh-app input[type="datetime-local"],.eh-app input[type="time"]{color-scheme:light dark;border-radius:10px}
+.eh-app .eh-academic-page{width:100%;max-width:1440px;margin-inline:auto;min-width:0}
+.eh-app .eh-academic-level{position:relative;display:flex;align-items:center;gap:20px;flex-wrap:wrap;overflow:hidden;padding:clamp(18px,2.6vw,30px);border:1px solid var(--eh-stroke);border-radius:22px;background:radial-gradient(circle at 8% 0%,color-mix(in srgb,var(--eh-accent) 10%,transparent),transparent 36%),var(--eh-card-bg);box-shadow:0 14px 36px rgba(22,48,83,.06)}
+.eh-app .eh-academic-level:after{content:"";position:absolute;inset-inline-start:-42px;bottom:-92px;width:190px;height:190px;border:1px solid color-mix(in srgb,var(--eh-accent) 13%,transparent);border-radius:50%;pointer-events:none}
+.eh-app .eh-academic-level-copy{flex:1 1 260px;min-width:0}
+.eh-app .eh-academic-level-copy h2{margin:5px 0 4px;font-size:clamp(21px,2.5vw,29px);font-weight:900;letter-spacing:-.4px;color:var(--eh-ink)}
+.eh-app .eh-academic-level-copy p{margin:0;color:var(--eh-sub);font-size:11px;line-height:1.9}
+.eh-app .eh-academic-level-count{min-width:82px;display:flex;flex-direction:column;align-items:center;gap:3px;padding:9px 14px;border-inline-start:1px solid var(--eh-stroke)}
+.eh-app .eh-academic-level-count b{font-size:23px;line-height:1;color:var(--eh-ink);font-weight:900;font-variant-numeric:tabular-nums}
+.eh-app .eh-academic-level-count span{font-size:9px;color:var(--eh-sub)}
+.eh-app .eh-academic-subject-icon.large{width:66px;height:66px;flex:0 0 66px;display:grid;place-items:center;border-radius:19px;background:color-mix(in srgb,var(--subject-color,var(--eh-accent)) 13%,var(--eh-card-bg));color:var(--subject-color,var(--eh-accent));font-size:28px;box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--subject-color,var(--eh-accent)) 19%,transparent)}
+.eh-app .eh-section-heading{display:flex;align-items:flex-end;justify-content:space-between;gap:14px;margin:27px 0 15px}
+.eh-app .eh-section-heading h2{margin:4px 0;font-size:clamp(19px,2vw,23px);font-weight:900;color:var(--eh-ink)}
+.eh-app .eh-section-heading p{margin:0;color:var(--eh-sub);font-size:11px;line-height:1.8}
+.eh-app .eh-subject-category-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px}
+.eh-app .eh-subject-category-card{position:relative;min-width:0;min-height:104px;display:flex;align-items:center;gap:14px;padding:17px;border:1px solid var(--eh-stroke);border-radius:18px;background:var(--eh-card-bg);color:var(--eh-ink);text-align:start;box-shadow:0 6px 18px rgba(22,48,83,.035);transition:transform .18s,border-color .18s,box-shadow .18s}
+.eh-app .eh-subject-category-card:hover{transform:translateY(-2px);border-color:color-mix(in srgb,var(--eh-accent) 55%,var(--eh-stroke));box-shadow:0 13px 28px rgba(22,48,83,.08)}
+.eh-app .eh-subject-category-icon{width:54px;height:54px;flex:0 0 54px;display:grid;place-items:center;border-radius:16px;background:var(--eh-accent-wash);color:var(--eh-accent)}
+.eh-app .eh-subject-category-copy{flex:1;min-width:0;display:flex;flex-direction:column;gap:5px}
+.eh-app .eh-subject-category-copy b{font-size:12px;font-weight:900;color:var(--eh-ink)}
+.eh-app .eh-subject-category-copy small{font-size:9px;line-height:1.7;color:var(--eh-sub)}
+.eh-app .eh-subject-category-count{min-width:30px;height:30px;display:grid;place-items:center;padding:0 7px;border-radius:10px;background:var(--eh-card-soft);color:var(--eh-accent);font-size:10px;font-weight:900}
+.eh-app .eh-academic-tip{margin-top:18px;padding:13px 16px;border:1px solid color-mix(in srgb,var(--eh-accent) 22%,var(--eh-stroke));border-radius:13px;background:var(--eh-accent-wash);color:var(--eh-sub);font-size:10px;line-height:1.9}
+.eh-app .eh-content-studio{width:100%;max-width:1440px;margin-inline:auto;min-width:0}
+.eh-app .eh-content-studio-head{position:relative;gap:18px;padding:clamp(16px,2.4vw,26px);border:1px solid var(--eh-stroke);border-radius:20px;background:var(--eh-card-bg);box-shadow:0 8px 25px rgba(22,48,83,.045)}
+.eh-app .eh-content-studio-title h2{font-size:clamp(20px,2.2vw,27px);font-weight:900;letter-spacing:-.3px}
+.eh-app .eh-content-items-section{margin-top:20px;padding:clamp(14px,2vw,22px);border:1px solid var(--eh-stroke);border-radius:20px;background:color-mix(in srgb,var(--eh-card-bg) 86%,var(--eh-card-soft))}
+.eh-app .eh-content-items-heading{margin-bottom:14px}
+.eh-app .eh-content-item-grid{grid-template-columns:repeat(auto-fill,minmax(min(100%,310px),1fr));gap:13px}
+.eh-app .eh-content-item-card{position:relative;min-width:0;border:1px solid var(--eh-stroke);border-radius:16px;background:var(--eh-card-bg);box-shadow:0 5px 17px rgba(22,48,83,.035)}
+.eh-app .eh-content-item-card:hover{border-color:color-mix(in srgb,var(--eh-accent) 50%,var(--eh-stroke))}
+.eh-app .eh-content-item-admin{justify-content:flex-end;padding-top:9px;border-top:1px solid var(--eh-stroke)}
+.eh-app .eh-content-item-admin button{width:34px;height:34px;border-radius:9px;background:var(--eh-card-soft);display:grid;place-items:center}
+.eh-app .eh-content-detail{margin-top:18px;border:1px solid var(--eh-stroke);border-radius:20px;background:var(--eh-card-bg);box-shadow:0 8px 26px rgba(22,48,83,.045)}
+.eh-app .eh-content-detail header h3{font-size:clamp(19px,2vw,25px);font-weight:900}
+.eh-app .eh-content-detail-actions .eh-button.danger{border-color:color-mix(in srgb,var(--eh-danger) 30%,var(--eh-stroke));color:var(--eh-danger);background:color-mix(in srgb,var(--eh-danger) 7%,var(--eh-card-bg))}
+.eh-app .eh-content-breadcrumb{position:relative;z-index:1;display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-width:0;padding:11px 14px;border:1px solid var(--eh-stroke);border-radius:13px;background:var(--eh-card-bg)}
+.eh-app .eh-content-breadcrumb button,.eh-app .eh-content-breadcrumb span{font-size:10px}
+.eh-app .eh-content-empty{padding:42px 20px;border:1px dashed var(--eh-stroke-strong);border-radius:16px;background:var(--eh-card-bg);text-align:center}
+@media(max-width:760px){.eh-app .eh-subject-category-grid{grid-template-columns:minmax(0,1fr)}.eh-app .eh-academic-level{gap:12px}.eh-app .eh-academic-level-count{min-width:64px;padding:8px}.eh-app .eh-content-item-grid{grid-template-columns:minmax(0,1fr)}}
