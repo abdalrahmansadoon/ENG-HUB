@@ -120,8 +120,8 @@ export async function updateAcademicContentNode(
     const firestore = requireDb();
     const currentRef = doc(firestore, 'subjects', subjectId, 'contentNodes', nodeId);
     const current = await (await import('firebase/firestore')).getDoc(currentRef);
-    const previousIds = Array.isArray(current.data()?.linkedNodeIds) ? current.data()!.linkedNodeIds.filter((id: unknown): id is string => typeof id === 'string') : [];
-    const nextIds = [...new Set(patch.linkedNodeIds)].filter((id) => id !== nodeId);
+    const previousIds: string[] = Array.isArray(current.data()?.linkedNodeIds) ? (current.data()!.linkedNodeIds as unknown[]).filter((id: unknown): id is string => typeof id === 'string') : [];
+    const nextIds: string[] = [...new Set(patch.linkedNodeIds as string[])].filter((id: string) => id !== nodeId);
     const batch = writeBatch(firestore);
     batch.update(currentRef, { ...allowed, linkedNodeIds: nextIds });
     previousIds.filter((id) => !nextIds.includes(id)).forEach((id) => batch.update(doc(firestore, 'subjects', subjectId, 'contentNodes', id), { linkedNodeIds: arrayRemove(nodeId), updatedAt: serverTimestamp() }));
