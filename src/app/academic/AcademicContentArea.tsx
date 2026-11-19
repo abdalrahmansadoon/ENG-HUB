@@ -182,7 +182,7 @@ export function AcademicContentArea({
           const isDraft = node.publicationStatus === 'draft';
           const storedIconName = node.iconName?.startsWith('lucide:') ? node.iconName.slice(7) : node.iconName;
           const ChosenIcon = storedIconName ? (LucideIcons as unknown as Record<string, LucideIcon>)[storedIconName] : undefined;
-          const kindLabel = node.kind ==== 'custom' ? (node.customTypeName || 'نوع مخصص') : (kinds.find((kind) => kind.id === node.kind)?.label ?? node.kind);
+          const kindLabel = node.kind === 'custom' ? (node.customTypeName || 'نوع مخصص') : (kinds.find((kind) => kind.id === node.kind)?.label ?? node.kind);
           return <article className={`eh-content-item-card ${node.kind === 'video' ? 'is-video-card' : ''}`} key={node.id}>
             {node.kind === 'video' && <div className="eh-content-video-card-cover"><span className="eh-content-video-card-play"><Play size={20} fill="currentColor"/></span><span className="eh-content-video-card-label">محاضرة مسجلة</span>{completedVideoIds.has(node.id) && <span className="eh-content-video-card-done"><Check size={12}/> مكتمل</span>}</div>}
             <button type="button" className="eh-content-item-open" onClick={() => isFolder ? onNavigate(category, node.id) : onNavigate(category, node.id)}>
@@ -208,7 +208,7 @@ export function AcademicContentArea({
         <p>{activeNode && !isAcademicContentContainer(activeNode) ? 'هذا النوع لا يقبل عناصر بداخله. استخدم زر الرجوع لاختيار مجلد أو إنشاء عنصر جديد في المستوى المناسب.' : isAdmin ? 'أضف مجلداً أو مدرساً أو محاضرة أو فيديو أو ملفاً أو اختباراً، أو أنشئ نوعاً مخصصاً يناسب المادة.' : 'سيظهر المحتوى هنا عندما ينشره مدير المادة.'}</p>
 
       </div>}
-    </section>
+    </section>}
 
     {activeNode && <section className="eh-content-detail">
       <div className="eh-content-detail-toolbar">
