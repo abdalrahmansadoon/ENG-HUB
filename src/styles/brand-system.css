@@ -1412,3 +1412,24 @@ button,input,textarea,select{font-family:inherit}
 .eh-app .eh-video-completion button.is-complete{background:var(--eh-teal-wash);border-color:var(--eh-teal);color:var(--eh-teal)}
 .eh-app .eh-content-detail-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
 @media(max-width:680px){.eh-app .eh-icon-library-grid{grid-template-columns:repeat(5,minmax(0,1fr));max-height:210px}.eh-app .eh-video-completion{align-items:stretch;flex-direction:column}.eh-app .eh-video-completion button{width:100%}}
+
+/* Video content cards and lesson playlist */
+.eh-app .eh-content-item-card.is-video-card{overflow:hidden;padding:0}
+.eh-app .eh-content-video-card-cover{height:116px;position:relative;display:grid;place-items:center;overflow:hidden;background:radial-gradient(circle at 25% 20%,rgba(30,183,173,.38),transparent 35%),linear-gradient(135deg,#152b4b,#283f76 55%,#176c78)}
+.eh-app .eh-content-video-card-cover:before,.eh-app .eh-content-video-card-cover:after{content:"";position:absolute;border:1px solid rgba(255,255,255,.13);border-radius:50%;width:170px;height:170px;inset:auto -38px -115px auto}
+.eh-app .eh-content-video-card-cover:after{width:110px;height:110px;inset:-70px auto auto -20px}
+.eh-app .eh-content-video-card-play{width:48px;height:48px;display:grid;place-items:center;border-radius:50%;background:rgba(255,255,255,.17);border:1px solid rgba(255,255,255,.36);color:#fff;backdrop-filter:blur(8px);z-index:1}
+.eh-app .eh-content-video-card-label,.eh-app .eh-content-video-card-done{position:absolute;top:9px;padding:5px 8px;border-radius:7px;background:rgba(4,12,26,.48);color:#fff;font-size:9px;font-weight:800}
+.eh-app .eh-content-video-card-label{inset-inline-start:9px}
+.eh-app .eh-content-video-card-done{inset-inline-end:9px;display:flex;align-items:center;gap:4px;background:rgba(15,125,91,.82)}
+.eh-app .eh-content-item-card.is-video-card .eh-content-item-open{padding:13px 14px 0}
+.eh-app .eh-content-item-card.is-video-card .eh-content-item-meta{margin:10px 14px 13px}
+.eh-app .eh-video-playlist{max-width:1180px;margin:16px auto;padding:15px;border:1px solid var(--eh-stroke);border-radius:15px;background:var(--eh-card-bg)}
+.eh-app .eh-video-playlist-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
+.eh-app .eh-video-playlist-list button{display:flex;align-items:center;gap:10px;min-width:0;padding:10px;border:1px solid var(--eh-stroke);border-radius:10px;background:var(--eh-card-soft);color:var(--eh-sub);text-align:right}
+.eh-app .eh-video-playlist-number{width:30px;height:30px;flex:0 0 30px;display:grid;place-items:center;border-radius:8px;background:var(--eh-accent-wash);color:var(--eh-accent);font-size:10px;font-weight:900}
+.eh-app .eh-video-playlist-copy{display:flex;flex:1;min-width:0;flex-direction:column;gap:3px}
+.eh-app .eh-video-playlist-copy b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:10px;color:var(--eh-ink)}
+.eh-app .eh-video-playlist-copy small{font-size:9px;color:var(--eh-sub)}
+.eh-app .eh-video-playlist-list .is-done{color:var(--eh-teal)}
+@media(max-width:680px){.eh-app .eh-content-video-card-cover{height:100px}.eh-app .eh-video-playlist-list{grid-template-columns:minmax(0,1fr)}}
