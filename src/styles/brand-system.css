@@ -1082,3 +1082,66 @@ button,input,textarea,select{font-family:inherit}
  .eh-app .eh-academic-page .eh-page-heading h1{font-size:20px!important}
  .eh-app .eh-academic-library-intro{align-items:flex-start;flex-direction:column;gap:2px}
 }
+
+/* ENG HUB mobile-first usability pass */
+@media(max-width:760px){
+ .eh-app{min-height:100dvh;overflow-x:hidden}
+ .eh-app .eh-sidebar{position:fixed!important;inset:0 0 0 auto!important;width:min(86vw,330px)!important;min-width:min(86vw,330px)!important;height:100dvh!important;transform:translateX(110%);transition:transform .26s cubic-bezier(.2,.8,.2,1)!important;z-index:120!important;box-shadow:-18px 0 50px rgba(10,25,48,.16)}
+ .eh-app .eh-sidebar.is-open{transform:translateX(0)!important}
+ .eh-app.eh-sidebar-collapsed .eh-sidebar{width:min(86vw,330px)!important;min-width:min(86vw,330px)!important;padding:18px!important}
+ .eh-app.eh-sidebar-collapsed .eh-sidebar .eh-brand-copy,.eh-app.eh-sidebar-collapsed .eh-sidebar .eh-nav-group h2,.eh-app.eh-sidebar-collapsed .eh-sidebar .eh-nav-link>span,.eh-app.eh-sidebar-collapsed .eh-sidebar .eh-account-copy,.eh-app.eh-sidebar-collapsed .eh-sidebar .eh-account-mini>svg{display:initial!important}
+ .eh-app.eh-sidebar-collapsed .eh-sidebar .eh-nav-link{width:100%!important;height:48px!important;justify-content:flex-start!important;padding:0 14px!important}
+ .eh-app.eh-sidebar-collapsed .eh-sidebar .eh-term-card{width:100%!important;height:auto!important;min-height:58px!important;display:flex!important;justify-content:space-between!important;padding:10px 12px!important}
+ .eh-app.eh-sidebar-collapsed .eh-sidebar .eh-term-card>span:not(.eh-term-symbol),.eh-app.eh-sidebar-collapsed .eh-sidebar .eh-term-card>svg{display:initial!important}
+ .eh-app.eh-sidebar-collapsed .eh-sidebar .eh-account-mini{width:100%!important;justify-content:flex-start!important}
+ .eh-app .eh-scrim{position:fixed!important;inset:0!important;background:rgba(8,19,36,.42)!important;backdrop-filter:blur(3px);z-index:110!important}
+ .eh-app .eh-main,.eh-app.eh-sidebar-collapsed .eh-main{width:100%!important;margin:0!important;min-width:0!important}
+ .eh-app .eh-topbar{height:62px!important;min-height:62px!important;padding:0 13px!important;gap:8px!important;position:sticky;top:0;z-index:60}
+ .eh-app .eh-mobile-menu{display:grid!important;width:40px!important;height:40px!important;flex:0 0 40px}
+ .eh-app .eh-sidebar-toggle{display:none!important}
+ .eh-app .eh-breadcrumb{min-width:0;gap:6px!important;font-size:10px!important}
+ .eh-app .eh-breadcrumb>b{font-size:12px!important;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:38vw}
+ .eh-app .eh-topbar-actions{gap:5px!important}
+ .eh-app .eh-search-wrap{width:40px!important}
+ .eh-app .eh-search{width:40px!important;height:40px!important;padding:0 11px!important;justify-content:center!important}
+ .eh-app .eh-search input,.eh-app .eh-search kbd{display:none!important}
+ .eh-app .eh-search-wrap:focus-within,.eh-app .eh-search-wrap:has(input:not(:placeholder-shown)){position:absolute;left:58px;right:58px;width:auto!important;z-index:5}
+ .eh-app .eh-search-wrap:focus-within .eh-search,.eh-app .eh-search-wrap:has(input:not(:placeholder-shown)) .eh-search{width:100%!important;justify-content:flex-start!important}
+ .eh-app .eh-search-wrap:focus-within .eh-search input,.eh-app .eh-search-wrap:has(input:not(:placeholder-shown)) .eh-search input{display:block!important;width:100%;min-width:0}
+ .eh-app .eh-top-avatar{width:36px!important;height:36px!important;min-width:36px!important;flex:0 0 36px!important}
+ .eh-app .eh-content{min-width:0;overflow-x:hidden;padding-bottom:calc(78px + env(safe-area-inset-bottom))!important}
+ .eh-app .eh-page-view{padding:20px 14px 28px!important}
+ .eh-app .eh-page-heading{align-items:flex-start!important;flex-direction:column!important;gap:9px!important;margin-bottom:18px!important}
+ .eh-app .eh-page-heading h1{font-size:23px!important}
+ .eh-app .eh-page-heading p{font-size:12px!important}
+ .eh-app .eh-stat-grid,.eh-app .eh-stats-grid,.eh-app .stats-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:9px!important}
+ .eh-app .eh-stat-card,.eh-app .stat-card{min-width:0;padding:13px!important;min-height:112px!important}
+ .eh-app .eh-stat-value,.eh-app .stat-value{font-size:27px!important}
+ .eh-app .eh-dashboard-grid,.eh-app .eh-home-grid,.eh-app .dashboard-grid,.eh-app .lower-grid{grid-template-columns:minmax(0,1fr)!important;gap:12px!important}
+ .eh-app .eh-academic-subject-grid,.eh-app .eh-content-item-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:10px!important}
+ .eh-app .eh-academic-subject-card,.eh-app .eh-content-item-card{min-width:0;border-radius:14px!important}
+ .eh-app .eh-content-studio-head{align-items:stretch!important;flex-direction:column!important;gap:12px!important}
+ .eh-app .eh-content-studio-actions{display:grid!important;grid-template-columns:1fr 1fr!important;gap:8px!important}
+ .eh-app .eh-content-search{grid-column:1/-1;min-width:0!important;width:100%!important}
+ .eh-app .eh-content-breadcrumb{overflow-x:auto!important;white-space:nowrap!important;max-width:100%;padding-bottom:8px}
+ .eh-app .eh-content-detail{padding:15px!important;border-radius:15px!important}
+ .eh-app .eh-content-detail header h3{font-size:20px!important}
+ .eh-app .eh-related-content-link{min-width:0}
+ .eh-app .eh-button,.eh-app .btn,.eh-app button{touch-action:manipulation}
+ .eh-app .eh-button,.eh-app .btn{min-height:44px!important}
+ .eh-app .eh-mobile-nav{position:fixed!important;display:flex!important;align-items:stretch!important;gap:4px!important;left:0!important;right:0!important;bottom:0!important;height:calc(64px + env(safe-area-inset-bottom))!important;padding:6px 7px calc(6px + env(safe-area-inset-bottom))!important;background:color-mix(in srgb,var(--eh-card-bg) 94%,transparent)!important;border-top:1px solid var(--eh-stroke)!important;backdrop-filter:blur(18px);z-index:90!important;overflow-x:auto!important;overflow-y:hidden!important;scrollbar-width:none!important}
+ .eh-app .eh-mobile-nav::-webkit-scrollbar{display:none}
+ .eh-app .eh-mobile-nav button{flex:0 0 66px!important;min-width:58px!important;display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;gap:3px!important;border-radius:11px!important;color:var(--eh-muted)!important;font-size:9px!important;font-weight:700!important;white-space:nowrap!important}
+ .eh-app .eh-mobile-nav button svg{width:19px;height:19px}
+ .eh-app .eh-mobile-nav button.active{color:var(--eh-accent)!important;background:var(--eh-accent-wash)!important}
+}
+@media(max-width:420px){
+ .eh-app .eh-academic-subject-grid,.eh-app .eh-content-item-grid{grid-template-columns:minmax(0,1fr)!important}
+ .eh-app .eh-page-view{padding-inline:11px!important}
+ .eh-app .eh-stat-grid,.eh-app .eh-stats-grid,.eh-app .stats-grid{gap:7px!important}
+ .eh-app .eh-mobile-nav button{flex-basis:61px!important}
+ .eh-app .eh-content-studio-actions{grid-template-columns:minmax(0,1fr)!important}
+}
+@media(prefers-reduced-motion:reduce){
+ .eh-app *, .eh-app *::before,.eh-app *::after{scroll-behavior:auto!important;transition-duration:.01ms!important;animation-duration:.01ms!important;animation-iteration-count:1!important}
+}
