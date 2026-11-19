@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import * as LucideIcons from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import {
-  ArrowDown, ArrowUpLeft, BookOpen, Check, ChevronLeft, ChevronRight, ClipboardList,
+  ArrowDown, ArrowUpLeft, BookOpen, Check, CheckCircle2, ChevronLeft, ChevronRight, ClipboardList,
   Download, ExternalLink, File, FileText, Folder, FolderPlus, GraduationCap, Layers3,
   Link2, Lock, MoreHorizontal, Pencil, Play, Plus, Search, ShieldCheck, Sparkles, Trash2, Video, X,
 } from 'lucide-react';
