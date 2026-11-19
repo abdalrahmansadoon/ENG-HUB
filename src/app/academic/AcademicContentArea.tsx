@@ -4,7 +4,7 @@ import type { LucideIcon } from 'lucide-react';
 import {
   ArrowDown, ArrowUpLeft, BookOpen, Check, CheckCircle2, ChevronLeft, ChevronRight, ClipboardList,
   Download, ExternalLink, File, FileText, Folder, FolderPlus, GraduationCap, Layers3,
-  Link2, Lock, MoreHorizontal, Pencil, Play, Plus, Search, ShieldCheck, Sparkles, Trash2, Video, X,
+  Link2, Lock, Maximize, MoreHorizontal, Pause, Pencil, Play, Plus, Search, ShieldCheck, Sparkles, Trash2, Video, Volume2, X,
 } from 'lucide-react';
 import type { Subject } from '../../types';
 import { isAcademicContentContainer } from '../../types/academicContent';
@@ -211,7 +211,7 @@ export function AcademicContentArea({
 
     {activeNode && <section className="eh-content-detail">
       <header><span className="eh-content-detail-label">CONTENT DETAILS</span><h3>{activeNode.title}</h3>{activeNode.description && <p>{activeNode.description}</p>}</header>
-      {(activeNode.kind === 'video' || activeNode.kind === 'lecture') && activeNode.url && <AcademicVideo url={activeNode.url} title={activeNode.title}/>} 
+      {(activeNode.kind === 'video' || activeNode.kind === 'lecture') && activeNode.url && <AcademicVideo url={activeNode.url} title={activeNode.title} mimeType={activeNode.mimeType}/>} 
       {activeNode.kind === 'video' && siblingVideos.length > 0 && <section className="eh-video-playlist"><div className="eh-content-items-heading"><div><span className="eh-eyebrow">CONTINUE LEARNING</span><h3>فيديوهات أخرى في هذا المجلد</h3></div><span>{siblingVideos.length} فيديو</span></div><div className="eh-video-playlist-list">{siblingVideos.map((video, index) => <button type="button" key={video.id} onClick={() => onNavigate(video.category, video.id)}><span className="eh-video-playlist-number">{String(index + 1).padStart(2, '0')}</span><span className="eh-video-playlist-copy"><b>{video.title}</b><small>{video.duration || 'فيديو تعليمي'}</small></span>{completedVideoIds.has(video.id) ? <CheckCircle2 size={16} className="is-done"/> : <Play size={15}/>}</button>)}</div></section>}
       {activeNode.kind === 'exam' && <button type="button" className="eh-button primary eh-exam-pdf-button" onClick={() => openExamPrintSheet(activeNode, subject.name)}><Download size={16}/> تنزيل الاختبار بصيغة PDF</button>}
       {activeNode.kind === 'video' && activeNode.url && <a className="eh-button eh-content-download" href={activeNode.url} target="_blank" rel="noreferrer" download><Download size={15}/> تنزيل الفيديو</a>}
@@ -273,27 +273,35 @@ function AcademicCustomAttachment({ url, title, mimeType }: { url: string; title
   </a>;
 }
 
-function AcademicVideo({ url, title }: { url: string; title: string }) {
+function AcademicVideo({ url, title, mimeType }: { url: string; title: string; mimeType?: string }) {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const shellRef = useRef<HTMLDivElement>(null);
   const [speed, setSpeed] = useState('1');
+  const [playing, setPlaying] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [volume, setVolume] = useState(1);
   const [embedFailed, setEmbedFailed] = useState(false);
   let embed = '';
   let playbackUrl = url.trim();
   let provider = 'رابط فيديو';
   let directVideo = false;
+  const isPdf = /application\/pdf/i.test(mimeType || '') || /\.pdf(?:$|[?#])/i.test(url) || (/drive\.google\.com\/file\/d\//i.test(url) && /pdf/i.test(title));
   try {
     const parsed = new URL(playbackUrl);
     if (!['http:', 'https:'].includes(parsed.protocol)) throw new Error('Unsupported URL protocol');
     const host = parsed.hostname.toLowerCase().replace(/^www\./, '');
     const path = parsed.pathname;
     const lastSegment = path.split('/').filter(Boolean).pop() || '';
-
-    if (host === 'youtu.be' || host === 'youtube.com' || host.endsWith('.youtube.com')) {
-      let videoId = host === 'youtu.be' ? lastSegment : (parsed.searchParams.get('v') || path.match(/\/(?:embed|shorts|live|v)\/([^/?]+)/)?.[1] || '');
-      if (videoId) {
-        embed = 'https://www.youtube-nocookie.com/embed/' + encodeURIComponent(videoId) + '?rel=0&modestbranding=1';
-        provider = 'YouTube';
-      }
+    if (isPdf) {
+      if ((host === 'drive.google.com' || host === 'docs.google.com') && /\/file\/d\/([^/]+)/.test(path)) {
+        const id = path.match(/\/file\/d\/([^/]+)/)?.[1];
+        if (id) embed = 'https://drive.google.com/file/d/' + encodeURIComponent(id) + '/preview';
+      } else embed = playbackUrl;
+      provider = 'PDF DOCUMENT';
+    } else if (host === 'youtu.be' || host === 'youtube.com' || host.endsWith('.youtube.com')) {
+      const videoId = host === 'youtu.be' ? lastSegment : (parsed.searchParams.get('v') || path.match(/\/(?:embed|shorts|live|v)\/([^/?]+)/)?.[1] || '');
+      if (videoId) { embed = 'https://www.youtube-nocookie.com/embed/' + encodeURIComponent(videoId) + '?rel=0&modestbranding=1'; provider = 'YouTube'; }
     } else if (host === 'vimeo.com' || host.endsWith('.vimeo.com')) {
       const id = path.match(/\/(?:video\/)?(\d+)/)?.[1] || '';
       if (id) { embed = 'https://player.vimeo.com/video/' + id + '?dnt=1'; provider = 'Vimeo'; }
@@ -301,8 +309,7 @@ function AcademicVideo({ url, title }: { url: string; title: string }) {
       const id = host === 'dai.ly' ? lastSegment : (path.match(/\/(?:video|embed\/video)\/([^/?_]+)/)?.[1] || '');
       if (id) { embed = 'https://www.dailymotion.com/embed/video/' + encodeURIComponent(id); provider = 'Dailymotion'; }
     } else if (host === 'facebook.com' || host.endsWith('.facebook.com') || host === 'fb.watch') {
-      embed = 'https://www.facebook.com/plugins/video.php?href=' + encodeURIComponent(playbackUrl) + '&show_text=0&width=1280';
-      provider = 'Facebook';
+      embed = 'https://www.facebook.com/plugins/video.php?href=' + encodeURIComponent(playbackUrl) + '&show_text=0&width=1280'; provider = 'Facebook';
     } else if (host === 'tiktok.com' || host.endsWith('.tiktok.com')) {
       const id = path.match(/\/video\/(\d+)/)?.[1];
       if (id) { embed = 'https://www.tiktok.com/player/v1/' + id + '?autoplay=0'; provider = 'TikTok'; }
@@ -334,19 +341,37 @@ function AcademicVideo({ url, title }: { url: string; title: string }) {
         parsed.searchParams.delete('dl'); parsed.searchParams.set('raw', '1'); playbackUrl = parsed.toString(); directVideo = true; provider = 'Dropbox';
       }
     }
-
-    if (!embed && !directVideo && /\.(mp4|webm|mov|m4v|ogg|m3u8)(?:$)/i.test(new URL(playbackUrl).pathname)) {
-      directVideo = true;
-      provider = 'ملف فيديو مباشر';
-    }
-  } catch { /* invalid or unsupported URLs are shown with a safe source link */ }
-
-  return <section className="eh-video-player-shell">
-    <div className="eh-video-player-topline"><div><span className="eh-eyebrow">NOW PLAYING · {provider.toUpperCase()}</span><b>{title}</b></div><a href={url} target="_blank" rel="noopener noreferrer"><ExternalLink size={14}/> فتح المصدر</a></div>
-    {embed && !embedFailed ? <div className="eh-content-video"><iframe src={embed} title={title} allow="accelerometer; autoplay; encrypted-media; picture-in-picture; fullscreen; clipboard-write" allowFullScreen loading="lazy" referrerPolicy="strict-origin-when-cross-origin" onError={() => setEmbedFailed(true)}/></div>
-      : directVideo ? <div className="eh-content-video"><video ref={videoRef} src={playbackUrl} controls playsInline preload="metadata" controlsList="nodownload" onRateChange={(event) => setSpeed(String(event.currentTarget.playbackRate))}/></div>
-      : <div className="eh-video-embed-fallback"><div className="eh-video-embed-fallback-icon"><Play size={22}/></div><b>{embedFailed ? 'تعذر تحميل المشغل المدمج' : 'هذا الرابط لا يوفر صيغة تشغيل مباشرة معروفة'}</b><p>قد تمنع المنصة عرض الفيديو داخل مواقع أخرى. يمكنك فتح المصدر الأصلي لمشاهدة الفيديو.</p><a href={url} target="_blank" rel="noopener noreferrer">فتح الفيديو على المصدر <ExternalLink size={14}/></a></div>}
-    {directVideo && <div className="eh-video-player-tools"><label>سرعة التشغيل<select value={speed} onChange={(event) => { setSpeed(event.target.value); if (videoRef.current) videoRef.current.playbackRate = Number(event.target.value); }}><option value="0.5">0.5×</option><option value="0.75">0.75×</option><option value="1">عادية 1×</option><option value="1.25">1.25×</option><option value="1.5">1.5×</option><option value="1.75">1.75×</option><option value="2">2×</option></select></label><span>يمكنك التحكم في التقديم والصوت وملء الشاشة من مشغل الفيديو.</span></div>}
+    if (!embed && !directVideo && /\.(mp4|webm|mov|m4v|ogg|m3u8)(?:$)/i.test(new URL(playbackUrl).pathname)) { directVideo = true; provider = 'فيديو مباشر'; }
+  } catch { /* unsupported or invalid URLs fall back to the source link */ }
+  const formatTime = (value: number) => Number.isFinite(value) ? Math.floor(value / 60) + ':' + Math.floor(value % 60).toString().padStart(2, '0') : '0:00';
+  const togglePlayback = () => {
+    const video = videoRef.current;
+    if (!video) return;
+    if (video.paused) void video.play().catch(() => setPlaying(false));
+    else video.pause();
+  };
+  const toggleFullscreen = () => {
+    const shell = shellRef.current;
+    if (!shell) return;
+    if (document.fullscreenElement) void document.exitFullscreen();
+    else if (shell.requestFullscreen) void shell.requestFullscreen();
+  };
+  return <section className="eh-video-player-shell" ref={shellRef}>
+    <div className="eh-video-player-topline"><div><span className="eh-eyebrow">{isPdf ? 'DOCUMENT VIEWER' : 'NOW PLAYING'} · {provider.toUpperCase()}</span><b>{title}</b></div><a href={url} target="_blank" rel="noopener noreferrer"><ExternalLink size={14}/> فتح المصدر</a></div>
+    {isPdf && embed ? <div className="eh-document-viewer"><iframe src={embed} title={'معاينة ' + title} loading="lazy" allow="autoplay" referrerPolicy="strict-origin-when-cross-origin"/><div className="eh-document-viewer-caption"><FileText size={15}/> معاينة المستند داخل ENG HUB <a href={url} target="_blank" rel="noopener noreferrer">فتح أو تنزيل الملف <Download size={13}/></a></div></div>
+      : embed && !embedFailed ? <div className="eh-content-video"><iframe src={embed} title={title} allow="accelerometer; autoplay; encrypted-media; picture-in-picture; fullscreen; clipboard-write" allowFullScreen loading="lazy" referrerPolicy="strict-origin-when-cross-origin" onError={() => setEmbedFailed(true)}/></div>
+      : directVideo ? <div className="eh-custom-player">
+        <video ref={videoRef} src={playbackUrl} playsInline preload="metadata" onPlay={() => setPlaying(true)} onPause={() => setPlaying(false)} onTimeUpdate={(event) => setCurrentTime(event.currentTarget.currentTime)} onLoadedMetadata={(event) => setDuration(event.currentTarget.duration)} onDurationChange={(event) => setDuration(event.currentTarget.duration)} onVolumeChange={(event) => setVolume(event.currentTarget.volume)} onClick={togglePlayback}/>
+        <div className="eh-custom-player-controls">
+          <button type="button" className="eh-player-main-control" onClick={togglePlayback} aria-label={playing ? 'إيقاف مؤقت' : 'تشغيل'}>{playing ? <Pause size={19} fill="currentColor"/> : <Play size={19} fill="currentColor"/>}</button>
+          <span className="eh-player-time">{formatTime(currentTime)} / {formatTime(duration)}</span>
+          <input className="eh-player-seek" aria-label="موضع الفيديو" type="range" min="0" max={duration || 0} step="0.1" value={Math.min(currentTime, duration || 0)} onChange={(event) => { if (videoRef.current) videoRef.current.currentTime = Number(event.target.value); }}/>
+          <Volume2 size={17}/><input className="eh-player-volume" aria-label="مستوى الصوت" type="range" min="0" max="1" step="0.05" value={volume} onChange={(event) => { if (videoRef.current) videoRef.current.volume = Number(event.target.value); }}/>
+          <select aria-label="سرعة التشغيل" value={speed} onChange={(event) => { setSpeed(event.target.value); if (videoRef.current) videoRef.current.playbackRate = Number(event.target.value); }}><option value="0.5">0.5×</option><option value="0.75">0.75×</option><option value="1">1×</option><option value="1.25">1.25×</option><option value="1.5">1.5×</option><option value="1.75">1.75×</option><option value="2">2×</option></select>
+          <button type="button" onClick={toggleFullscreen} aria-label="ملء الشاشة"><Maximize size={17}/></button>
+        </div>
+      </div>
+      : <div className="eh-video-embed-fallback"><div className="eh-video-embed-fallback-icon"><Play size={22}/></div><b>{embedFailed ? 'تعذر تحميل المشغل المدمج' : 'تعذر التعرف على صيغة هذا الرابط'}</b><p>قد تمنع المنصة عرض المحتوى داخل مواقع أخرى، أو قد يحتاج الرابط إلى صلاحية وصول.</p><a href={url} target="_blank" rel="noopener noreferrer">فتح المصدر الأصلي <ExternalLink size={14}/></a></div>}
   </section>;
 }
 
