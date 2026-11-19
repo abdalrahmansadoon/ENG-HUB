@@ -22,6 +22,8 @@ export function readEngHubRoute(hash = window.location.hash): EngHubRoute {
   const base: EngHubRoute = {
     page: first || 'home', subjectId: '', category: '', lecturerId: '', lectureId: '', contentNodeId: '', profileUid: '',
   };
+  // The standalone administration screen is retired; administrators now edit content in context.
+  if (first === 'admin') { base.page = 'home'; return base; }
   if (first === 'students') { base.page = 'student-profile'; base.profileUid = parts[1] || ''; return base; }
   if (first !== 'courses') return base;
   base.page = 'courses';
@@ -48,7 +50,7 @@ export function readEngHubRoute(hash = window.location.hash): EngHubRoute {
 export function buildEngHubHash(route: EngHubRoute): string {
   if (route.page === 'student-profile') return route.profileUid ? '#/students/' + encode(route.profileUid) : '#/students';
   if (route.page === 'chat' && route.subjectId) return '#/courses/' + encode(route.subjectId) + '/category/chat';
-  if (route.page === 'home' || !route.page) return '';
+  if (route.page === 'home' || route.page === 'admin' || !route.page) return '';
   if (route.page !== 'courses') return '#/' + encode(route.page);
   if (!route.subjectId) return '#/courses';
   const root = '#/courses/' + encode(route.subjectId);
