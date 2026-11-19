@@ -11,6 +11,35 @@ import type {
   AcademicContentCategory, AcademicContentKind, AcademicContentNode, CreateAcademicContentInput,
 } from '../../types/academicContent';
 
+function escapePrintText(value: string) {
+  return value.replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char] || char));
+}
+
+function openExamPrintSheet(node: AcademicContentNode, subjectName: string) {
+  const popup = window.open('', '_blank', 'noopener,noreferrer,width=920,height=720');
+  if (!popup) { window.alert('اسمح بفتح النوافذ المنبثقة لتنزيل الاختبار بصيغة PDF.'); return; }
+  const title = escapePrintText(node.title);
+  const subject = escapePrintText(subjectName);
+  const description = escapePrintText(node.description || 'لا توجد تعليمات إضافية لهذا الاختبار.');
+  const logo = new URL('brand/enghub-mark.svg', window.location.origin + import.meta.env.BASE_URL).toString();
+  popup.document.write(`<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${title} - ENG HUB</title><style>
+  @page{size:A4;margin:18mm}*{box-sizing:border-box}body{margin:0;color:#172b49;font-family:Tahoma,Arial,sans-serif;background:#fff;line-height:1.9}.sheet{max-width:780px;margin:28px auto;padding:42px;border:1px solid #dce5f1;border-radius:18px}.brand{display:flex;align-items:center;gap:14px;padding-bottom:20px;border-bottom:3px solid #1eb7ad}.brand img{width:62px;height:62px}.brand strong{font-size:22px;letter-spacing:1px;color:#17345b}.brand small{display:block;color:#71829a;font-size:10px;letter-spacing:2px}.eyebrow{margin-top:36px;color:#3974ed;font-size:11px;font-weight:bold;letter-spacing:1.5px}.subject{color:#64748b;font-size:13px;margin-top:8px}.title{font-size:30px;margin:8px 0 18px;color:#142b4d}.instructions{white-space:pre-wrap;padding:22px;background:#f4f7fc;border:1px solid #e2eaf4;border-radius:12px;min-height:180px}.fields{display:flex;gap:24px;margin-top:28px;padding:16px 0;border-top:1px solid #dce5f1;border-bottom:1px solid #dce5f1}.fields span{flex:1;font-size:12px;color:#60718a}.footer{margin-top:32px;text-align:center;color:#8493a8;font-size:10px}.actions{text-align:center;margin:24px}.actions button{border:0;border-radius:10px;background:#2455a6;color:white;padding:12px 22px;font-weight:bold;cursor:pointer}@media print{body{background:white}.sheet{margin:0 auto;border:0;padding:0}.actions{display:none}}</style></head><body><main class="sheet"><header class="brand"><img src="${logo}" alt="ENG HUB"><div><strong>ENG HUB</strong><small>ENGINEERING LEARNING SPACE</small></div></header><div class="eyebrow">ACADEMIC ASSESSMENT</div><div class="subject">${subject}</div><h1 class="title">${title}</h1><div class="fields"><span>اسم الطالب: ....................................</span><span>التاريخ: .... / .... / ........</span></div><h3>تعليمات الاختبار ومحتواه</h3><section class="instructions">${description}</section><div class="fields"><span>الدرجة: ................</span><span>الزمن: ................</span></div><footer class="footer">تم إعداد هذا المستند عبر ENG HUB · Cairo University Faculty of Engineering</footer></main><div class="actions"><button onclick="window.print()">طباعة / حفظ كملف PDF</button></div></body></html>`);
+  popup.document.close();
+  popup.focus();
+  window.setTimeout(() => popup.print(), 450);
+}
+
+function downloadContentFile(url: string, title: string) {
+  const link = document.createElement('a');
+  link.href = url;
+  link.target = '_blank';
+  link.rel = 'noopener noreferrer';
+  link.download = title.replace(/[\\/:*?"<>|]/g, '_');
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+}
+
 const categories: Array<{ id: AcademicContentCategory; title: string; description: string; icon: typeof BookOpen }> = [
   { id: 'lectures', title: 'المحاضرات', description: 'محاضرات المدرسين والفيديوهات المسجلة', icon: Video },
   { id: 'files', title: 'الملفات والمراجع', description: 'مذكرات وشرائح وملفات المادة', icon: FileText },
@@ -175,11 +204,12 @@ export function AcademicContentArea({
     {activeNode && <section className="eh-content-detail">
       <header><span className="eh-content-detail-label">CONTENT DETAILS</span><h3>{activeNode.title}</h3>{activeNode.description && <p>{activeNode.description}</p>}</header>
       {(activeNode.kind === 'video' || activeNode.kind === 'lecture') && activeNode.url && <AcademicVideo url={activeNode.url} title={activeNode.title}/>} 
+      {activeNode.kind === 'exam' && <button type="button" className="eh-button primary eh-exam-pdf-button" onClick={() => openExamPrintSheet(activeNode, subject.name)}><Download size={16}/> تنزيل الاختبار بصيغة PDF</button>}
       {activeNode.kind === 'video' && <div className="eh-video-completion">
         <div><b>{completedVideoIds.has(activeNode.id) ? 'أحسنت! أنهيت هذا الفيديو' : 'هل أكملت مشاهدة الفيديو؟'}</b><small>يُسجل التقدم لهذا الفيديو وحده، دون اعتبار بقية المحاضرة مكتملة.</small></div>
         <button type="button" className={completedVideoIds.has(activeNode.id) ? 'is-complete' : ''} disabled={completionBusy} onClick={() => void toggleVideoCompleted(activeNode.id)}>{completionBusy ? 'جارٍ الحفظ…' : completedVideoIds.has(activeNode.id) ? 'مكتمل · تراجع' : 'تحديد كمكتمل'}</button>
       </div>}
-      {activeNode.kind === 'file' && activeNode.url && <a className="eh-related-content-link" href={activeNode.url} target="_blank" rel="noreferrer"><Download size={17}/><span><b>فتح أو تنزيل الملف</b><small>{activeNode.mimeType || 'مرفق المادة'}</small></span><ExternalLink size={15}/></a>}
+      {activeNode.kind === 'file' && activeNode.url && <a className="eh-related-content-link" href={activeNode.url} target="_blank" rel="noreferrer" download><Download size={17}/><span><b>فتح أو تنزيل الملف</b><small>{activeNode.mimeType || 'مرفق المادة'}</small></span><ExternalLink size={15}/></a>}
       {(activeNode.kind === 'link' || activeNode.kind === 'exam' || activeNode.kind === 'assignment') && activeNode.url && <a className="eh-related-content-link" href={activeNode.url} target="_blank" rel="noreferrer"><ExternalLink size={17}/><span><b>{activeNode.kind === 'exam' ? 'فتح الاختبار' : activeNode.kind === 'assignment' ? 'فتح التكليف' : 'فتح الرابط'}</b><small>{activeNode.url}</small></span><ChevronLeft size={15}/></a>}
       {activeNode.kind === 'note' && <div className="eh-content-note">{activeNode.description || activeNode.title}</div>}
       {activeNode.kind === 'folder' && <p className="eh-content-note">افتح العناصر الموجودة داخل هذا المجلد من القائمة أعلاه.</p>}
