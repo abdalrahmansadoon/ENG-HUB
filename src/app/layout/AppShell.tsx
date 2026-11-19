@@ -77,8 +77,10 @@ export function AppShell({
     <div className={`eh-app ${dark ? 'eh-dark theme-dark' : 'eh-light theme-light'} ${collapsed ? 'eh-sidebar-collapsed' : ''}`} dir="rtl">
       <aside className={`eh-sidebar ${mobileNav ? 'is-open' : ''}`} aria-label="القائمة الرئيسية">
         <div className="eh-brand">
-          <div className="eh-brand-symbol"><img src={`${import.meta.env.BASE_URL}brand/enghub-mark.svg`} alt="ENG HUB"/></div>
-          <div className="eh-brand-copy"><strong>ENG HUB</strong><span>STUDY · ENGINEER · GROW</span></div>
+          <button type="button" className="eh-brand-home" onClick={() => { onNavigate('home'); onCloseMobileNav(); window.history.replaceState({ engHubRoute: true }, '', window.location.pathname + window.location.search); window.dispatchEvent(new PopStateEvent('popstate')); }} aria-label="العودة إلى الرئيسية" title="الرئيسية">
+            <span className="eh-brand-symbol"><img src={`${import.meta.env.BASE_URL}brand/enghub-mark.svg`} alt="ENG HUB"/></span>
+            <span className="eh-brand-copy"><strong>ENG HUB</strong><span>STUDY · ENGINEER · GROW</span></span>
+          </button>
           <button type="button" className="eh-icon-btn eh-sidebar-close" onClick={onCloseMobileNav} aria-label="إغلاق القائمة"><X size={19}/></button>
         </div>
 
