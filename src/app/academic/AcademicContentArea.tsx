@@ -150,7 +150,7 @@ export function AcademicContentArea({
       <div className="eh-content-studio-actions">
         <button type="button" className="eh-button eh-content-subject-back" onClick={onBackToSubject}><ArrowUpLeft size={15}/> أقسام المادة</button>
         <label className="eh-content-search"><Search size={16}/><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="ابحث داخل هذا القسم"/></label>
-        {isAdmin && (!activeNode || isAcademicContentContainer(activeNode)) && <button type="button" className="eh-button primary" onClick={openAdd}><Plus size={16}/> إضافة محتوى</button>}
+        {isAdmin && !activeNode && <button type="button" className="eh-button primary" onClick={openAdd}><Plus size={16}/> إضافة محتوى</button>}
       </div>
     </div>
 
@@ -179,7 +179,8 @@ export function AcademicContentArea({
           const isFolder = isAcademicContentContainer(node);
           const Icon = node.kind === 'folder' || node.kind === 'custom' ? Folder : node.kind === 'lecturer' ? GraduationCap : node.kind === 'lecture' ? BookOpen : node.kind === 'video' ? Video : node.kind === 'exam' ? ClipboardList : node.kind === 'file' ? FileText : node.kind === 'link' ? ExternalLink : File;
           const isDraft = node.publicationStatus === 'draft';
-          const ChosenIcon = node.iconName ? (LucideIcons as unknown as Record<string, LucideIcon>)[node.iconName] : undefined;
+          const storedIconName = node.iconName?.startsWith('lucide:') ? node.iconName.slice(7) : node.iconName;
+          const ChosenIcon = storedIconName ? (LucideIcons as unknown as Record<string, LucideIcon>)[storedIconName] : undefined;
           const kindLabel = node.kind === 'custom' ? (node.customTypeName || 'نوع مخصص') : (kinds.find((kind) => kind.id === node.kind)?.label ?? node.kind);
           return <article className={`eh-content-item-card ${node.kind === 'video' ? 'is-video-card' : ''}`} key={node.id}>
             {node.kind === 'video' && <div className="eh-content-video-card-cover"><span className="eh-content-video-card-play"><Play size={20} fill="currentColor"/></span><span className="eh-content-video-card-label">محاضرة مسجلة</span>{completedVideoIds.has(node.id) && <span className="eh-content-video-card-done"><Check size={12}/> مكتمل</span>}</div>}
@@ -204,7 +205,7 @@ export function AcademicContentArea({
         <span><Layers3 size={28}/></span>
         <b>{search ? 'لا توجد نتائج' : activeNode && !isAcademicContentContainer(activeNode) ? 'هذا عنصر مستقل' : 'هذا القسم جاهز لإضافة محتواه'}</b>
         <p>{activeNode && !isAcademicContentContainer(activeNode) ? 'هذا النوع لا يقبل عناصر بداخله. استخدم زر الرجوع لاختيار مجلد أو إنشاء عنصر جديد في المستوى المناسب.' : isAdmin ? 'أضف مجلداً أو مدرساً أو محاضرة أو فيديو أو ملفاً أو اختباراً، أو أنشئ نوعاً مخصصاً يناسب المادة.' : 'سيظهر المحتوى هنا عندما ينشره مدير المادة.'}</p>
-        {isAdmin && (!activeNode || isAcademicContentContainer(activeNode)) && <button type="button" className="eh-button primary" onClick={openAdd}><Plus size={16}/> إنشاء أول عنصر</button>}
+
       </div>}
     </section>
 
@@ -430,7 +431,7 @@ function AcademicContentModal({ category, parent, initialNode, nodes, onClose, o
         <section className="eh-icon-library-picker">
           <div className="eh-icon-library-heading"><b>أيقونة العنصر</b><span>{iconNames.length.toLocaleString('ar-EG')} أيقونة متاحة</span></div>
           <label className="eh-icon-library-search"><Search size={15}/><input value={iconSearch} onChange={(event) => { setIconSearch(event.target.value); setIconLimit(72); }} placeholder="ابحث باسم الأيقونة بالإنجليزية…" dir="ltr"/></label>
-          <div className="eh-icon-library-grid">{filteredIcons.map((name) => { const ItemIcon = (LucideIcons as unknown as Record<string, LucideIcon>)[name]; return <button key={name} type="button" title={name} aria-label={'اختيار أيقونة '+name} className={iconName === name ? 'selected' : ''} onClick={() => setIconName(name)}><ItemIcon size={19}/><small>{name}</small></button>; })}</div>
+          <div className="eh-icon-library-grid">{filteredIcons.map((name) => { const ItemIcon = (LucideIcons as unknown as Record<string, LucideIcon>)[name]; if (!ItemIcon) return null; return <button key={name} type="button" title={name} aria-label={'اختيار أيقونة '+name} className={iconName === name ? 'selected' : ''} onClick={() => setIconName(name)}><ItemIcon size={19}/><small>{name}</small></button>; })}</div>
           {filteredIcons.length < iconNames.filter((name) => name.toLowerCase().includes(iconSearch.trim().toLowerCase())).length && <button type="button" className="eh-icon-library-more" onClick={() => setIconLimit((value) => value + 72)}>عرض المزيد من الأيقونات</button>}
         </section>
         {kind === 'custom' && <section className="eh-custom-kind-fields">
