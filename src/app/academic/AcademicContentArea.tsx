@@ -275,31 +275,76 @@ function AcademicCustomAttachment({ url, title, mimeType }: { url: string; title
 function AcademicVideo({ url, title }: { url: string; title: string }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [speed, setSpeed] = useState('1');
+  const [embedFailed, setEmbedFailed] = useState(false);
   let embed = '';
+  let playbackUrl = url.trim();
+  let provider = 'رابط فيديو';
+  let directVideo = false;
   try {
-    const parsed = new URL(url);
-    const host = parsed.hostname.replace(/^www\./, '');
-    if (host === 'youtu.be') embed = 'https://www.youtube-nocookie.com/embed/' + parsed.pathname.split('/').filter(Boolean)[0] + '?rel=0&modestbranding=1';
-    else if (host === 'youtube.com' || host.endsWith('.youtube.com')) embed = 'https://www.youtube-nocookie.com/embed/' + (parsed.searchParams.get('v') || parsed.pathname.split('/').filter(Boolean).pop()) + '?rel=0&modestbranding=1';
-    else if (host.endsWith('vimeo.com')) embed = 'https://player.vimeo.com/video/' + parsed.pathname.split('/').filter(Boolean).pop() + '?dnt=1';
-    else if (host === 'mega.nz') {
-      if (/^\/embed\//i.test(parsed.pathname)) embed = 'https://mega.nz' + parsed.pathname + parsed.hash;
+    const parsed = new URL(playbackUrl);
+    if (!['http:', 'https:'].includes(parsed.protocol)) throw new Error('Unsupported URL protocol');
+    const host = parsed.hostname.toLowerCase().replace(/^www\./, '');
+    const path = parsed.pathname;
+    const lastSegment = path.split('/').filter(Boolean).pop() || '';
+
+    if (host === 'youtu.be' || host === 'youtube.com' || host.endsWith('.youtube.com')) {
+      let videoId = host === 'youtu.be' ? lastSegment : (parsed.searchParams.get('v') || path.match(/\/(?:embed|shorts|live|v)\/([^/?]+)/)?.[1] || '');
+      if (videoId) {
+        embed = 'https://www.youtube-nocookie.com/embed/' + encodeURIComponent(videoId) + '?rel=0&modestbranding=1';
+        provider = 'YouTube';
+      }
+    } else if (host === 'vimeo.com' || host.endsWith('.vimeo.com')) {
+      const id = path.match(/\/(?:video\/)?(\d+)/)?.[1] || '';
+      if (id) { embed = 'https://player.vimeo.com/video/' + id + '?dnt=1'; provider = 'Vimeo'; }
+    } else if (host === 'dai.ly' || host === 'dailymotion.com' || host.endsWith('.dailymotion.com')) {
+      const id = host === 'dai.ly' ? lastSegment : (path.match(/\/(?:video|embed\/video)\/([^/?_]+)/)?.[1] || '');
+      if (id) { embed = 'https://www.dailymotion.com/embed/video/' + encodeURIComponent(id); provider = 'Dailymotion'; }
+    } else if (host === 'facebook.com' || host.endsWith('.facebook.com') || host === 'fb.watch') {
+      embed = 'https://www.facebook.com/plugins/video.php?href=' + encodeURIComponent(playbackUrl) + '&show_text=0&width=1280';
+      provider = 'Facebook';
+    } else if (host === 'tiktok.com' || host.endsWith('.tiktok.com')) {
+      const id = path.match(/\/video\/(\d+)/)?.[1];
+      if (id) { embed = 'https://www.tiktok.com/player/v1/' + id + '?autoplay=0'; provider = 'TikTok'; }
+    } else if (host === 'streamable.com') {
+      const id = path.split('/').filter(Boolean).pop();
+      if (id) { embed = 'https://streamable.com/e/' + encodeURIComponent(id); provider = 'Streamable'; }
+    } else if (host === 'twitch.tv' || host.endsWith('.twitch.tv')) {
+      const clip = path.match(/\/clip\/([^/]+)/)?.[1] || parsed.searchParams.get('clip');
+      const video = path.match(/\/videos\/(\d+)/)?.[1];
+      const parent = window.location.hostname || 'localhost';
+      if (clip) { embed = 'https://clips.twitch.tv/embed?clip=' + encodeURIComponent(clip) + '&parent=' + encodeURIComponent(parent); provider = 'Twitch'; }
+      else if (video) { embed = 'https://player.twitch.tv/?video=' + video + '&parent=' + encodeURIComponent(parent); provider = 'Twitch'; }
+    } else if (host === 'mega.nz') {
+      if (/^\/embed\//i.test(path)) embed = 'https://mega.nz' + path + parsed.hash;
       else {
-        const fileMatch = parsed.pathname.match(/^\/file\/([^/]+)$/i);
+        const fileMatch = path.match(/^\/file\/([^/]+)$/i);
         if (fileMatch && parsed.hash.length > 1) embed = 'https://mega.nz/embed/' + fileMatch[1] + parsed.hash;
         else {
-          const legacy = url.match(/mega\.nz\/#!([^!#]+)!([^#\s]+)/i);
+          const legacy = playbackUrl.match(/mega\.nz\/#!([^!#]+)!([^#\s]+)/i);
           if (legacy) embed = 'https://mega.nz/embed/' + legacy[1] + '#' + legacy[2];
         }
       }
+      if (embed) provider = 'MEGA';
+    } else if ((host === 'drive.google.com' || host === 'docs.google.com') && /\/file\/d\/([^/]+)/.test(path)) {
+      const id = path.match(/\/file\/d\/([^/]+)/)?.[1];
+      if (id) { embed = 'https://drive.google.com/file/d/' + encodeURIComponent(id) + '/preview'; provider = 'Google Drive'; }
+    } else if (host === 'dropbox.com' || host.endsWith('.dropbox.com')) {
+      if (/\.(mp4|webm|mov|m4v|ogg|m3u8)(?:$)/i.test(path)) {
+        parsed.searchParams.delete('dl'); parsed.searchParams.set('raw', '1'); playbackUrl = parsed.toString(); directVideo = true; provider = 'Dropbox';
+      }
     }
-  } catch { /* validated when saved */ }
-  const directVideo = /\.(mp4|webm|mov|m4v|ogg)(?:[?#].*)?$/i.test(url);
+
+    if (!embed && !directVideo && /\.(mp4|webm|mov|m4v|ogg|m3u8)(?:$)/i.test(new URL(playbackUrl).pathname)) {
+      directVideo = true;
+      provider = 'ملف فيديو مباشر';
+    }
+  } catch { /* invalid or unsupported URLs are shown with a safe source link */ }
+
   return <section className="eh-video-player-shell">
-    <div className="eh-video-player-topline"><div><span className="eh-eyebrow">NOW PLAYING</span><b>{title}</b></div><a href={url} target="_blank" rel="noreferrer"><ExternalLink size={14}/> فتح المصدر</a></div>
-    {embed ? <div className="eh-content-video"><iframe src={embed} title={title} allow="accelerometer; autoplay; encrypted-media; picture-in-picture; fullscreen" allowFullScreen loading="lazy" referrerPolicy="strict-origin-when-cross-origin"/></div>
-      : directVideo ? <div className="eh-content-video"><video ref={videoRef} src={url} controls playsInline preload="metadata" controlsList="nodownload" onRateChange={(event) => setSpeed(String(event.currentTarget.playbackRate))}/></div>
-      : <a className="eh-related-content-link" href={url} target="_blank" rel="noreferrer"><ExternalLink size={17}/><span><b>فتح مصدر الفيديو</b><small>{url}</small></span></a>}
+    <div className="eh-video-player-topline"><div><span className="eh-eyebrow">NOW PLAYING · {provider.toUpperCase()}</span><b>{title}</b></div><a href={url} target="_blank" rel="noopener noreferrer"><ExternalLink size={14}/> فتح المصدر</a></div>
+    {embed && !embedFailed ? <div className="eh-content-video"><iframe src={embed} title={title} allow="accelerometer; autoplay; encrypted-media; picture-in-picture; fullscreen; clipboard-write" allowFullScreen loading="lazy" referrerPolicy="strict-origin-when-cross-origin" onError={() => setEmbedFailed(true)}/></div>
+      : directVideo ? <div className="eh-content-video"><video ref={videoRef} src={playbackUrl} controls playsInline preload="metadata" controlsList="nodownload" onRateChange={(event) => setSpeed(String(event.currentTarget.playbackRate))}/></div>
+      : <div className="eh-video-embed-fallback"><div className="eh-video-embed-fallback-icon"><Play size={22}/></div><b>{embedFailed ? 'تعذر تحميل المشغل المدمج' : 'هذا الرابط لا يوفر صيغة تشغيل مباشرة معروفة'}</b><p>قد تمنع المنصة عرض الفيديو داخل مواقع أخرى. يمكنك فتح المصدر الأصلي لمشاهدة الفيديو.</p><a href={url} target="_blank" rel="noopener noreferrer">فتح الفيديو على المصدر <ExternalLink size={14}/></a></div>}
     {directVideo && <div className="eh-video-player-tools"><label>سرعة التشغيل<select value={speed} onChange={(event) => { setSpeed(event.target.value); if (videoRef.current) videoRef.current.playbackRate = Number(event.target.value); }}><option value="0.5">0.5×</option><option value="0.75">0.75×</option><option value="1">عادية 1×</option><option value="1.25">1.25×</option><option value="1.5">1.5×</option><option value="1.75">1.75×</option><option value="2">2×</option></select></label><span>يمكنك التحكم في التقديم والصوت وملء الشاشة من مشغل الفيديو.</span></div>}
   </section>;
 }
