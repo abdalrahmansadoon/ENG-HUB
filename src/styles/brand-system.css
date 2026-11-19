@@ -1379,3 +1379,36 @@ button,input,textarea,select{font-family:inherit}
   .eh-focus-chat .chat-topbar-actions{gap:3px}
   .eh-focus-chat .chat-msg{max-width:92%}
 }
+
+
+/* Expanded academic content studio: visual icon library, media-first cards and responsive detail layout */
+.eh-app .eh-icon-library-picker{padding:13px;border:1px solid var(--eh-stroke);border-radius:13px;background:var(--eh-card-soft)}
+.eh-app .eh-icon-library-heading{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:9px}
+.eh-app .eh-icon-library-heading b{font-size:12px;color:var(--eh-ink)}
+.eh-app .eh-icon-library-heading span{font-size:10px;color:var(--eh-sub)}
+.eh-app .eh-icon-library-search{height:39px;display:flex;align-items:center;gap:8px;padding:0 10px;border:1px solid var(--eh-stroke-strong);border-radius:10px;background:var(--eh-card-bg);color:var(--eh-sub)}
+.eh-app .eh-icon-library-search input{width:100%;min-width:0;border:0!important;outline:0!important;background:transparent!important;color:var(--eh-ink);font-size:11px}
+.eh-app .eh-icon-library-grid{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:6px;max-height:240px;overflow:auto;margin-top:10px;padding:2px}
+.eh-app .eh-icon-library-grid button{min-width:0;min-height:57px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;border:1px solid var(--eh-stroke);border-radius:9px;background:var(--eh-card-bg);color:var(--eh-sub)}
+.eh-app .eh-icon-library-grid button.selected{border-color:var(--eh-accent);background:var(--eh-accent-wash);color:var(--eh-accent)}
+.eh-app .eh-icon-library-grid button small{max-width:100%;font-size:7px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.eh-app .eh-icon-library-more{width:100%;margin-top:9px;padding:9px;border:1px solid var(--eh-stroke);border-radius:9px;background:var(--eh-card-bg);color:var(--eh-accent);font-size:10px;font-weight:800}
+.eh-app .eh-content-item-card{padding:15px;transition:transform .2s ease,border-color .2s ease,box-shadow .2s ease}
+.eh-app .eh-content-item-card:hover{transform:translateY(-3px);border-color:var(--eh-accent);box-shadow:0 13px 28px rgba(25,54,98,.09)}
+.eh-app .eh-content-item-icon{width:50px;height:50px;flex-basis:50px;border-radius:15px}
+.eh-app .eh-content-item-icon.kind-video{background:linear-gradient(145deg,rgba(65,105,225,.17),rgba(30,183,173,.12));color:var(--eh-accent)}
+.eh-app .eh-content-item-icon.kind-folder{background:rgba(245,158,11,.12);color:#d38a16}
+.eh-app .eh-content-item-admin{display:flex;gap:5px}
+.eh-app .eh-content-item-admin button{width:30px;height:30px;color:var(--eh-sub);border:1px solid var(--eh-stroke)}
+.eh-app .eh-content-item-admin button:last-child:hover{color:var(--eh-danger);border-color:var(--eh-danger)}
+.eh-app .eh-content-detail{padding:clamp(15px,2.5vw,26px)}
+.eh-app .eh-content-video{max-width:1180px;border-radius:18px;box-shadow:0 20px 48px rgba(0,0,0,.18)}
+.eh-app .eh-content-video iframe,.eh-app .eh-content-video video{background:#05080e}
+.eh-app .eh-video-completion{display:flex;align-items:center;justify-content:space-between;gap:12px;max-width:1180px;margin:12px auto;padding:14px 16px;border:1px solid var(--eh-stroke);border-radius:13px;background:var(--eh-card-soft)}
+.eh-app .eh-video-completion>div{display:flex;flex-direction:column;gap:3px}
+.eh-app .eh-video-completion b{font-size:12px;color:var(--eh-ink)}
+.eh-app .eh-video-completion small{font-size:10px;color:var(--eh-sub)}
+.eh-app .eh-video-completion button{min-height:38px;padding:0 14px;border:1px solid var(--eh-accent);border-radius:10px;background:var(--eh-accent);color:white;font-size:10px;font-weight:800}
+.eh-app .eh-video-completion button.is-complete{background:var(--eh-teal-wash);border-color:var(--eh-teal);color:var(--eh-teal)}
+.eh-app .eh-content-detail-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
+@media(max-width:680px){.eh-app .eh-icon-library-grid{grid-template-columns:repeat(5,minmax(0,1fr));max-height:210px}.eh-app .eh-video-completion{align-items:stretch;flex-direction:column}.eh-app .eh-video-completion button{width:100%}}
