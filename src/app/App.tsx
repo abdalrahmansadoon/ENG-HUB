@@ -736,24 +736,6 @@ function Dashboard({ userName, tasks, subjects, exams, lectures, onGo, onNewTask
   const rate = tasks.length ? Math.round((completed / tasks.length) * 100) : 0;
   const today = new Date().toLocaleDateString('ar-EG',{weekday:'long',day:'numeric',month:'long'});
   return <div className="eh-home">
-    <section className="eh-welcome">
-      <div className="eh-welcome-copy">
-        <span className="eh-welcome-kicker"><Sparkles size={15}/> مساحة دراستك · {today}</span>
-        <h1>أهلاً بعودتك، <strong>{userName}</strong></h1>
-        <p>مساحتك الأكاديمية جاهزة. تابع مهامك ومحاضراتك ونظّم وقت دراستك من مكان واحد.</p>
-        <div className="eh-welcome-actions">
-          {canCreateTask && <button type="button" className="eh-button primary" onClick={onNewTask}><Plus size={17}/> إضافة مهمة</button>}
-          <button type="button" className="eh-button glass" onClick={() => onGo('planner')}><CalendarDays size={17}/> مخطط المذاكرة</button>
-          <button type="button" className="eh-button glass" onClick={() => onGo('chat')}><MessageCircle size={17}/> اذهب إلى الدردشة</button>
-        </div>
-      </div>
-      <div className="eh-welcome-visual" aria-hidden="true">
-        <div className="eh-visual-orbit orbit-a"/><div className="eh-visual-orbit orbit-b"/>
-        <div className="eh-visual-core"><GraduationCap size={48}/></div>
-        <div className="eh-visual-chip"><BookOpenCheck size={15}/> Study smarter</div>
-      </div>
-    </section>
-
     <div className="eh-section-heading">
       <div><span className="eh-eyebrow">نظرة عامة</span><h2>ملخص دراستك</h2><p>مؤشرات محسوبة من بياناتك الفعلية</p></div>
       <button type="button" className="eh-text-button" onClick={() => onGo('analytics')}>عرض التحليلات <ArrowLeft size={15}/></button>
@@ -807,11 +789,7 @@ function Dashboard({ userName, tasks, subjects, exams, lectures, onGo, onNewTask
       </div>
     </section>
 
-    <div className="eh-quick-access">
-      <button type="button" onClick={() => onGo('courses')}><span className="qa-icon purple"><BookOpen size={18}/></span><span><b>المواد الدراسية</b><small>المقررات والمدرسون</small></span><ArrowLeft size={16}/></button>
-      <button type="button" onClick={() => onGo('files')}><span className="qa-icon blue"><FolderOpen size={18}/></span><span><b>مكتبة الملفات</b><small>المذكرات والمرفقات</small></span><ArrowLeft size={16}/></button>
-      <button type="button" onClick={() => onGo('exams')}><span className="qa-icon amber"><ClipboardList size={18}/></span><span><b>الاختبارات</b><small>مواعيد واختباراتك</small></span><ArrowLeft size={16}/></button>
-    </div>
+
   </div>;
 }
 
@@ -968,16 +946,7 @@ function AcademicHubPage({ subjects, lecturers, lectures, parts, files, exams, t
     </nav>
 
     {!subject && <>
-      <section className="eh-academic-hero">
-        <div className="eh-academic-hero-copy"><span className="eh-eyebrow">CAIRO UNIVERSITY · FACULTY OF ENGINEERING</span><h2>مكتبتك الأكاديمية</h2><p>كل مقرر في مكانه، وكل مدرس ومحاضرة ومصدر تعليمي مرتبط به.</p></div>
-        <div className="eh-academic-stats">
-          <div><b>{subjects.length}</b><span>مادة</span></div>
-          <div><b>{lecturers.length}</b><span>مدرس</span></div>
-          <div><b>{lectures.length}</b><span>محاضرة</span></div>
-        </div>
-        <div className="eh-academic-hero-symbol"><GraduationCap size={53}/></div>
-      </section>
-      <div className="eh-section-heading"><div><span className="eh-eyebrow">YOUR COURSES</span><h2>المواد الدراسية</h2><p>اختر مادة لعرض المدرسين التابعين لها</p></div><span className="eh-result-count">{subjects.length} مقررات</span></div>
+      <div className="eh-academic-library-intro"><span>مكتبتك الأكاديمية</span><small>{subjects.length} مقررات · {lecturers.length} مدرسين · {lectures.length} محاضرة</small></div>
       <div className="eh-academic-subject-grid">
         {subjects.map((item,index) => <button type="button" className="eh-academic-subject-card" key={item.id} onClick={() => onSelectSubject(item.id)}>
           <div className="eh-academic-card-top"><span className="eh-academic-subject-icon" style={{'--subject-color':item.color} as React.CSSProperties}>{item.icon||'∑'}</span><span className="eh-course-index">{String(index+1).padStart(2,'0')}</span></div>
@@ -1280,31 +1249,10 @@ function FocusModePage({ userId }: { userId: string }) {
 
 
 function PlannerPage({ tasks, userId }: { tasks: StudyTask[]; userId: string }) {
-  const [seconds,setSeconds]=useState(25*60);
-  const [running,setRunning]=useState(false);
-  const [mode,setMode]=useState<'focus'|'break'>('focus');
-  const [customMinutes,setCustomMinutes]=useState('40');
-  const [sessionLength,setSessionLength]=useState(25*60);
-  const [completedSessions,setCompletedSessions]=useState(0);
   const [taskOrder,setTaskOrder]=useState<string[]>(()=>{
     try{return JSON.parse(window.localStorage.getItem('enghub-task-priority-order:'+userId)||'[]') as string[];}catch{return [];}
   });
   useEffect(()=>{ try { setTaskOrder(JSON.parse(window.localStorage.getItem('enghub-task-priority-order:'+userId)||'[]') as string[]); } catch { setTaskOrder([]); } },[userId]);
-  useEffect(()=>{
-    if(!running)return;
-    const timer=window.setInterval(()=>setSeconds(value=>{
-      if(value<=1){setRunning(false);if(mode==='focus')setCompletedSessions(count=>count+1);return 0;}
-      return value-1;
-    }),1000);
-    return ()=>window.clearInterval(timer);
-  },[running,mode]);
-  const switchMode=(next:'focus'|'break')=>{setMode(next);const length=next==='focus'?25*60:5*60;setSessionLength(length);setSeconds(length);setRunning(false);};
-  const reset=()=>{setRunning(false);setSeconds(sessionLength);};
-  const applyCustomTime=()=>{
-    const minutes=Math.max(1,Math.min(240,Number(customMinutes)||25));
-    const length=minutes*60;
-    setRunning(false);setMode('focus');setSessionLength(length);setSeconds(length);setCustomMinutes(String(minutes));
-  };
   const moveTask=(id:string,direction:-1|1)=>{
     const current=[...orderedUpcoming.map(task=>task.id)];
     const index=current.indexOf(id);const next=index+direction;
@@ -1312,7 +1260,6 @@ function PlannerPage({ tasks, userId }: { tasks: StudyTask[]; userId: string }) 
     [current[index],current[next]]=[current[next],current[index]];
     setTaskOrder(current);window.localStorage.setItem('enghub-task-priority-order:'+userId,JSON.stringify(current));
   };
-  const timeLabel=String(Math.floor(seconds/60)).padStart(2,'0')+':'+String(seconds%60).padStart(2,'0');
   const today=new Date();
   const upcoming=[...tasks].filter(task=>task.status!=='completed').sort((a,b)=>new Date(a.dueAt).getTime()-new Date(b.dueAt).getTime());
   const orderMap=new Map(taskOrder.map((id,index)=>[id,index]));
@@ -1323,7 +1270,6 @@ function PlannerPage({ tasks, userId }: { tasks: StudyTask[]; userId: string }) 
     return new Date(a.dueAt).getTime()-new Date(b.dueAt).getTime();
   });
   const todayTasks=upcoming.filter(task=>new Date(task.dueAt).toDateString()===today.toDateString());
-  const percent=Math.max(0,Math.min(100,Math.round(((sessionLength-seconds)/sessionLength)*100)));
   return <div className="eh-planner-page">
     <PageHeader eyebrow="STUDY PLANNER" title="مخطط المذاكرة" description="قسّم وقتك، رتّب أولوياتك، وركّز على مهمة واحدة في كل مرة."/>
     <section className="eh-planner-summary">
@@ -1331,20 +1277,6 @@ function PlannerPage({ tasks, userId }: { tasks: StudyTask[]; userId: string }) 
       <div className="eh-planner-summary-count"><b>{completedSessions}</b><span>جلسات تركيز مكتملة في هذه الزيارة</span></div>
     </section>
     <div className="eh-planner-grid">
-      <section className="eh-surface-card eh-focus-card">
-        <div className="eh-card-heading"><div><span className="eh-eyebrow">FOCUS MODE</span><h2>مؤقت التركيز</h2><p>اختر جلسة جاهزة أو حدّد المدة التي تناسبك.</p></div><span className="eh-focus-icon"><Timer size={20}/></span></div>
-        <button type="button" className="eh-focus-open-link" onClick={()=>window.location.hash="#/focus"}><span>افتح مساحة التركيز الكاملة</span><ArrowLeft size={15}/></button>
-        <div className="eh-focus-tabs"><button type="button" className={mode==='focus'?'active':''} onClick={()=>switchMode('focus')}>جلسة تركيز · 25 دقيقة</button><button type="button" className={mode==='break'?'active':''} onClick={()=>switchMode('break')}>استراحة · 5 دقائق</button></div>
-        <div className="eh-custom-timer"><label htmlFor="eh-custom-minutes">تحديد وقت يدوي (بالدقائق)</label><div><input id="eh-custom-minutes" type="number" min="1" max="240" value={customMinutes} onChange={event=>setCustomMinutes(event.target.value)}/><button type="button" className="eh-button" onClick={applyCustomTime}>تطبيق الوقت</button></div><small>يمكنك اختيار مدة من دقيقة واحدة حتى 4 ساعات.</small></div>
-        <div className="eh-focus-clock" style={{'--focus-progress':percent*3.6+'deg'} as React.CSSProperties}>
-          <div><small>{mode==='focus'?'FOCUS SESSION':'SHORT BREAK'}</small><b>{timeLabel}</b><span>{running?'أنت في جلسة تركيز':seconds===0?'انتهت الجلسة — أحسنت!':'جاهز عندما تكون مستعداً'}</span></div>
-        </div>
-        <div className="eh-focus-controls">
-          <button type="button" className="eh-button primary" onClick={()=>{if(seconds===0)setSeconds(sessionLength);setRunning(value=>!value);}}>{running?<Pause size={16}/>:<Play size={16} fill="currentColor"/>}{running?'إيقاف مؤقت':seconds===0?'ابدأ من جديد':'ابدأ التركيز'}</button>
-          <button type="button" className="eh-button" onClick={reset}><RotateCcw size={16}/> إعادة ضبط</button>
-        </div>
-        <div className="eh-focus-note"><Sparkles size={14}/> أبعد المشتتات وابدأ بمهمة واحدة فقط.</div>
-      </section>
       <section className="eh-surface-card eh-planner-agenda">
         <div className="eh-card-heading"><div><span className="eh-eyebrow">YOUR PRIORITIES</span><h2>ترتيب المهام</h2><p>حرّك المهام لأعلى أو لأسفل حسب أولويتك.</p></div><span className="eh-agenda-count">{orderedUpcoming.length} مهام</span></div>
         <div className="eh-planner-timeline">
