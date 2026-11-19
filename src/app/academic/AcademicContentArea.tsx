@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type FormEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import * as LucideIcons from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import {
@@ -270,17 +270,35 @@ function AcademicCustomAttachment({ url, title, mimeType }: { url: string; title
 }
 
 function AcademicVideo({ url, title }: { url: string; title: string }) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [speed, setSpeed] = useState('1');
   let embed = '';
   try {
     const parsed = new URL(url);
-    const host = parsed.hostname.replace(/^www\./, '');
-    if (host === 'youtu.be') embed = 'https://www.youtube-nocookie.com/embed/' + parsed.pathname.split('/').filter(Boolean)[0] + '?rel=0';
-    else if (host === 'youtube.com' || host.endsWith('.youtube.com')) embed = 'https://www.youtube-nocookie.com/embed/' + (parsed.searchParams.get('v') || parsed.pathname.split('/').filter(Boolean).pop()) + '?rel=0';
+    const host = parsed.hostname.replace(/^www\\./, '');
+    if (host === 'youtu.be') embed = 'https://www.youtube-nocookie.com/embed/' + parsed.pathname.split('/').filter(Boolean)[0] + '?rel=0&modestbranding=1';
+    else if (host === 'youtube.com' || host.endsWith('.youtube.com')) embed = 'https://www.youtube-nocookie.com/embed/' + (parsed.searchParams.get('v') || parsed.pathname.split('/').filter(Boolean).pop()) + '?rel=0&modestbranding=1';
     else if (host.endsWith('vimeo.com')) embed = 'https://player.vimeo.com/video/' + parsed.pathname.split('/').filter(Boolean).pop() + '?dnt=1';
+    else if (host === 'mega.nz') {
+      if (/^\\/embed\\//i.test(parsed.pathname)) embed = 'https://mega.nz' + parsed.pathname + parsed.hash;
+      else {
+        const fileMatch = parsed.pathname.match(/^\\/file\\/([^/]+)$/i);
+        if (fileMatch && parsed.hash.length > 1) embed = 'https://mega.nz/embed/' + fileMatch[1] + parsed.hash;
+        else {
+          const legacy = url.match(/mega\\.nz\\/#!([^!#]+)!([^#\\s]+)/i);
+          if (legacy) embed = 'https://mega.nz/embed/' + legacy[1] + '#' + legacy[2];
+        }
+      }
+    }
   } catch { /* validated when saved */ }
-  if (embed) return <div className="eh-content-video"><iframe src={embed} title={title} allow="accelerometer; autoplay; encrypted-media; picture-in-picture" allowFullScreen referrerPolicy="strict-origin-when-cross-origin"/></div>;
-  if (/\.(mp4|webm|mov)(?:[?#].*)?$/i.test(url)) return <div className="eh-content-video"><video src={url} controls playsInline preload="metadata"/></div>;
-  return <a className="eh-related-content-link" href={url} target="_blank" rel="noreferrer"><ExternalLink size={17}/><span><b>فتح مصدر الفيديو</b><small>{url}</small></span></a>;
+  const directVideo = /\\.(mp4|webm|mov|m4v|ogg)(?:[?#].*)?$/i.test(url);
+  return <section className="eh-video-player-shell">
+    <div className="eh-video-player-topline"><div><span className="eh-eyebrow">NOW PLAYING</span><b>{title}</b></div><a href={url} target="_blank" rel="noreferrer"><ExternalLink size={14}/> فتح المصدر</a></div>
+    {embed ? <div className="eh-content-video"><iframe src={embed} title={title} allow="accelerometer; autoplay; encrypted-media; picture-in-picture; fullscreen" allowFullScreen loading="lazy" referrerPolicy="strict-origin-when-cross-origin"/></div>
+      : directVideo ? <div className="eh-content-video"><video ref={videoRef} src={url} controls playsInline preload="metadata" controlsList="nodownload" onRateChange={(event) => setSpeed(String(event.currentTarget.playbackRate))}/></div>
+      : <a className="eh-related-content-link" href={url} target="_blank" rel="noreferrer"><ExternalLink size={17}/><span><b>فتح مصدر الفيديو</b><small>{url}</small></span></a>}
+    {directVideo && <div className="eh-video-player-tools"><label>سرعة التشغيل<select value={speed} onChange={(event) => { setSpeed(event.target.value); if (videoRef.current) videoRef.current.playbackRate = Number(event.target.value); }}><option value="0.5">0.5×</option><option value="0.75">0.75×</option><option value="1">عادية 1×</option><option value="1.25">1.25×</option><option value="1.5">1.5×</option><option value="1.75">1.75×</option><option value="2">2×</option></select></label><span>يمكنك التحكم في التقديم والصوت وملء الشاشة من مشغل الفيديو.</span></div>}
+  </section>;
 }
 
 function AcademicContentModal({ category, parent, initialNode, nodes, onClose, onSave, onUpdate, onUpload, busy }: {
