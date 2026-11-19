@@ -16,7 +16,7 @@ import { uploadFile } from '../lib/uploads';
 import { enablePushNotifications, listenForForegroundMessages } from '../lib/messaging';
 import { isFirebaseConfigured } from '../lib/firebase';
 import { readLocal, writeLocal } from '../lib/storage';
-import { createExamCloud, createLectureCloud, createLecturePartCloud, createLecturerCloud, createSubjectCloud, createTaskCloud, deleteTaskCloud, saveFileMetadataCloud, subscribeExams, subscribeFiles, subscribeLectureParts, subscribeLecturers, subscribeLectures, subscribeSubjects, subscribeTasks, updateTaskStatusCloud, subscribeAcademicCalendar, saveAcademicCalendar, defaultAcademicCalendar, type AcademicCalendarSettings } from '../lib/cloudData';
+import { createExamCloud, createLectureCloud, createLecturePartCloud, createLecturerCloud, createSubjectCloud, createTaskCloud, deleteTaskCloud, deleteSubjectCloud, saveFileMetadataCloud, subscribeExams, subscribeFiles, subscribeLectureParts, subscribeLecturers, subscribeLectures, subscribeSubjects, subscribeTasks, updateTaskStatusCloud, subscribeAcademicCalendar, saveAcademicCalendar, defaultAcademicCalendar, type AcademicCalendarSettings } from '../lib/cloudData';
 import type { AppNotification, AppUser, Exam, Lecture, LecturePart, Lecturer, LibraryFile, Priority, StudyTask, Subject, TaskStatus } from '../types';
 import { AppShell } from './layout/AppShell';
 import { ChatPage } from './chat/ChatPage';
@@ -322,6 +322,24 @@ function App() {
     else setToast('تمت إضافة المادة');
   };
 
+  const removeSubject = async (subject: Subject) => {
+    if (!isAdmin) return;
+    const countLecturers = lecturers.filter((item) => item.subjectId === subject.id).length;
+    const countLectures = lectures.filter((item) => item.subjectId === subject.id).length;
+    const countTasks = tasks.filter((item) => item.subjectId === subject.id).length;
+    const confirmed = window.confirm(`حذف مادة «${subject.name}» نهائياً؟\n\nسيتم حذف المدرسين والمحاضرات والمهام والمحتوى الأكاديمي المرتبط بها.\n\nالمدرسون: ${countLecturers} · المحاضرات: ${countLectures} · المهام: ${countTasks}\n\nلا يمكن التراجع عن هذا الإجراء.`);
+    if (!confirmed) return;
+    try {
+      if (!isDemo) await deleteSubjectCloud(subject.id);
+      setSubjects(items => items.filter(item => item.id !== subject.id));
+      setLecturers(items => items.filter(item => item.subjectId !== subject.id));
+      setCloudLectures(items => items.filter(item => item.subjectId !== subject.id));
+      setTasks(items => items.filter(item => item.subjectId !== subject.id));
+      if (selectedSubjectId === subject.id) { setSelectedSubjectId(''); setSelectedSubjectCategory(''); setSelectedLecturerId(''); setSelectedLectureId(''); setSelectedContentNodeId(''); }
+      setToast(`تم حذف مادة «${subject.name}» ومحتواها المرتبط.`);
+    } catch (error) { setToast(error instanceof Error ? error.message : 'تعذر حذف المادة.'); }
+  };
+
   const addLecturer = async (data: { name: string; subjectId: string; subjectName: string; bio?: string; description?: string; photoURL?: string | null }) => {
     try {
       await createLecturerCloud(data);
@@ -599,7 +617,7 @@ function App() {
         {page === 'focus' && <FocusModePage userId={activeUser.uid}/>}
         {page === 'analytics' && <AnalyticsPage tasks={tasks} subjects={subjects} lectures={lectures} exams={exams} completedVideos={completedVideoIds.size}/>}
         {page === 'notifications' && <NotificationsPage items={notifications} setItems={setNotifications}/>}
-        {page === 'admin' && <AdminPage tasks={tasks} subjects={subjects} lecturers={lecturers} lectures={lectures} exams={exams} files={files} currentUser={activeUser} cloudinarySettings={cloudinarySettings} academicCalendar={academicCalendar} onSaveAcademicCalendar={async (settings) => { await saveAcademicCalendar(settings, activeUser.uid); setAcademicCalendar(settings); setToast('تم حفظ السنة والفصل الدراسي الحاليين لجميع الطلاب.'); }} onNewTask={() => setTaskModal(true)} onAddSubject={() => setSubjectModal(true)} onAddLecturer={() => { setPage('courses'); setSelectedSubjectId(''); setSelectedLecturerId(''); setSelectedLectureId(''); }} onAddLecture={() => setLectureModal(true)} onAddExam={() => setExamModal(true)} onSaved={() => setToast('تم حفظ إعدادات Cloudinary في Firestore')} onError={(message) => setToast(message)}/>}
+        {page === 'admin' && <AdminPage tasks={tasks} subjects={subjects} lecturers={lecturers} lectures={lectures} exams={exams} files={files} currentUser={activeUser} cloudinarySettings={cloudinarySettings} academicCalendar={academicCalendar} onSaveAcademicCalendar={async (settings) => { await saveAcademicCalendar(settings, activeUser.uid); setAcademicCalendar(settings); setToast('تم حفظ السنة والفصل الدراسي الحاليين لجميع الطلاب.'); }} onNewTask={() => setTaskModal(true)} onAddSubject={() => setSubjectModal(true)} onDeleteSubject={removeSubject} onAddLecturer={() => { setPage('courses'); setSelectedSubjectId(''); setSelectedLecturerId(''); setSelectedLectureId(''); }} onAddLecture={() => setLectureModal(true)} onAddExam={() => setExamModal(true)} onSaved={() => setToast('تم حفظ إعدادات Cloudinary في Firestore')} onError={(message) => setToast(message)}/>}
         {page === 'profile' && <ProfilePage user={activeUser} isDemo={isDemo} onToggleRole={toggleDemoRole} onLogout={logout} onDeleteAccount={deleteAccount} onSaveProfile={saveProfile} themePreference={themePreference} onThemeChange={setThemePreference} cloudinarySettings={cloudinarySettings} onToggleTheme={() => setThemePreference(dark ? 'light' : 'dark')} dark={dark}/>}
       </div>
       {taskModal && <TaskModal subjects={subjects} userId={activeUser.uid} onClose={() => setTaskModal(false)} onSave={addTask}/>}
@@ -1377,7 +1395,7 @@ function NotificationsPage({ items, setItems }: { items: AppNotification[]; setI
   </div>;
 }
 
-function AdminPage({ tasks, subjects, lecturers, lectures, exams, files, currentUser, cloudinarySettings, academicCalendar, onSaveAcademicCalendar, onNewTask, onAddSubject, onAddLecturer, onAddLecture, onAddExam, onSaved, onError }: {
+function AdminPage({ tasks, subjects, lecturers, lectures, exams, files, currentUser, onDeleteSubject, cloudinarySettings, academicCalendar, onSaveAcademicCalendar, onNewTask, onAddSubject, onAddLecturer, onAddLecture, onAddExam, onSaved, onError }: {
   tasks: StudyTask[];
   subjects: Subject[];
   lecturers: Lecturer[];
@@ -1385,6 +1403,7 @@ function AdminPage({ tasks, subjects, lecturers, lectures, exams, files, current
   exams: Exam[];
   files: LibraryFile[];
   currentUser: AppUser;
+  onDeleteSubject: (subject: Subject) => void;
   cloudinarySettings: CloudinarySettings;
   academicCalendar: AcademicCalendarSettings;
   onSaveAcademicCalendar: (settings: AcademicCalendarSettings) => Promise<void>;
@@ -1496,7 +1515,7 @@ function AdminPage({ tasks, subjects, lecturers, lectures, exams, files, current
     {tab === 'academic' && <>
       <div className="panel admin-content-list">
         <div className="panel-head"><div><h3>المواد الدراسية</h3><span>الترم الأول — أضف المواد الفعلية للطلاب</span></div><button className="btn btn-primary btn-small" onClick={onAddSubject}><Plus size={14}/> إضافة مادة</button></div>
-        {subjects.map((subject) => <div className="admin-list-row" key={subject.id}><div className="subject-mini-icon" style={{ background: subject.color + '18', color: subject.color }}>{subject.icon}</div><div><b>{subject.name}</b><span>{subject.code} · {subject.description || 'مقرر دراسي'}</span></div><span>{subject.lectures} محاضرة</span><span className="status-chip status-completed">منشورة</span></div>)}
+        {subjects.map((subject) => <div className="admin-list-row eh-admin-subject-row" key={subject.id}><div className="subject-mini-icon" style={{ background: subject.color + '18', color: subject.color }}>{subject.icon}</div><div className="eh-admin-subject-copy"><b>{subject.name}</b><span>{subject.code} · {subject.description || 'مقرر دراسي'}</span></div><span className="eh-admin-subject-count">{lectures.filter((item) => item.subjectId === subject.id).length} محاضرة</span><span className="status-chip status-completed">منشورة</span><button type="button" className="eh-admin-delete" onClick={() => onDeleteSubject(subject)} aria-label={`حذف مادة ${subject.name}`} title="حذف المادة ومحتواها"><Trash2 size={16}/><span>حذف</span></button></div>)}
         {subjects.length === 0 && <EmptyState title="لا توجد مواد بعد" body="ابدأ بإضافة أول مادة دراسية."/ >}
       </div>
       <div className="panel admin-content-list">
