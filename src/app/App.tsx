@@ -936,17 +936,16 @@ function AcademicHubPage({ subjects, lecturers, lectures, parts, files, exams, t
 
   return <div className="eh-academic-page">
     <PageHeader eyebrow="ACADEMIC LIBRARY" title={stageTitle} description={stageDescription} action={action}/>
-    <nav className="eh-academic-crumbs" aria-label="مسار التصفح">
+    {(subject || lecturer || lecture) && <nav className="eh-academic-crumbs" aria-label="مسار التصفح">
       <button type="button" className={!subject?'active':''} onClick={() => { onSelectSubject('');onSelectLecturer('');onSelectLecture(''); }}><BookOpen size={14}/> المواد الدراسية</button>
       {subject && <><ChevronLeft size={14}/><button type="button" className={!subjectCategory?'active':''} onClick={() => {onSelectCategory('lectures');onSelectLecturer('');onSelectLecture('');}}>{subject.name}</button></>}
       {subject && subjectCategory && <><ChevronLeft size={14}/><span>{({lectures:'المحاضرات',files:'الملفات',exams:'الاختبارات',assignments:'الواجبات',resources:'المصادر الإضافية',custom:'المجلدات المخصصة'} as Record<SubjectCategory,string>)[subjectCategory]}</span></>}
       {lecturer && <><ChevronLeft size={14}/><button type="button" className={!lecture?'active':''} onClick={() => onSelectLecture('')}>{lecturer.name}</button></>}
       {lecture && <><ChevronLeft size={14}/><span>{lecture.title}</span></>}
-      {(subject || lecturer || lecture) && <button type="button" className="eh-crumb-back" onClick={onBack}><ArrowLeft size={14}/> رجوع</button>}
-    </nav>
+      <button type="button" className="eh-crumb-back" onClick={onBack}><ArrowLeft size={14}/> رجوع</button>}
+    </nav>}
 
     {!subject && <>
-      <div className="eh-academic-library-intro"><span>مكتبتك الأكاديمية</span><small>{subjects.length} مقررات · {lecturers.length} مدرسين · {lectures.length} محاضرة</small></div>
       <div className="eh-academic-subject-grid">
         {subjects.map((item,index) => <button type="button" className="eh-academic-subject-card" key={item.id} onClick={() => onSelectSubject(item.id)}>
           <div className="eh-academic-card-top"><span className="eh-academic-subject-icon" style={{'--subject-color':item.color} as React.CSSProperties}>{item.icon||'∑'}</span><span className="eh-course-index">{String(index+1).padStart(2,'0')}</span></div>
@@ -1274,7 +1273,7 @@ function PlannerPage({ tasks, userId }: { tasks: StudyTask[]; userId: string }) 
     <PageHeader eyebrow="STUDY PLANNER" title="مخطط المذاكرة" description="قسّم وقتك، رتّب أولوياتك، وركّز على مهمة واحدة في كل مرة."/>
     <section className="eh-planner-summary">
       <div><span className="eh-eyebrow">TODAY</span><h2>{today.toLocaleDateString('ar-EG',{weekday:'long',day:'numeric',month:'long'})}</h2><p>لديك {todayTasks.length} مهمة بموعد انتهاء اليوم.</p></div>
-      <div className="eh-planner-summary-count"><b>{completedSessions}</b><span>جلسات تركيز مكتملة في هذه الزيارة</span></div>
+      
     </section>
     <div className="eh-planner-grid">
       <section className="eh-surface-card eh-planner-agenda">
