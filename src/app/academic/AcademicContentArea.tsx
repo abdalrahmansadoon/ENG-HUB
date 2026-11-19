@@ -16,8 +16,9 @@ function escapePrintText(value: string) {
 }
 
 function openExamPrintSheet(node: AcademicContentNode, subjectName: string) {
-  const popup = window.open('', '_blank', 'noopener,noreferrer,width=920,height=720');
+  const popup = window.open('', '_blank', 'width=920,height=720');
   if (!popup) { window.alert('اسمح بفتح النوافذ المنبثقة لتنزيل الاختبار بصيغة PDF.'); return; }
+  popup.opener = null;
   const title = escapePrintText(node.title);
   const subject = escapePrintText(subjectName);
   const description = escapePrintText(node.description || 'لا توجد تعليمات إضافية لهذا الاختبار.');
