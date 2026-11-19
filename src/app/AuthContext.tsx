@@ -9,6 +9,7 @@ import {
   reauthenticateWithPopup,
   signInWithEmailAndPassword,
   signInWithPopup,
+  signInWithRedirect,
   signOut,
   updateProfile,
   type User as FirebaseUser,
@@ -186,7 +187,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       writeLocal('demoUser', next);
       return;
     }
-    await signInWithPopup(firebaseAuth, new GoogleAuthProvider());
+    const provider = new GoogleAuthProvider();
+    // Redirect is more reliable than popups on phones and embedded browsers.
+    const userAgent = typeof navigator !== 'undefined' ? navigator.userAgent : '';
+    const isEmbeddedBrowser = /FBAN|FBAV|Instagram|Line\//i.test(userAgent);
+    const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(userAgent)
+      || (typeof window !== 'undefined' && window.matchMedia?.('(pointer: coarse)').matches === true);
+    if (isMobile || isEmbeddedBrowser) {
+      await signInWithRedirect(firebaseAuth, provider);
+      return;
+    }
+    await signInWithPopup(firebaseAuth, provider);
   };
 
   const persistProfile = async (profile: ProfileInput) => {
