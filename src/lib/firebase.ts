@@ -1,6 +1,7 @@
 import { initializeApp, getApps, type FirebaseApp } from 'firebase/app';
 import { getAuth, type Auth } from 'firebase/auth';
 import { getFirestore, type Firestore } from 'firebase/firestore';
+import { initializeAppCheck, ReCaptchaV3Provider, type AppCheck } from 'firebase/app-check';
 
 const env = import.meta.env;
 const firebaseConfig = {
@@ -19,11 +20,19 @@ export const isFirebaseConfigured = Boolean(
 let app: FirebaseApp | null = null;
 let auth: Auth | null = null;
 let db: Firestore | null = null;
+let appCheck: AppCheck | null = null;
 
 if (isFirebaseConfigured) {
   app = getApps()[0] ?? initializeApp(firebaseConfig);
   auth = getAuth(app);
   db = getFirestore(app);
+  const appCheckSiteKey = env.VITE_FIREBASE_APPCHECK_SITE_KEY as string | undefined;
+  if (appCheckSiteKey?.trim()) {
+    appCheck = initializeAppCheck(app, {
+      provider: new ReCaptchaV3Provider(appCheckSiteKey.trim()),
+      isTokenAutoRefreshEnabled: true,
+    });
+  }
 }
 
-export { app, auth, db };
+export { app, auth, db, appCheck };
