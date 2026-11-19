@@ -13,7 +13,7 @@ const firebaseKeys = createRemoteJWKSet(new URL('https://www.googleapis.com/serv
 function json(data: unknown, status = 200, headers: HeadersInit = {}) {
   return new Response(JSON.stringify(data), { status, headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store', ...headers } });
 }
-function corsHeaders(request: Request, env: Env): HeadersInit {
+function corsHeaders(request: Request, env: Env): Record<string, string> {
   const origin = request.headers.get('Origin');
   const allowed = (env.CORS_ORIGINS || '').split(',').map(v => v.trim()).filter(Boolean);
   if (!origin || allowed.includes(origin)) return { ...(origin ? { 'access-control-allow-origin': origin, 'vary': 'Origin' } : {}), 'access-control-allow-methods': 'GET,POST,PATCH,PUT,DELETE,OPTIONS', 'access-control-allow-headers': 'Authorization,Content-Type' };
@@ -56,9 +56,9 @@ function fieldString(doc: Record<string, unknown> | null, key: string): string |
 async function isAdmin(env: Env, email: string, superOnly = false): Promise<boolean> {
   const doc = await firestoreDocument(env, `admins/${encodeURIComponent(email)}`);
   const role = fieldString(doc, 'role');
-  return fieldString(doc, 'active') === null ? false :
-    (doc?.fields as Record<string, { booleanValue?: boolean }> | undefined)?.active?.booleanValue === true &&
-    fieldString(doc, 'email') === email && (superOnly ? role === 'super-admin' : role === 'admin' || role === 'super-admin');
+  const fields = doc?.fields as Record<string, { booleanValue?: boolean }> | undefined;
+  return fields?.active?.booleanValue === true && fieldString(doc, 'email') === email &&
+    (superOnly ? role === 'super-admin' : role === 'admin' || role === 'super-admin');
 }
 async function countCollection(env: Env, collection: string): Promise<number> {
   const token = await firestoreAccessToken(env);
@@ -74,7 +74,7 @@ export default {
     const headers = corsHeaders(request, env);
     const url = new URL(request.url);
     if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers });
-    if (request.headers.get('Origin') && !headers['access-control-allow-origin' as keyof typeof headers]) return json({ error: 'origin_not_allowed' }, 403);
+    if (request.headers.get('Origin') && !headers['access-control-allow-origin']) return json({ error: 'origin_not_allowed' }, 403);
     try {
       if (url.pathname === '/api/v1/health' && request.method === 'GET') return json({ status: 'ok', service: 'eng-hub-api', runtime: 'cloudflare-workers', version: '1.0.0' }, 200, headers);
       if (url.pathname === '/api/v1/me' && request.method === 'GET') {
