@@ -125,6 +125,7 @@ export function AcademicContentArea({
     [nodes, activeNodeId, category, search],
   );
   const currentActiveNodeId = activeNode?.id;
+  const siblingVideos = activeNode ? nodes.filter((node) => node.kind === 'video' && node.parentId === activeNode.parentId && node.id !== activeNode.id && node.publicationStatus === 'published') : [];
   const linked = activeNode && currentActiveNodeId ? [...new Set([
     ...activeNode.linkedNodeIds,
     ...nodes.filter((node) => node.linkedNodeIds.includes(currentActiveNodeId)).map((node) => node.id),
@@ -180,7 +181,8 @@ export function AcademicContentArea({
           const isDraft = node.publicationStatus === 'draft';
           const ChosenIcon = node.iconName ? (LucideIcons as unknown as Record<string, LucideIcon>)[node.iconName] : undefined;
           const kindLabel = node.kind === 'custom' ? (node.customTypeName || 'نوع مخصص') : (kinds.find((kind) => kind.id === node.kind)?.label ?? node.kind);
-          return <article className="eh-content-item-card" key={node.id}>
+          return <article className={`eh-content-item-card ${node.kind === 'video' ? 'is-video-card' : ''}`} key={node.id}>
+            {node.kind === 'video' && <div className="eh-content-video-card-cover"><span className="eh-content-video-card-play"><Play size={20} fill="currentColor"/></span><span className="eh-content-video-card-label">محاضرة مسجلة</span>{completedVideoIds.has(node.id) && <span className="eh-content-video-card-done"><Check size={12}/> مكتمل</span>}</div>}
             <button type="button" className="eh-content-item-open" onClick={() => isFolder ? onNavigate(category, node.id) : onNavigate(category, node.id)}>
               <span className={`eh-content-item-icon kind-${node.kind}`} style={node.kind === 'custom' && node.customTypeColor ? { color: node.customTypeColor, borderColor: node.customTypeColor } : undefined}>{ChosenIcon ? <ChosenIcon size={22}/> : node.kind === 'custom' && node.customTypeIcon ? <span className="eh-custom-kind-symbol">{node.customTypeIcon}</span> : <Icon size={22}/>}</span>
               <span className="eh-content-item-main"><b>{node.title}</b><small>{node.description || kindLabel}</small></span>
@@ -209,6 +211,7 @@ export function AcademicContentArea({
     {activeNode && <section className="eh-content-detail">
       <header><span className="eh-content-detail-label">CONTENT DETAILS</span><h3>{activeNode.title}</h3>{activeNode.description && <p>{activeNode.description}</p>}</header>
       {(activeNode.kind === 'video' || activeNode.kind === 'lecture') && activeNode.url && <AcademicVideo url={activeNode.url} title={activeNode.title}/>} 
+      {activeNode.kind === 'video' && siblingVideos.length > 0 && <section className="eh-video-playlist"><div className="eh-content-items-heading"><div><span className="eh-eyebrow">CONTINUE LEARNING</span><h3>فيديوهات أخرى في هذا المجلد</h3></div><span>{siblingVideos.length} فيديو</span></div><div className="eh-video-playlist-list">{siblingVideos.map((video, index) => <button type="button" key={video.id} onClick={() => onNavigate(video.category, video.id)}><span className="eh-video-playlist-number">{String(index + 1).padStart(2, '0')}</span><span className="eh-video-playlist-copy"><b>{video.title}</b><small>{video.duration || 'فيديو تعليمي'}</small></span>{completedVideoIds.has(video.id) ? <CheckCircle2 size={16} className="is-done"/> : <Play size={15}/>}</button>)}</div></section>}
       {activeNode.kind === 'exam' && <button type="button" className="eh-button primary eh-exam-pdf-button" onClick={() => openExamPrintSheet(activeNode, subject.name)}><Download size={16}/> تنزيل الاختبار بصيغة PDF</button>}
       {activeNode.kind === 'video' && activeNode.url && <a className="eh-button eh-content-download" href={activeNode.url} target="_blank" rel="noreferrer" download><Download size={15}/> تنزيل الفيديو</a>}
       {activeNode.kind === 'video' && <div className="eh-video-completion">
