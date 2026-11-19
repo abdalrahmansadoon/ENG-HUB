@@ -1145,3 +1145,12 @@ button,input,textarea,select{font-family:inherit}
 @media(prefers-reduced-motion:reduce){
  .eh-app *, .eh-app *::before,.eh-app *::after{scroll-behavior:auto!important;transition-duration:.01ms!important;animation-duration:.01ms!important;animation-iteration-count:1!important}
 }
+
+/* Clickable brand mark: return to the canonical home page */
+.eh-app .eh-brand-home{display:flex;align-items:center;gap:12px;min-width:0;flex:1;padding:0;border:0;background:transparent;text-align:inherit;cursor:pointer;border-radius:13px}
+.eh-app .eh-brand-home:focus-visible{outline:3px solid var(--eh-accent);outline-offset:5px}
+.eh-app .eh-brand-home .eh-brand-symbol{flex:0 0 48px}
+.eh-app.eh-sidebar-collapsed .eh-brand-home{justify-content:center;flex:0 0 auto}
+.eh-app.eh-sidebar-collapsed .eh-brand-home .eh-brand-copy{display:none!important}
+.eh-app .eh-brand{display:flex;align-items:center;justify-content:space-between;gap:8px}
+@media(max-width:760px){.eh-app .eh-brand-home{gap:10px}}
