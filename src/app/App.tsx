@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode, type MouseEvent } from 'react';
+import { Fragment, Suspense, lazy, useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode, type MouseEvent } from 'react';
 import {
   Activity, AlarmClock, AlertCircle, ArrowDownLeft, ArrowLeft, ArrowUpLeft, Bell, BookOpen, EyeOff,
   BookOpenCheck, CalendarDays, Check, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, ChevronUp,
@@ -19,11 +19,11 @@ import { readLocal, writeLocal } from '../lib/storage';
 import { createExamCloud, createLectureCloud, createLecturePartCloud, createLecturerCloud, createSubjectCloud, createTaskCloud, deleteTaskCloud, deleteSubjectCloud, saveFileMetadataCloud, subscribeExams, subscribeFiles, subscribeLectureParts, subscribeLecturers, subscribeLectures, subscribeSubjects, subscribeTasks, updateTaskStatusCloud } from '../lib/cloudData';
 import type { AppNotification, AppUser, Exam, Lecture, LecturePart, Lecturer, LibraryFile, Priority, StudyTask, Subject, TaskStatus } from '../types';
 import { AppShell } from './layout/AppShell';
-import { ChatPage } from './chat/ChatPage';
+const ChatPage = lazy(() => import('./chat/ChatPage').then((module) => ({ default: module.ChatPage })));
 import { readEngHubRoute, buildEngHubHash, type SubjectCategory } from '../lib/routes';
 import { subscribeAcademicContent, createAcademicContentNode, updateAcademicContentNode, deleteAcademicContentNode, subscribeCompletedAcademicContent } from '../lib/academicContent';
 import { AcademicContentArea } from './academic/AcademicContentArea';
-import { PublicStudentProfilePage } from './profile/PublicStudentProfilePage';
+const PublicStudentProfilePage = lazy(() => import('./profile/PublicStudentProfilePage').then((module) => ({ default: module.PublicStudentProfilePage })));
 import type { AcademicContentCategory, AcademicContentNode, CreateAcademicContentInput } from '../types/academicContent';
 
 const navGroups = [
@@ -512,12 +512,14 @@ function App() {
 
   if (page === 'chat') return (
     <div className={`eh-app ${dark ? 'eh-dark theme-dark' : 'eh-light theme-light'} eh-focus-chat`} dir="rtl">
-      <ChatPage user={activeUser} cloudinarySettings={cloudinarySettings} isDemo={isDemo} isAdmin={isAdmin}
-        roomId={selectedSubjectId ? `course_${selectedSubjectId}` : 'general'}
-        roomTitle={selectedSubjectId ? `مناقشات ${subjects.find((item) => item.id === selectedSubjectId)?.name ?? 'المادة'}` : 'المحادثة العامة'}
-        courseId={selectedSubjectId || undefined}
-        onBack={() => { setPage('home'); setSelectedSubjectId(''); setSelectedSubjectCategory(''); setSelectedContentNodeId(''); }}
-        onOpenProfile={(uid) => { if (uid === activeUser.uid) setPage('profile'); else { setPublicProfileUid(uid); setPage('student-profile'); } }} />
+      <Suspense fallback={<div role="status" style={{ minHeight: '100dvh', display: 'grid', placeItems: 'center', color: 'var(--eh-text, #64748b)' }}>جارٍ تحميل المحادثات…</div>}>
+        <ChatPage user={activeUser} cloudinarySettings={cloudinarySettings} isDemo={isDemo} isAdmin={isAdmin}
+          roomId={selectedSubjectId ? `course_${selectedSubjectId}` : 'general'}
+          roomTitle={selectedSubjectId ? `مناقشات ${subjects.find((item) => item.id === selectedSubjectId)?.name ?? 'المادة'}` : 'المحادثة العامة'}
+          courseId={selectedSubjectId || undefined}
+          onBack={() => { setPage('home'); setSelectedSubjectId(''); setSelectedSubjectCategory(''); setSelectedContentNodeId(''); }}
+          onOpenProfile={(uid) => { if (uid === activeUser.uid) setPage('profile'); else { setPublicProfileUid(uid); setPage('student-profile'); } }} />
+      </Suspense>
     </div>
   );
 
@@ -610,7 +612,7 @@ function App() {
           }}
           onOpenProfile={(uid) => { if (uid === activeUser.uid) setPage('profile'); else { setPublicProfileUid(uid); setPage('student-profile'); } }}
         />}
-        {page === 'student-profile' && <PublicStudentProfilePage uid={publicProfileUid} currentUid={activeUser.uid} onBack={() => setPage('chat')}/>}
+        {page === 'student-profile' && <Suspense fallback={<div role="status" style={{ padding: 24, textAlign: 'center' }}>جارٍ تحميل الملف الشخصي…</div>}><PublicStudentProfilePage uid={publicProfileUid} currentUid={activeUser.uid} onBack={() => setPage('chat')}/></Suspense>}
         {page === 'planner' && <PlannerPage tasks={tasks} userId={activeUser.uid}/>}
         {page === 'focus' && <FocusModePage userId={activeUser.uid}/>}
         {page === 'analytics' && <AnalyticsPage tasks={tasks} subjects={subjects} lectures={lectures} exams={exams} completedVideos={completedVideoIds.size}/>}
