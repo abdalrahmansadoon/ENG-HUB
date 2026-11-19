@@ -576,7 +576,9 @@ function App() {
           onUpdate={updateAcademicContent}
           onUpload={uploadAcademicAsset}
         />}
-        {(page === 'courses' || page === 'lectures') && (!selectedSubjectId || !selectedSubjectCategory) && <AcademicHubPage
+        {(page === 'courses' || page === 'lectures') && (!selectedSubjectId || !selectedSubjectCategory) && <>
+          {isAdmin && <AcademicCalendarPanel settings={academicCalendar} onSave={async (settings) => { await saveAcademicCalendar(settings, activeUser.uid); setAcademicCalendar(settings); setToast('تم حفظ السنة والفصل الدراسي الحاليين لجميع الطلاب.'); }} onError={(message) => setToast(message)}/>}
+          <AcademicHubPage
           subjects={subjects} lecturers={lecturers} lectures={lectures} parts={lectureParts} files={files} exams={exams} tasks={tasks} contentNodes={academicContentWithLegacy}
           selectedSubjectId={selectedSubjectId} selectedLecturerId={selectedLecturerId} selectedLectureId={selectedLectureId}
           subjectCategory={selectedSubjectCategory}
@@ -596,9 +598,10 @@ function App() {
           onAddLecturer={() => setLecturerModal(true)}
           onAddLecture={() => setLectureModal(true)}
           onAddPart={() => setLecturePartModal(true)}
-        />}
+        />
+        </>}
         {page === 'exams' && <ExamsPage exams={exams} setExams={setExams} canEdit={isAdmin} onAdd={() => setExamModal(true)}/>}
-        {page === 'files' && <FilesPage files={files} onUpload={addFile} cloudinaryReady={isCloudinaryConfigured(cloudinarySettings)} isDemo={isDemo} canUpload={isAdmin}/>}
+        {page === 'files' && <FilesPage files={files} onUpload={addFile} cloudinaryReady={isCloudinaryConfigured(cloudinarySettings)} isDemo={isDemo} canUpload={isAdmin} cloudinarySettings={cloudinarySettings} currentUserId={activeUser.uid} onCloudinarySaved={() => setToast('تم حفظ إعدادات Cloudinary.')} onError={(message) => setToast(message)}/>}
                 {page === 'chat' && <ChatPage
           user={activeUser}
           cloudinarySettings={cloudinarySettings}
@@ -1178,7 +1181,7 @@ function ExamsPage({ exams, setExams, canEdit, onAdd }: {
   </div>;
 }
 
-function FilesPage({ files, onUpload, cloudinaryReady, isDemo, canUpload }: { files: LibraryFile[]; onUpload: (file: File) => Promise<void>; cloudinaryReady: boolean; isDemo: boolean; canUpload: boolean }) {
+function FilesPage({ files, onUpload, cloudinaryReady, isDemo, canUpload, cloudinarySettings, currentUserId, onCloudinarySaved, onError }: { files: LibraryFile[]; onUpload: (file: File) => Promise<void>; cloudinaryReady: boolean; isDemo: boolean; canUpload: boolean; cloudinarySettings: CloudinarySettings; currentUserId: string; onCloudinarySaved: () => void; onError: (message: string) => void }) {
   const inputRef=useRef<HTMLInputElement>(null);
   const [query,setQuery]=useState('');
   const [filter,setFilter]=useState<'all'|'PDF'|'DOC'|'PPT'|'IMAGE'|'VIDEO'>('all');
@@ -1192,6 +1195,7 @@ function FilesPage({ files, onUpload, cloudinaryReady, isDemo, canUpload }: { fi
   };
   return <div className="eh-files-page">
     <PageHeader eyebrow="RESOURCE LIBRARY" title="مكتبة الملفات" description="كل المذكرات والملفات والصور ومقاطع الفيديو في مكتبة واحدة." action={canUpload ? <><input ref={inputRef} type="file" accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.csv,.txt,.zip,.png,.jpg,.jpeg,.webp,.gif,.mp4,.mov,.webm" className="visually-hidden" onChange={(event)=>void handleFile(event.target.files?.[0])}/><button type="button" className="eh-button primary" onClick={()=>inputRef.current?.click()} disabled={uploading||(!isDemo&&!cloudinaryReady)}>{uploading?<span className="spinner"/>:<Upload size={16}/>} رفع ملف جديد</button></> : undefined}/>
+    {canUpload && <CloudinarySettingsPanel settings={cloudinarySettings} userId={currentUserId} onSaved={onCloudinarySaved} onError={onError}/>}
     <section className="eh-files-overview"><div className="eh-files-overview-main"><span className="eh-files-icon"><FolderOpen size={25}/></span><div><span className="eh-eyebrow">YOUR STUDY LIBRARY</span><h2>{files.length} ملف في مكتبتك</h2><p>{isDemo?'وضع تجريبي — الملفات لا تُحفظ على الخادم.':cloudinaryReady?'تُرفع الملفات إلى Cloudinary، وتُحفظ بياناتها في Firestore.':'يلزم إعداد Cloudinary قبل رفع الملفات.'}</p></div></div><div className="eh-files-breakdown"><div><b>{counts('PDF')}</b><span>PDF</span></div><div><b>{counts('DOC')}</b><span>مستندات</span></div><div><b>{counts('VIDEO')}</b><span>فيديو</span></div><div><b>{counts('IMAGE')}</b><span>صور</span></div></div></section>
     <section className="eh-surface-card eh-files-board">
       <div className="eh-files-toolbar"><div><span className="eh-eyebrow">ALL RESOURCES</span><h2>الملفات المحفوظة</h2></div><label className="eh-inline-search"><Search size={15}/><input value={query} onChange={(event)=>setQuery(event.target.value)} placeholder="ابحث باسم الملف أو المادة"/></label></div>
@@ -1396,169 +1400,85 @@ function NotificationsPage({ items, setItems }: { items: AppNotification[]; setI
   </div>;
 }
 
-function AdminPage({ tasks, subjects, lecturers, lectures, exams, files, currentUser, onDeleteSubject, cloudinarySettings, academicCalendar, onSaveAcademicCalendar, onNewTask, onAddSubject, onAddLecturer, onAddLecture, onAddExam, onSaved, onError }: {
-  tasks: StudyTask[];
-  subjects: Subject[];
-  lecturers: Lecturer[];
-  lectures: Lecture[];
-  exams: Exam[];
-  files: LibraryFile[];
-  currentUser: AppUser;
-  onDeleteSubject: (subject: Subject) => void;
-  cloudinarySettings: CloudinarySettings;
-  academicCalendar: AcademicCalendarSettings;
-  onSaveAcademicCalendar: (settings: AcademicCalendarSettings) => Promise<void>;
-  onNewTask: () => void;
-  onAddSubject: () => void;
-  onAddLecturer: () => void;
-  onAddLecture: () => void;
-  onAddExam: () => void;
-  onSaved: () => void;
+function AcademicCalendarPanel({ settings, onSave, onError }: {
+  settings: AcademicCalendarSettings;
+  onSave: (settings: AcademicCalendarSettings) => Promise<void>;
   onError: (message: string) => void;
 }) {
-  const [tab, setTab] = useState('overview');
-  const [cloudName, setCloudName] = useState(cloudinarySettings.cloudName);
-  const [uploadPreset, setUploadPreset] = useState(cloudinarySettings.uploadPreset);
-  const [enabled, setEnabled] = useState(cloudinarySettings.enabled);
-  const [maxImageMB, setMaxImageMB] = useState(String(cloudinarySettings.maxImageMB));
-  const [maxVideoMB, setMaxVideoMB] = useState(String(cloudinarySettings.maxVideoMB));
-  const [maxDocumentMB, setMaxDocumentMB] = useState(String(cloudinarySettings.maxDocumentMB));
-  const [savingCloudinary, setSavingCloudinary] = useState(false);
-  const [academicYearDraft, setAcademicYearDraft] = useState('');
-  const [termDraft, setTermDraft] = useState('');
-  const [calendarSaving, setCalendarSaving] = useState(false);
-  const [calendarDraft, setCalendarDraft] = useState<AcademicCalendarSettings>(academicCalendar);
-  useEffect(() => setCalendarDraft(academicCalendar), [academicCalendar]);
-  const addCalendarValue = (kind: 'years' | 'terms') => {
-    const value = (kind === 'years' ? academicYearDraft : termDraft).trim();
+  const [draft, setDraft] = useState<AcademicCalendarSettings>(settings);
+  const [yearInput, setYearInput] = useState('');
+  const [termInput, setTermInput] = useState('');
+  const [saving, setSaving] = useState(false);
+  useEffect(() => setDraft(settings), [settings]);
+  const addValue = (kind: 'years' | 'terms') => {
+    const value = (kind === 'years' ? yearInput : termInput).trim();
     if (!value) return;
-    setCalendarDraft(current => ({...current,[kind]:Array.from(new Set([...current[kind],value]))}));
-    if (kind === 'years') setAcademicYearDraft(''); else setTermDraft('');
+    setDraft(current => ({ ...current, [kind]: Array.from(new Set([...current[kind], value])) }));
+    if (kind === 'years') setYearInput(''); else setTermInput('');
   };
-  const saveCalendar = async () => {
-    if (!calendarDraft.years.length || !calendarDraft.terms.length) { onError('أضف سنة دراسية وفصلاً دراسياً واحداً على الأقل.'); return; }
-    setCalendarSaving(true);
-    try { await onSaveAcademicCalendar(calendarDraft); }
+  const save = async () => {
+    if (!draft.years.length || !draft.terms.length) { onError('أضف سنة دراسية وفصلاً دراسياً واحداً على الأقل.'); return; }
+    if (!draft.years.includes(draft.activeYear) || !draft.terms.includes(draft.activeTerm)) { onError('اختر سنة وفصلاً دراسياً حاليين من القوائم المتاحة.'); return; }
+    setSaving(true);
+    try { await onSave(draft); }
     catch (error) { onError(error instanceof Error ? error.message : 'تعذر حفظ التقويم الدراسي.'); }
-    finally { setCalendarSaving(false); }
+    finally { setSaving(false); }
   };
+  return <section className="panel admin-content-list eh-calendar-admin eh-context-settings">
+    <div className="panel-head"><div><h3>إعدادات السنة والفصل الدراسي</h3><span>تظهر الاختيارات الحالية لجميع الطلاب. تغيير الفصل لا يحذف محتوى الفصول السابقة.</span></div><span className="admin-status"><i/> للمسؤول</span></div>
+    <div className="eh-calendar-current">
+      <label>السنة الدراسية الحالية<select value={draft.activeYear} onChange={event=>setDraft(current=>({...current,activeYear:event.target.value}))}>{draft.years.map(value=><option key={value} value={value}>{value}</option>)}</select></label>
+      <label>الفصل الدراسي الحالي<select value={draft.activeTerm} onChange={event=>setDraft(current=>({...current,activeTerm:event.target.value}))}>{draft.terms.map(value=><option key={value} value={value}>{value}</option>)}</select></label>
+    </div>
+    <div className="eh-calendar-columns">
+      <div><h4>السنوات الدراسية</h4><div className="eh-calendar-add"><input value={yearInput} onChange={event=>setYearInput(event.target.value)} placeholder="مثال: السنة الأولى"/><button type="button" className="btn btn-primary btn-small" onClick={()=>addValue('years')}><Plus size={14}/> إضافة</button></div>
+        {draft.years.map(value=><div className="eh-calendar-item" key={value}><span>{value}</span>{draft.activeYear===value?<b>الحالية</b>:<button type="button" onClick={()=>setDraft(current=>({...current,years:current.years.filter(item=>item!==value)}))}>حذف</button>}</div>)}
+      </div>
+      <div><h4>الفصول الدراسية</h4><div className="eh-calendar-add"><input value={termInput} onChange={event=>setTermInput(event.target.value)} placeholder="مثال: الترم الصيفي"/><button type="button" className="btn btn-primary btn-small" onClick={()=>addValue('terms')}><Plus size={14}/> إضافة</button></div>
+        {draft.terms.map(value=><div className="eh-calendar-item" key={value}><span>{value}</span>{draft.activeTerm===value?<b>الحالي</b>:<button type="button" onClick={()=>setDraft(current=>({...current,terms:current.terms.filter(item=>item!==value)}))}>حذف</button>}</div>)}
+      </div>
+    </div>
+    <div className="eh-calendar-save"><button type="button" className="btn btn-primary" onClick={()=>void save()} disabled={saving}>{saving?<span className="spinner"/>:<Check size={16}/>} حفظ إعدادات الفصل</button></div>
+  </section>;
+}
 
+function CloudinarySettingsPanel({ settings, userId, onSaved, onError }: {
+  settings: CloudinarySettings; userId: string; onSaved: () => void; onError: (message: string) => void;
+}) {
+  const [cloudName, setCloudName] = useState(settings.cloudName);
+  const [uploadPreset, setUploadPreset] = useState(settings.uploadPreset);
+  const [enabled, setEnabled] = useState(settings.enabled);
+  const [maxImageMB, setMaxImageMB] = useState(String(settings.maxImageMB));
+  const [maxVideoMB, setMaxVideoMB] = useState(String(settings.maxVideoMB));
+  const [maxDocumentMB, setMaxDocumentMB] = useState(String(settings.maxDocumentMB));
+  const [saving, setSaving] = useState(false);
   useEffect(() => {
-    setCloudName(cloudinarySettings.cloudName);
-    setUploadPreset(cloudinarySettings.uploadPreset);
-    setEnabled(cloudinarySettings.enabled);
-    setMaxImageMB(String(cloudinarySettings.maxImageMB));
-    setMaxVideoMB(String(cloudinarySettings.maxVideoMB));
-    setMaxDocumentMB(String(cloudinarySettings.maxDocumentMB));
-  }, [cloudinarySettings]);
-
-  const saveCloudinary = async (event: FormEvent<HTMLFormElement>) => {
+    setCloudName(settings.cloudName); setUploadPreset(settings.uploadPreset); setEnabled(settings.enabled);
+    setMaxImageMB(String(settings.maxImageMB)); setMaxVideoMB(String(settings.maxVideoMB)); setMaxDocumentMB(String(settings.maxDocumentMB));
+  }, [settings]);
+  const save = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    const nextSettings: CloudinarySettings = {
-      enabled,
-      cloudName: cloudName.trim(),
-      uploadPreset: uploadPreset.trim(),
+    const next: CloudinarySettings = {
+      enabled, cloudName: cloudName.trim(), uploadPreset: uploadPreset.trim(),
       maxImageMB: Math.max(1, Math.min(100, Number(maxImageMB) || 20)),
       maxVideoMB: Math.max(1, Math.min(500, Number(maxVideoMB) || 100)),
       maxDocumentMB: Math.max(1, Math.min(100, Number(maxDocumentMB) || 25)),
     };
-    if (enabled && (!nextSettings.cloudName || !nextSettings.uploadPreset)) {
-      onError('أدخل Cloud Name وUnsigned Upload Preset قبل تفعيل الرفع.');
-      return;
-    }
-    setSavingCloudinary(true);
-    try {
-      await saveCloudinarySettings(nextSettings, currentUser.uid);
-      onSaved();
-    } catch (error) {
-      onError(error instanceof Error ? error.message : 'تعذر حفظ إعدادات Cloudinary. تأكد أن حسابك مسجل كمدير في Firebase.');
-    } finally {
-      setSavingCloudinary(false);
-    }
+    if (enabled && (!next.cloudName || !next.uploadPreset)) { onError('أدخل Cloud Name وUnsigned Upload Preset قبل تفعيل الرفع.'); return; }
+    setSaving(true);
+    try { await saveCloudinarySettings(next, userId); onSaved(); }
+    catch (error) { onError(error instanceof Error ? error.message : 'تعذر حفظ إعدادات Cloudinary. تأكد من صلاحيات حسابك.'); }
+    finally { setSaving(false); }
   };
-
-  return <>
-    <PageHeader eyebrow="MANAGEMENT CENTER" title="لوحة إدارة المنصة" description="انشر المحتوى الأكاديمي واضبط خدمات المنصة من مكان واحد." action={<span className="admin-status"><i/> وضع الإدارة</span>}/>
-    <div className="admin-tabs">{[{ id: 'overview', label: 'نظرة عامة' }, { id: 'academic', label: 'المحتوى الأكاديمي' }, { id: 'tasks', label: 'إدارة المهام' }, { id: 'users', label: 'المستخدمون والصلاحيات' }, { id: 'academic-calendar', label: 'السنوات والفصول' }, { id: 'cloudinary', label: 'إعدادات Cloudinary' }].map((item) => <button key={item.id} onClick={() => setTab(item.id)} className={tab === item.id ? 'active' : ''}>{item.label}</button>)}</div>
-    {tab === 'academic-calendar' && <section className="panel admin-content-list eh-calendar-admin">
-      <div className="panel-head"><div><h3>إدارة السنوات والفصول الدراسية</h3><span>تظهر الاختيارات الحالية لجميع الطلاب في القائمة الجانبية.</span></div><span className="admin-status"><i/> إعدادات عامة</span></div>
-      <div className="eh-calendar-current">
-        <label>السنة الدراسية الحالية<select value={calendarDraft.activeYear} onChange={event=>setCalendarDraft(current=>({...current,activeYear:event.target.value}))}>{calendarDraft.years.map(value=><option key={value} value={value}>{value}</option>)}</select></label>
-        <label>الفصل الدراسي الحالي<select value={calendarDraft.activeTerm} onChange={event=>setCalendarDraft(current=>({...current,activeTerm:event.target.value}))}>{calendarDraft.terms.map(value=><option key={value} value={value}>{value}</option>)}</select></label>
-      </div>
-      <div className="eh-calendar-columns">
-        <div><h4>السنوات الدراسية</h4><div className="eh-calendar-add"><input value={academicYearDraft} onChange={event=>setAcademicYearDraft(event.target.value)} placeholder="مثال: السنة الأولى"/><button type="button" className="btn btn-primary btn-small" onClick={()=>addCalendarValue('years')}><Plus size={14}/> إضافة</button></div>
-          {calendarDraft.years.map(value=><div className="eh-calendar-item" key={value}><span>{value}</span>{calendarDraft.activeYear===value?<b>الحالية</b>:<button type="button" onClick={()=>setCalendarDraft(current=>({...current,years:current.years.filter(item=>item!==value)}))}>حذف</button>}</div>)}
-        </div>
-        <div><h4>الفصول الدراسية</h4><div className="eh-calendar-add"><input value={termDraft} onChange={event=>setTermDraft(event.target.value)} placeholder="مثال: الترم الصيفي"/><button type="button" className="btn btn-primary btn-small" onClick={()=>addCalendarValue('terms')}><Plus size={14}/> إضافة</button></div>
-          {calendarDraft.terms.map(value=><div className="eh-calendar-item" key={value}><span>{value}</span>{calendarDraft.activeTerm===value?<b>الحالي</b>:<button type="button" onClick={()=>setCalendarDraft(current=>({...current,terms:current.terms.filter(item=>item!==value)}))}>حذف</button>}</div>)}
-        </div>
-      </div>
-      <div className="eh-calendar-save"><button type="button" className="btn btn-primary" onClick={()=>void saveCalendar()} disabled={calendarSaving}>{calendarSaving?<span className="spinner"/>:<Check size={16}/>} حفظ وتطبيق على المنصة</button></div>
-      <p className="eh-calendar-note"><Info size={14}/> تغيير الفصل الحالي يحدّث عنوان الفصل الظاهر للطلاب. لا يتم حذف محتوى الفصول السابقة عند التغيير.</p>
-    </section>}
-    {tab === 'overview' && <>
-      <div className="admin-stats">
-        <StatCard label="المواد الدراسية" value={subjects.length.toString()} detail="مواد منشورة" icon={<BookOpen size={18}/>} tone="blue"/>
-        <StatCard label="المهام" value={tasks.length.toString()} detail="مهام مسجلة" icon={<ListChecks size={18}/>} tone="green"/>
-        <StatCard label="المحاضرات" value={lectures.length.toString()} detail="محاضرات منشورة" icon={<Video size={18}/>} tone="purple"/>
-        <StatCard label="الاختبارات" value={exams.length.toString()} detail="اختبارات منشورة" icon={<ClipboardList size={18}/>} tone="amber"/>
-      </div>
-      <div className="admin-quick-grid">
-        <button onClick={onAddSubject}><div><BookOpen size={19}/></div><b>إضافة مادة</b><span>إنشاء مقرر دراسي</span></button>
-        <button onClick={onNewTask}><div><ListChecks size={19}/></div><b>إنشاء مهمة</b><span>نشر تكليف للطلاب</span></button>
-        <button onClick={onAddLecturer} disabled={subjects.length === 0}><div><GraduationCap size={19}/></div><b>إضافة مدرس</b><span>ربط مدرس بمادة دراسية</span></button>
-        <button onClick={onAddLecture} disabled={lecturers.length === 0}><div><Video size={19}/></div><b>إضافة محاضرة</b><span>إنشاء محاضرة تحت مدرس</span></button>
-        <button onClick={onAddExam}><div><ClipboardList size={19}/></div><b>إضافة اختبار</b><span>حدد المادة والموعد والمدة</span></button>
-      </div>
-      <div className="panel admin-content-list admin-storage-summary"><div className="panel-head"><div><h3>حالة المكتبة</h3><span>أرقام فعلية من المحتوى المسجل</span></div></div><div className="admin-summary-numbers"><div><b>{files.length}</b><span>ملف</span></div><div><b>{subjects.reduce((sum, subject) => sum + subject.lectures, 0)}</b><span>عدد المحاضرات المرتبطة بالمواد</span></div></div></div>
-    </>}
-    {tab === 'academic' && <>
-      <div className="panel admin-content-list">
-        <div className="panel-head"><div><h3>المواد الدراسية</h3><span>الترم الأول — أضف المواد الفعلية للطلاب</span></div><button className="btn btn-primary btn-small" onClick={onAddSubject}><Plus size={14}/> إضافة مادة</button></div>
-        {subjects.map((subject) => <div className="admin-list-row eh-admin-subject-row" key={subject.id}><div className="subject-mini-icon" style={{ background: subject.color + '18', color: subject.color }}>{subject.icon}</div><div className="eh-admin-subject-copy"><b>{subject.name}</b><span>{subject.code} · {subject.description || 'مقرر دراسي'}</span></div><span className="eh-admin-subject-count">{lectures.filter((item) => item.subjectId === subject.id).length} محاضرة</span><span className="status-chip status-completed">منشورة</span><button type="button" className="eh-admin-delete" onClick={() => onDeleteSubject(subject)} aria-label={`حذف مادة ${subject.name}`} title="حذف المادة ومحتواها"><Trash2 size={16}/><span>حذف</span></button></div>)}
-        {subjects.length === 0 && <EmptyState title="لا توجد مواد بعد" body="ابدأ بإضافة أول مادة دراسية."/ >}
-      </div>
-      <div className="panel admin-content-list">
-        <div className="panel-head"><div><h3>المدرسون</h3><span>كل مدرس مرتبط بمادة مستقلة</span></div><button className="btn btn-primary btn-small" onClick={onAddLecturer} disabled={subjects.length === 0}><Plus size={14}/> إضافة مدرس</button></div>
-        {lecturers.map((lecturer) => <div className="admin-list-row" key={lecturer.id}><div className="admin-task-symbol"><GraduationCap size={17}/></div><div><b>{lecturer.name}</b><span>{lecturer.subjectName}</span></div><span>{lectures.filter((item) => item.lecturerId === lecturer.id).length} محاضرة</span></div>)}
-        {lecturers.length === 0 && <EmptyState title="لا يوجد مدرسون بعد" body="أضف مدرساً داخل صفحة المادة الدراسية."/ >}
-      </div>
-      <div className="panel admin-content-list">
-        <div className="panel-head"><div><h3>المحاضرات</h3><span>أجزاء الفيديو تضاف داخل المحاضرة نفسها</span></div><button className="btn btn-primary btn-small" onClick={onAddLecture} disabled={lecturers.length === 0}><Plus size={14}/> إضافة محاضرة</button></div>
-        {lectures.map((lecture) => <div className="admin-list-row" key={lecture.id}><div className="admin-task-symbol"><Video size={17}/></div><div><b>{lecture.title}</b><span>{lecture.subjectName} · {lecture.lecturerName || lecture.instructor || 'بدون مدرس'}</span></div><span>{lecture.partsCount ?? lecture.parts ?? 0} أجزاء</span></div>)}
-        {lectures.length === 0 && <EmptyState title="لا توجد محاضرات بعد" body="أضف محاضرة واربطها برابط فيديو."/ >}
-      </div>
-      <div className="panel admin-content-list">
-        <div className="panel-head"><div><h3>الاختبارات</h3><span>أضف مواعيد التقييمات والامتحانات</span></div><button className="btn btn-primary btn-small" onClick={onAddExam}><Plus size={14}/> إضافة اختبار</button></div>
-        {exams.map((exam) => <div className="admin-list-row" key={exam.id}><div className="admin-task-symbol"><ClipboardList size={17}/></div><div><b>{exam.title}</b><span>{exam.subjectName}</span></div><span>{new Date(exam.date).toLocaleString('ar-EG')}</span><span>{exam.duration}</span></div>)}
-        {exams.length === 0 && <EmptyState title="لا توجد اختبارات بعد" body="أضف الاختبار القادم ليظهر للطلاب."/ >}
-      </div>
-    </>}
-    {tab === 'tasks' && <div className="panel admin-content-list">
-      <div className="panel-head"><div><h3>المهام المنشورة</h3><span>راجع المهام المسجلة حالياً</span></div><button className="btn btn-primary btn-small" onClick={onNewTask} disabled={subjects.length === 0}><Plus size={14}/> مهمة جديدة</button></div>
-      {tasks.map((task) => <div className="admin-list-row" key={task.id}><div className="admin-task-symbol"><ClipboardList size={17}/></div><div><b>{task.title}</b><span>{task.subjectName}</span></div><span className={'priority-badge priority-' + task.priority}>{priorityText[task.priority]}</span><span className={'status-chip status-' + task.status}>{statusText[task.status]}</span></div>)}
-      {tasks.length === 0 && <EmptyState title="لا توجد مهام بعد" body="أنشئ المهام بعد إضافة المواد الدراسية."/ >}
-    </div>}
-    {tab === 'users' && <div className="panel users-placeholder">
-      <Users size={32}/><h3>إدارة حسابات المديرين</h3>
-      <p>يتم منح صلاحية الإدارة من Firebase Console، وليس من ملف الطالب. أنشئ حساب المستخدم أولاً في Authentication، ثم أضف مستنداً في مجموعة <b dir="ltr">admins</b> يكون معرّفه هو بريده الإلكتروني المطابق تماماً.</p>
-      <div className="admin-permission-example"><b>أول مدير أعلى</b><code dir="ltr">admins/your-email@example.com</code><pre>{JSON.stringify({ email: 'your-email@example.com', role: 'super-admin', active: true }, null, 2)}</pre><span>استبدل البريد التجريبي ببريدك الفعلي، واجعل active من النوع Boolean.</span></div>
-      <p>لمدير عادي استخدم <code>role: "admin"</code>. لتعطيل مدير استخدم <code>active: false</code>. بعد ذلك سجّل الخروج والدخول مجدداً.</p>
-      <a className="admin-external-link" href="https://console.firebase.google.com/project/eng-hub-5c30a/firestore" target="_blank" rel="noreferrer">فتح Firestore Console</a>
-      <span className="admin-status"><i/> تُقرأ الصلاحيات من Firestore مع قواعد حماية تمنع المستخدم من ترقية نفسه.</span>
-    </div>}
-    {tab === 'cloudinary' && <form className="panel admin-content-list form-stack" onSubmit={(event) => void saveCloudinary(event)}>
-      <div className="panel-head"><div><h3>ربط Cloudinary</h3><span>تُرفع الملفات والصور والفيديوهات إلى Cloudinary، ويحتفظ Firestore بالروابط والبيانات الوصفية.</span></div><span className={'connection-state ' + (isCloudinaryConfigured(cloudinarySettings) ? '' : 'demo')}><i/>{isCloudinaryConfigured(cloudinarySettings) ? 'متصل' : 'غير مهيأ'}</span></div>
-      <label>Cloud Name<input dir="ltr" autoComplete="off" value={cloudName} onChange={(event) => setCloudName(event.target.value)} placeholder="your-cloud-name"/></label>
-      <label>Unsigned Upload Preset<input dir="ltr" autoComplete="off" value={uploadPreset} onChange={(event) => setUploadPreset(event.target.value)} placeholder="eng_hub_unsigned"/></label>
-      <div className="setting-row"><div><b>تفعيل الرفع</b><span>عند إيقافه لن يتم رفع الملفات من المنصة.</span></div><button type="button" className={'toggle-switch ' + (enabled ? 'on' : '')} onClick={() => setEnabled((value) => !value)} aria-pressed={enabled}><i/></button></div>
-      <div className="admin-cloudinary-limits"><label>حد الصورة (MB)<input type="number" min="1" max="100" value={maxImageMB} onChange={(event) => setMaxImageMB(event.target.value)}/></label><label>حد الفيديو (MB)<input type="number" min="1" max="500" value={maxVideoMB} onChange={(event) => setMaxVideoMB(event.target.value)}/></label><label>حد المستند (MB)<input type="number" min="1" max="100" value={maxDocumentMB} onChange={(event) => setMaxDocumentMB(event.target.value)}/></label></div>
-      <div className="inline-info"><AlertCircle size={16}/> استخدم Unsigned Upload Preset مقيّداً بالأنواع والأحجام والمجلد من لوحة Cloudinary. لا تضع API Secret هنا ولا في الموقع.</div>
-      <p className="settings-hint">الصيغ المدعومة: PDF وDOC/DOCX وPPT/PPTX وXLS/XLSX وCSV وTXT وZIP والصور والفيديو.</p>
-      <div><button className="btn btn-primary" type="submit" disabled={savingCloudinary}>{savingCloudinary ? <span className="spinner"/> : <Check size={15}/>} حفظ إعدادات Cloudinary</button></div>
-    </form>}
-  </>;
+  return <form className="panel admin-content-list form-stack eh-context-settings" onSubmit={(event)=>void save(event)}>
+    <div className="panel-head"><div><h3>إعدادات رفع الملفات</h3><span>اضبط اتصال Cloudinary وحدود الملفات من مكتبة الملفات نفسها.</span></div><span className={'connection-state '+(isCloudinaryConfigured(settings)?'':'demo')}><i/>{isCloudinaryConfigured(settings)?'متصل':'غير مهيأ'}</span></div>
+    <label>Cloud Name<input dir="ltr" autoComplete="off" value={cloudName} onChange={event=>setCloudName(event.target.value)} placeholder="your-cloud-name"/></label>
+    <label>Unsigned Upload Preset<input dir="ltr" autoComplete="off" value={uploadPreset} onChange={event=>setUploadPreset(event.target.value)} placeholder="eng_hub_unsigned"/></label>
+    <div className="setting-row"><div><b>تفعيل الرفع</b><span>عند إيقافه لن يتم رفع الملفات من المنصة.</span></div><button type="button" className={'toggle-switch '+(enabled?'on':'')} onClick={()=>setEnabled(value=>!value)} aria-pressed={enabled}><i/></button></div>
+    <div className="admin-cloudinary-limits"><label>حد الصورة (MB)<input type="number" min="1" max="100" value={maxImageMB} onChange={event=>setMaxImageMB(event.target.value)}/></label><label>حد الفيديو (MB)<input type="number" min="1" max="500" value={maxVideoMB} onChange={event=>setMaxVideoMB(event.target.value)}/></label><label>حد المستند (MB)<input type="number" min="1" max="100" value={maxDocumentMB} onChange={event=>setMaxDocumentMB(event.target.value)}/></label></div>
+    <div className="inline-info"><AlertCircle size={16}/> استخدم Unsigned Upload Preset مقيّداً بالأنواع والأحجام والمجلد من لوحة Cloudinary. لا تضع API Secret هنا ولا في الموقع.</div>
+    <div><button className="btn btn-primary" type="submit" disabled={saving}>{saving?<span className="spinner"/>:<Check size={15}/>} حفظ إعدادات الرفع</button></div>
+  </form>;
 }
 
 function ProfilePage({ user, isDemo, onToggleRole, onLogout, onDeleteAccount, onSaveProfile, themePreference, onThemeChange, cloudinarySettings, dark }: {
