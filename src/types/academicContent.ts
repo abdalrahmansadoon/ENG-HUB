@@ -36,6 +36,8 @@ export interface AcademicContentNode {
   customTypeName?: string;
   /** Optional emoji or short text symbol for an administrator-defined type. */
   customTypeIcon?: string;
+  /** Lucide icon identifier selected from the built-in icon library. */
+  iconName?: string;
   /** Hex color selected for an administrator-defined type. */
   customTypeColor?: string;
   /** Custom nodes can be folders or standalone items. */
@@ -59,6 +61,7 @@ export interface CreateAcademicContentInput {
   linkedNodeIds?: string[];
   customTypeName?: string;
   customTypeIcon?: string;
+  iconName?: string;
   customTypeColor?: string;
   canContainChildren?: boolean;
   publicationStatus?: AcademicPublicationStatus;
