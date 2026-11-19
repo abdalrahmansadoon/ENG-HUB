@@ -236,8 +236,11 @@ export function AcademicContentArea({
         </button>)}</div>
       </div>}
       {isAdmin && <div className="eh-content-detail-actions">
-        {activeNode.createdBy !== 'legacy' && <button type="button" className="eh-button" onClick={() => openEdit(activeNode)}><Pencil size={15}/> تعديل العنصر</button>}
-        {isAcademicContentContainer(activeNode) && <button type="button" className="eh-button primary" onClick={openAdd}><Plus size={16}/> إضافة عنصر داخل {activeNode.kind === 'folder' || activeNode.kind === 'custom' ? 'المجلد' : 'هذا القسم'}</button>}
+        {activeNode.createdBy !== 'legacy' && <>
+          <button type="button" className="eh-button" onClick={() => openEdit(activeNode)}><Pencil size={15}/> تعديل العنصر</button>
+          <button type="button" className="eh-button danger" onClick={() => void remove(activeNode)}><Trash2 size={15}/> حذف العنصر</button>
+        </>}
+        {isAcademicContentContainer(activeNode) && <button type="button" className="eh-button primary" onClick={openAdd}><Plus size={16}/> إنشاء عنصر داخله</button>}
       </div>}
     </section>}
 
