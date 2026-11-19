@@ -118,13 +118,14 @@ Cloud Name وUnsigned Preset قيمتان عامتان يستخدمهما الم
 
 | Variable | Value |
 |---|---|
-| `VITE_FIREBASE_API_KEY` | `AIzaSyDWrjLwgj8r5JPWfzbOIAx76MF7ydCLOB8` |
+| `VITE_FIREBASE_API_KEY` | مفتاح تطبيق الويب العام الحالي (لا تستخدم Service Account) |
 | `VITE_FIREBASE_AUTH_DOMAIN` | `eng-hub-5c30a.firebaseapp.com` |
 | `VITE_FIREBASE_PROJECT_ID` | `eng-hub-5c30a` |
 | `VITE_FIREBASE_MESSAGING_SENDER_ID` | `366947709379` |
-| `VITE_FIREBASE_APP_ID` | `1:366947709379:web:747b0aba2d08056b734d76` |
-| `VITE_FIREBASE_MEASUREMENT_ID` | `G-M2MPGMLD14` |
-| `VITE_FIREBASE_VAPID_KEY` | `BOQHNvhjRYDfvLmPZ_bQrJ94F4z0gYiYlAuguOzvO13t32hsX2Gt_zBF4kNSl6RpUQy3vVdnz-zRGJg7_fNqDDg` |
+| `VITE_FIREBASE_APP_ID` | معرّف تطبيق الويب الحالي |
+| `VITE_FIREBASE_MEASUREMENT_ID` | معرّف Analytics العام الحالي |
+| `VITE_FIREBASE_VAPID_KEY` | مفتاح VAPID العام المستخدم في ملف النشر |
+| `VITE_FIREBASE_APPCHECK_SITE_KEY` | Site Key الخاص بـ reCAPTCHA v3 (اختياري حتى تفعّل App Check) |
 
 هذه بيانات إعداد تطبيق الويب العامة، وليست مفتاح Service Account. لا تضف أي Service Account JSON أو Cloudinary API Secret إلى متغيرات `VITE_`.
 
@@ -135,6 +136,53 @@ Cloud Name وUnsigned Preset قيمتان عامتان يستخدمهما الم
 `https://abdalrahmansadoon.github.io/ENG-HUB/`
 
 إعداد Vite وملفات PWA مضبوط على مسار المستودع `/ENG-HUB/`.
+
+## تقوية إعدادات الأمان قبل الإطلاق
+
+هذه الخطوات مكملة لقواعد Firestore الموجودة في المستودع؛ بعض الإعدادات لا يمكن فرضها من ملفات الواجهة وحدها:
+
+### 1. تقييد Firebase Web API Key
+
+مفتاح Firebase الموجود في تطبيق الويب ليس كلمة مرور أو مفتاحاً سرياً، لكن يفضّل تقييده من Google Cloud Console:
+
+1. افتح **APIs & Services → Credentials** واختر مفتاح تطبيق الويب المستخدم في Firebase.
+2. من **Application restrictions** اختر **Websites (HTTP referrers)**.
+3. أضف النطاق المنشور `https://abdalrahmansadoon.github.io/*`، وأضف `http://localhost:5173/*` و`http://127.0.0.1:5173/*` للتطوير المحلي.
+4. لا تحذف النطاقات الأخرى التي تحتاجها فعلياً قبل التأكد من عدم استخدامها.
+
+### 2. تفعيل Firebase App Check
+
+أُضيف دعم اختياري لـ **reCAPTCHA v3** في تهيئة Firebase. لتفعيله:
+
+1. أنشئ موقع reCAPTCHA v3 للنطاقين `abdalrahmansadoon.github.io` و`localhost`.
+2. سجّل تطبيق الويب في Firebase Console → App Check واختر reCAPTCHA v3، ثم أدخل Site Key.
+3. أضف متغير GitHub Actions التالي من Settings → Secrets and variables → Actions → Variables:
+   `VITE_FIREBASE_APPCHECK_SITE_KEY`.
+4. أضف القيمة نفسها إلى `.env.local` عند التطوير المحلي.
+5. اختبر تسجيل الدخول والقراءة والكتابة أولاً في وضع المراقبة، ثم فعّل Enforcement لـ Cloud Firestore بعد التأكد من وصول رموز App Check بنجاح.
+
+لا تفعّل Enforcement قبل إكمال إعداد الموقع والتحقق من الطلبات؛ وإلا قد تُرفض اتصالات الطلاب الحالية.
+
+### 3. حماية Cloudinary unsigned preset
+
+حدود الملفات الموجودة في الواجهة مفيدة لتجربة الاستخدام فقط، وليست حماية من جهة الخادم. من Cloudinary Console → Settings → Upload:
+
+- اجعل الـ preset مخصصاً لـ ENG HUB، واضبط **Allowed formats** على أنواع الملفات التي تحتاجها فعلياً فقط.
+- عيّن أقصى حجم للملفات بما يتوافق مع الحدود التي تريدها، وحدد مجلد الرفع `eng-hub` من إعدادات الـ preset نفسها إن كان الخيار متاحاً.
+- امنع خيارات الرفع غير الضرورية مثل overwrite، وراقب الاستهلاك وسجل الرفع دورياً.
+- لا تضع API Secret في الواجهة أو في أي متغير يبدأ بـ `VITE_`.
+
+الرفع الحالي ما زال unsigned؛ لذلك لا تعتبر فحص الامتداد والحجم في المتصفح بديلاً عن القيود داخل Cloudinary. الانتقال لاحقاً إلى توقيع الرفع عبر Worker يتطلب إعداد خدمة خارجية ومفاتيحها، ولم أفعّله تلقائياً حتى لا أغيّر مسار الرفع أو أطلب منك إعداداً غير متاح.
+
+### 4. نشر قواعد Firestore
+
+تعديل `firestore.rules` في GitHub لا ينشر القواعد تلقائياً إلى Firebase. بعد مراجعة التغييرات، نفّذ:
+
+```bash
+firebase deploy --only firestore:rules,firestore:indexes
+```
+
+تم تشديد إنشاء مستند الطالب وسجلات أجهزة FCM بحيث لا يستطيع المستخدم إنشاء حقول إضافية غير معتمدة أو تسجيل جهاز باسم مستخدم آخر. اختبر التسجيل وتفعيل الإشعارات بعد نشر القواعد.
 
 ## إشعارات الويب (Firebase Cloud Messaging)
 
