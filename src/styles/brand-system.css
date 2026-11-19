@@ -1175,3 +1175,110 @@ button,input,textarea,select{font-family:inherit}
 .eh-app .eh-admin-delete{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:34px;padding:6px 10px;border:1px solid color-mix(in srgb,var(--eh-danger) 28%,var(--border));border-radius:9px;background:color-mix(in srgb,var(--eh-danger) 7%,var(--surface));color:var(--eh-danger);font-size:11px;font-weight:800}
 .eh-app .eh-admin-delete:hover{background:color-mix(in srgb,var(--eh-danger) 14%,var(--surface));border-color:var(--eh-danger)}
 @media(max-width:720px){.eh-app .eh-admin-subject-row{grid-template-columns:36px minmax(0,1fr) auto;gap:9px}.eh-app .eh-admin-subject-count{grid-column:2}.eh-app .eh-admin-subject-row .status-chip{display:none}.eh-app .eh-admin-delete{grid-column:3;grid-row:1/3}.eh-app .eh-admin-delete span{display:none}.eh-app .admin-tabs{overflow-x:auto;flex-wrap:nowrap;scrollbar-width:thin}.eh-app .admin-tabs button{white-space:nowrap;flex:0 0 auto}}
+
+
+/* ENG HUB — comprehensive responsive layout pass */
+@media (max-width: 760px) {
+  .eh-app, .eh-app * { box-sizing: border-box; }
+  .eh-app { width:100%; max-width:100%; overflow-x:clip!important; }
+  .eh-app .eh-main, .eh-app .eh-content, .eh-app .eh-page-view,
+  .eh-app .eh-page-view > *, .eh-app main, .eh-app section,
+  .eh-app article, .eh-app form, .eh-app .panel, .eh-app .eh-surface-card {
+    min-width:0; max-width:100%;
+  }
+  .eh-app .eh-page-view { width:100%; padding:16px 12px 28px!important; }
+  .eh-app .eh-content { width:100%; }
+  .eh-app img, .eh-app video, .eh-app iframe, .eh-app canvas, .eh-app svg { max-width:100%; }
+  .eh-app input, .eh-app select, .eh-app textarea { min-width:0; max-width:100%; }
+  .eh-app h1,.eh-app h2,.eh-app h3,.eh-app h4,.eh-app p,
+  .eh-app label,.eh-app small,.eh-app b,.eh-app span { overflow-wrap:anywhere; }
+  .eh-app .eh-page-heading { width:100%; align-items:flex-start!important; }
+  .eh-app .eh-page-heading > * { max-width:100%; min-width:0; }
+  .eh-app .eh-page-heading h1 { font-size:clamp(20px,5.5vw,25px)!important; line-height:1.45!important; }
+  .eh-app .eh-page-heading p { max-width:100%; line-height:1.8; }
+  .eh-app .eh-mobile-nav { display:flex!important; width:100%; justify-content:space-around!important; overflow:hidden!important; gap:2px!important; }
+  .eh-app .eh-mobile-nav button { flex:1 1 0!important; min-width:0!important; width:auto!important; padding:5px 2px!important; }
+  .eh-app .eh-mobile-nav button span { max-width:100%; overflow:hidden; text-overflow:ellipsis; }
+  .eh-app .eh-sidebar { max-width:88vw!important; }
+  .eh-app .eh-sidebar.is-open { overflow-y:auto!important; overscroll-behavior:contain; }
+  .eh-app .eh-topbar { width:100%; min-width:0; }
+  .eh-app .eh-topbar-leading, .eh-app .eh-topbar-actions { min-width:0; }
+  .eh-app .eh-topbar-actions { flex:0 0 auto; }
+  .eh-app .eh-search-wrap { min-width:0; }
+  .eh-app .eh-stat-grid,.eh-app .eh-stats-grid,.eh-app .stats-grid,
+  .eh-app .eh-analytics-grid,.eh-app .eh-profile-grid { grid-template-columns:repeat(2,minmax(0,1fr))!important; }
+  .eh-app .eh-dashboard-grid,.eh-app .eh-home-grid,.eh-app .dashboard-grid,
+  .eh-app .lower-grid,.eh-app .eh-planner-grid { grid-template-columns:minmax(0,1fr)!important; }
+  .eh-app .eh-academic-subject-grid,.eh-app .eh-content-item-grid,
+  .eh-app .eh-files-grid,.eh-app .eh-lecture-grid { grid-template-columns:repeat(2,minmax(0,1fr))!important; }
+  .eh-app .eh-stat-card,.eh-app .stat-card,.eh-app .eh-surface-card,
+  .eh-app .panel,.eh-app .eh-academic-subject-card,.eh-app .eh-content-item-card { min-width:0; }
+  .eh-app .eh-task-toolbar,.eh-app .eh-exam-toolbar,.eh-app .eh-files-toolbar,
+  .eh-app .eh-notifications-toolbar { flex-wrap:wrap!important; align-items:stretch!important; gap:10px!important; }
+  .eh-app .eh-task-filters,.eh-app .eh-exam-filters,.eh-app .eh-files-filters,
+  .eh-app .eh-notifications-tabs,.eh-app .admin-tabs { max-width:100%; overflow-x:auto!important; flex-wrap:nowrap!important; scrollbar-width:thin; }
+  .eh-app .eh-task-filters > *, .eh-app .eh-exam-filters > *,
+  .eh-app .eh-files-filters > *, .eh-app .eh-notifications-tabs > *,
+  .eh-app .admin-tabs > * { flex:0 0 auto; white-space:nowrap; }
+  .eh-app .eh-content-studio-head { min-width:0; }
+  .eh-app .eh-content-studio-actions { width:100%; }
+  .eh-app .eh-content-studio-actions > * { min-width:0; max-width:100%; }
+  .eh-app .eh-content-breadcrumb,.eh-app .eh-academic-crumbs { max-width:100%; overflow-x:auto!important; }
+  .eh-app .eh-profile-form,.eh-app .form-stack { width:100%; min-width:0; }
+  .eh-app .eh-profile-form-footer,.eh-app .modal-actions,.eh-app .eh-modal-actions { flex-wrap:wrap!important; }
+  .eh-app .eh-profile-form-footer > *, .eh-app .modal-actions > *,
+  .eh-app .eh-modal-actions > * { min-width:0; }
+  .eh-app .form-row { display:grid!important; grid-template-columns:minmax(0,1fr)!important; }
+  .eh-app table { display:block; width:100%; max-width:100%; overflow-x:auto; -webkit-overflow-scrolling:touch; }
+  .eh-app pre,.eh-app code { max-width:100%; overflow-x:auto; }
+  .eh-app .modal-backdrop,.eh-app .video-modal-backdrop {
+    position:fixed!important; inset:0!important; width:100vw!important; height:100dvh!important;
+    padding:12px!important; display:flex!important; align-items:center!important; justify-content:center!important;
+    overflow-y:auto!important; overscroll-behavior:contain;
+  }
+  .eh-app .modal-card,.eh-app .video-modal-card {
+    width:min(100%,560px)!important; max-width:560px!important; max-height:calc(100dvh - 24px)!important;
+    margin:auto!important; overflow-y:auto!important; border-radius:18px!important;
+  }
+  .eh-app .modal-head { gap:8px; }
+  .eh-app .modal-head > * { min-width:0; }
+  .eh-app .modal-actions { display:grid!important; grid-template-columns:repeat(2,minmax(0,1fr))!important; }
+  .eh-app .modal-actions button { width:100%; }
+  .eh-app .video-speed-menu,.eh-app .task-actions-menu { max-width:calc(100vw - 24px); }
+  .eh-app .eh-content-detail { width:100%; max-width:100%; }
+  .eh-app .eh-content-detail header { flex-wrap:wrap; }
+  .eh-app .eh-content-detail header > * { min-width:0; }
+  .eh-app .eh-files-toolbar > *, .eh-app .eh-exam-toolbar > *,
+  .eh-app .eh-task-toolbar > * { min-width:0; max-width:100%; }
+  .eh-app .eh-files-toolbar input,.eh-app .eh-exam-toolbar input,
+  .eh-app .eh-task-toolbar input { width:100%; }
+}
+@media (max-width: 540px) {
+  .eh-app .eh-page-view { padding:14px 10px 24px!important; }
+  .eh-app .eh-stat-grid,.eh-app .eh-stats-grid,.eh-app .stats-grid,
+  .eh-app .eh-analytics-grid,.eh-app .eh-profile-grid { grid-template-columns:minmax(0,1fr)!important; }
+  .eh-app .eh-academic-subject-grid,.eh-app .eh-content-item-grid,
+  .eh-app .eh-files-grid,.eh-app .eh-lecture-grid { grid-template-columns:minmax(0,1fr)!important; }
+  .eh-app .eh-stat-card,.eh-app .stat-card { min-height:0!important; }
+  .eh-app .eh-task-toolbar,.eh-app .eh-exam-toolbar,.eh-app .eh-files-toolbar { display:grid!important; grid-template-columns:minmax(0,1fr)!important; }
+  .eh-app .eh-content-studio-actions { grid-template-columns:minmax(0,1fr)!important; }
+  .eh-app .eh-content-studio-actions > * { width:100%; }
+  .eh-app .eh-academic-library-intro { width:100%; }
+  .eh-app .eh-notifications-toolbar { display:grid!important; grid-template-columns:minmax(0,1fr)!important; }
+  .eh-app .eh-profile-hero,.eh-app .eh-profile-identity { min-width:0; }
+  .eh-app .eh-profile-identity { flex-wrap:wrap!important; }
+  .eh-app .eh-profile-academic-facts { width:100%; }
+  .eh-app .modal-card,.eh-app .video-modal-card { padding:15px!important; }
+  .eh-app .modal-actions { grid-template-columns:minmax(0,1fr)!important; }
+  .eh-app .eh-mobile-nav { height:calc(62px + env(safe-area-inset-bottom))!important; }
+  .eh-app .eh-mobile-nav button { font-size:8px!important; }
+}
+@media (max-width: 380px) {
+  .eh-app .eh-page-view { padding-inline:8px!important; }
+  .eh-app .eh-topbar { padding-inline:8px!important; gap:5px!important; }
+  .eh-app .eh-topbar-actions { gap:2px!important; }
+  .eh-app .eh-icon-btn { width:35px!important; min-width:35px!important; }
+  .eh-app .eh-mobile-nav button svg { width:17px!important; height:17px!important; }
+  .eh-app .eh-mobile-nav button span { font-size:7px!important; }
+  .eh-app .eh-surface-card,.eh-app .panel { border-radius:13px!important; }
+}
