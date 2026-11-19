@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
+import * as LucideIcons from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import {
   ArrowDown, ArrowUpLeft, BookOpen, Check, ChevronLeft, ChevronRight, ClipboardList,
   Download, ExternalLink, File, FileText, Folder, FolderPlus, GraduationCap, Layers3,
@@ -176,10 +178,11 @@ export function AcademicContentArea({
           const isFolder = isAcademicContentContainer(node);
           const Icon = node.kind === 'folder' || node.kind === 'custom' ? Folder : node.kind === 'lecturer' ? GraduationCap : node.kind === 'lecture' ? BookOpen : node.kind === 'video' ? Video : node.kind === 'exam' ? ClipboardList : node.kind === 'file' ? FileText : node.kind === 'link' ? ExternalLink : File;
           const isDraft = node.publicationStatus === 'draft';
+          const ChosenIcon = node.iconName ? (LucideIcons as unknown as Record<string, LucideIcon>)[node.iconName] : undefined;
           const kindLabel = node.kind === 'custom' ? (node.customTypeName || 'نوع مخصص') : (kinds.find((kind) => kind.id === node.kind)?.label ?? node.kind);
           return <article className="eh-content-item-card" key={node.id}>
             <button type="button" className="eh-content-item-open" onClick={() => isFolder ? onNavigate(category, node.id) : onNavigate(category, node.id)}>
-              <span className={`eh-content-item-icon kind-${node.kind}`} style={node.kind === 'custom' && node.customTypeColor ? { color: node.customTypeColor, borderColor: node.customTypeColor } : undefined}>{node.kind === 'custom' && node.customTypeIcon ? <span className="eh-custom-kind-symbol">{node.customTypeIcon}</span> : <Icon size={22}/>}</span>
+              <span className={`eh-content-item-icon kind-${node.kind}`} style={node.kind === 'custom' && node.customTypeColor ? { color: node.customTypeColor, borderColor: node.customTypeColor } : undefined}>{ChosenIcon ? <ChosenIcon size={22}/> : node.kind === 'custom' && node.customTypeIcon ? <span className="eh-custom-kind-symbol">{node.customTypeIcon}</span> : <Icon size={22}/>}</span>
               <span className="eh-content-item-main"><b>{node.title}</b><small>{node.description || kindLabel}</small></span>
               <ChevronLeft size={16}/>
             </button>
@@ -291,6 +294,9 @@ function AcademicContentModal({ category, parent, initialNode, nodes, onClose, o
   const [kind, setKind] = useState<AcademicContentKind>(initialNode?.kind ?? 'folder');
   const [customTypeName, setCustomTypeName] = useState(initialNode?.customTypeName ?? '');
   const [customTypeIcon, setCustomTypeIcon] = useState(initialNode?.customTypeIcon ?? '✳');
+  const [iconName, setIconName] = useState(initialNode?.iconName ?? 'Folder');
+  const [iconSearch, setIconSearch] = useState('');
+  const [iconLimit, setIconLimit] = useState(72);
   const [customTypeColor, setCustomTypeColor] = useState(initialNode?.customTypeColor ?? '#4169e1');
   const [canContainChildren, setCanContainChildren] = useState(initialNode?.canContainChildren ?? true);
   const [title, setTitle] = useState(initialNode?.title ?? '');
@@ -304,6 +310,8 @@ function AcademicContentModal({ category, parent, initialNode, nodes, onClose, o
   const [error, setError] = useState('');
   const [mimeType, setMimeType] = useState(initialNode?.mimeType ?? '');
   const needsUrl = ['video','file','exam','assignment','link'].includes(kind);
+  const iconNames = Object.keys(LucideIcons).filter((name) => /^[A-Z]/.test(name) && name !== 'Icon' && name !== 'createLucideIcon');
+  const filteredIcons = iconNames.filter((name) => name.toLowerCase().includes(iconSearch.trim().toLowerCase())).slice(0, iconLimit);
   const availableLinks = nodes.filter((node) => node.id !== (initialNode?.id ?? parent?.id) && !isAcademicContentContainer(node) && node.publicationStatus === 'published');
   const customTypePresets = Array.from(nodes.reduce((presets, node) => {
     if (node.kind === 'custom' && node.customTypeName && !presets.has(node.customTypeName)) {
@@ -325,6 +333,7 @@ function AcademicContentModal({ category, parent, initialNode, nodes, onClose, o
       parentId: initialNode?.parentId ?? parent?.id ?? null,
       kind, category: itemCategory, title: title.trim(), description: description.trim(),
       ...(url.trim() ? { url: url.trim() } : {}), ...(mimeType ? { mimeType } : {}),
+      iconName,
       ...(kind === 'custom' ? {
         customTypeName: customTypeName.trim(), customTypeIcon: customTypeIcon.trim() || '✳',
         customTypeColor, canContainChildren,
@@ -349,6 +358,12 @@ function AcademicContentModal({ category, parent, initialNode, nodes, onClose, o
       <form className="form-stack" onSubmit={(event) => void submit(event)}>
         <div className="eh-content-kind-grid">{kinds.map((item) => <button key={item.id} type="button" className={kind === item.id ? 'selected' : ''} onClick={() => setKind(item.id)}><span>{item.id === 'folder' ? <FolderPlus size={17}/> : item.id === 'video' ? <Video size={17}/> : item.id === 'file' ? <FileText size={17}/> : item.id === 'exam' ? <ClipboardList size={17}/> : item.id === 'lecture' ? <GraduationCap size={17}/> : item.id === 'custom' ? <Sparkles size={17}/> : <MoreHorizontal size={17}/>}</span>{item.label}</button>)}</div>
         <label>اسم العنصر<input required minLength={2} maxLength={140} autoFocus value={title} onChange={(event) => setTitle(event.target.value)} placeholder={kind === 'folder' ? 'مثال: المحاضرات الإضافية' : 'عنوان المحتوى'}/></label>
+        <section className="eh-icon-library-picker">
+          <div className="eh-icon-library-heading"><b>أيقونة العنصر</b><span>{iconNames.length.toLocaleString('ar-EG')} أيقونة متاحة</span></div>
+          <label className="eh-icon-library-search"><Search size={15}/><input value={iconSearch} onChange={(event) => { setIconSearch(event.target.value); setIconLimit(72); }} placeholder="ابحث باسم الأيقونة بالإنجليزية…" dir="ltr"/></label>
+          <div className="eh-icon-library-grid">{filteredIcons.map((name) => { const ItemIcon = (LucideIcons as unknown as Record<string, LucideIcon>)[name]; return <button key={name} type="button" title={name} aria-label={'اختيار أيقونة '+name} className={iconName === name ? 'selected' : ''} onClick={() => setIconName(name)}><ItemIcon size={19}/><small>{name}</small></button>; })}</div>
+          {filteredIcons.length < iconNames.filter((name) => name.toLowerCase().includes(iconSearch.trim().toLowerCase())).length && <button type="button" className="eh-icon-library-more" onClick={() => setIconLimit((value) => value + 72)}>عرض المزيد من الأيقونات</button>}
+        </section>
         {kind === 'custom' && <section className="eh-custom-kind-fields">
           <div className="eh-custom-kind-heading"><b>إعداد النوع المخصص</b><small>يمكنك إنشاء نوع مثل: سكشن، ورشة، بنك مسائل، مشروع، أو أي تصنيف يناسب المادة.</small></div>
           {customTypePresets.length > 0 && <div className="eh-custom-type-presets"><span>أنواع أنشأتها سابقاً</span><div>{customTypePresets.map((preset) => <button key={preset.name} type="button" onClick={() => { setCustomTypeName(preset.name); setCustomTypeIcon(preset.icon); setCustomTypeColor(preset.color); setCanContainChildren(preset.canContainChildren); }}>{preset.icon} {preset.name}</button>)}<button type="button" className="new-type" onClick={() => { setCustomTypeName(''); setCustomTypeIcon('✳'); setCustomTypeColor('#4169e1'); setCanContainChildren(true); }}>+ نوع جديد</button></div></div>}
