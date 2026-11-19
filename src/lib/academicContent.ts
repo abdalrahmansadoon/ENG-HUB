@@ -155,9 +155,19 @@ export async function deleteAcademicContentNode(subjectId: string, nodeId: strin
     }
   }
   const ids = [...remove];
-  for (let offset = 0; offset < ids.length; offset += 400) {
+  const removedIds = new Set(ids);
+  const survivors = snapshot.docs.filter((entry) => !removedIds.has(entry.id) && Array.isArray(entry.data().linkedNodeIds) && entry.data().linkedNodeIds.some((id: unknown) => typeof id === 'string' && removedIds.has(id)));
+  const operations = [
+    ...ids.map((id) => ({ type: 'delete' as const, id })),
+    ...survivors.map((entry) => ({ type: 'unlink' as const, id: entry.id, linked: (entry.data().linkedNodeIds as string[]).filter((id) => !removedIds.has(id)) })),
+  ];
+  for (let offset = 0; offset < operations.length; offset += 400) {
     const batch = writeBatch(firestore);
-    ids.slice(offset, offset + 400).forEach((id) => batch.delete(doc(firestore, 'subjects', subjectId, 'contentNodes', id)));
+    operations.slice(offset, offset + 400).forEach((operation) => {
+      const ref = doc(firestore, 'subjects', subjectId, 'contentNodes', operation.id);
+      if (operation.type === 'delete') batch.delete(ref);
+      else batch.update(ref, { linkedNodeIds: operation.linked, updatedAt: serverTimestamp() });
+    });
     await batch.commit();
   }
   return ids.length;
