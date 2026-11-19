@@ -110,7 +110,7 @@ export function ChatPage({ user, cloudinarySettings, isDemo, isAdmin, roomId, ro
         if (cancelled) return;
         unsubscribe = subscribeGeneralChat(user.uid, setMessages, (reason) => setError(reason.message), roomId, () => setMessagesReady(true));
       } catch (reason) {
-        setError(reason instanceof Error ? reason.message : 'تعذر فتح المحادثة العامة.');
+        setError(reason instanceof Error && ((reason as { code?: string }).code === 'permission-denied' || reason.message.toLowerCase().includes('permission')) ? 'لا تسمح قواعد Firestore بفتح دردشة هذه المادة. تأكد من أن المادة منشورة وأن المستخدم عضو نشط، ثم انشر قواعد Firestore المحدّثة.' : reason instanceof Error ? reason.message : 'تعذر فتح المحادثة.');
       } finally {
         if (!cancelled) setLoading(false);
       }
