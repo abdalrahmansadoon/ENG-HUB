@@ -110,7 +110,7 @@ service cloud.firestore {
         allow delete: if false;
       }
       match /completedContent/{contentId} {
-        allow read, create, update, delete: if owns(userId) && activeUser();
+        allow read, create, update, delete: if owns(userId) && signedIn();
       }
     }
 
