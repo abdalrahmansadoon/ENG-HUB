@@ -392,6 +392,30 @@ export async function createSubjectCloud(subject: Omit<Subject, 'id' | 'lectures
   });
 }
 
+
+export async function deleteSubjectCloud(subjectId: string) {
+  const firestore = requireDb();
+  if (!subjectId) throw new Error('معرّف المادة غير صالح.');
+  const [content, lecturers, lectures, tasks, exams] = await Promise.all([
+    getDocs(collection(firestore, 'subjects', subjectId, 'contentNodes')),
+    getDocs(query(collection(firestore, 'lecturers'), where('subjectId', '==', subjectId))),
+    getDocs(query(collection(firestore, 'lectures'), where('subjectId', '==', subjectId))),
+    getDocs(query(collection(firestore, 'tasks'), where('subjectId', '==', subjectId))),
+    getDocs(query(collection(firestore, 'exams'), where('subjectId', '==', subjectId))),
+  ]);
+  const nested = await Promise.all([
+    ...lectures.docs.map((item) => getDocs(collection(firestore, 'lectures', item.id, 'parts'))),
+    ...tasks.docs.map((item) => getDocs(collection(firestore, 'tasks', item.id, 'assignments'))),
+  ]);
+  const refs = [doc(firestore, 'subjects', subjectId), ...content.docs.map(x=>x.ref), ...lecturers.docs.map(x=>x.ref), ...lectures.docs.map(x=>x.ref), ...tasks.docs.map(x=>x.ref), ...exams.docs.map(x=>x.ref), ...nested.flatMap(x=>x.docs.map(y=>y.ref))];
+  for (let i=0; i<refs.length; i+=450) {
+    const batch = writeBatch(firestore);
+    refs.slice(i,i+450).forEach(ref=>batch.delete(ref));
+    await batch.commit();
+  }
+  return { deleted: refs.length, lectures: lectures.size, lecturers: lecturers.size, tasks: tasks.size };
+}
+
 export async function saveFileMetadataCloud(file: LibraryFile, ownerId: string, visibility: 'private' | 'public' = 'private') {
   await addDoc(collection(requireDb(), 'files'), {
     name: file.name, type: file.type, subjectName: file.subjectName, size: file.size,
