@@ -125,7 +125,7 @@ export function AppShell({
         <header className="eh-topbar">
           <div className="eh-topbar-leading">
             <button type="button" className="eh-icon-btn eh-mobile-menu" onClick={onOpenMobileNav} aria-label="فتح القائمة"><Menu size={21}/></button>
-            <button type="button" className="eh-icon-btn eh-sidebar-toggle" onClick={toggleCollapsed} aria-label={collapsed ? "توسيع القائمة" : "طي القائمة"} title={collapsed ? "توسيع القائمة" : "طي القائمة"}>{collapsed ? <PanelLeftOpen size={18}/> : <PanelLeftClose size={18}/>}</button><div className="eh-breadcrumb"><span>ENG HUB</span><ChevronLeft size={14}/>{page === "home" ? <b className="eh-home-greeting">أهلاً بعودتك، {user.displayName.trim().split(/\\s+/)[0]}</b> : <b>{pageTitle}</b>}</div>
+            <button type="button" className="eh-icon-btn eh-sidebar-toggle" onClick={toggleCollapsed} aria-label={collapsed ? "توسيع القائمة" : "طي القائمة"} title={collapsed ? "توسيع القائمة" : "طي القائمة"}>{collapsed ? <PanelLeftOpen size={18}/> : <PanelLeftClose size={18}/>}</button><div className="eh-breadcrumb"><span>ENG HUB</span><ChevronLeft size={14}/>{page === "home" ? <b className="eh-home-greeting">أهلاً بعودتك، {user.displayName.trim().split(/\s+/)[0]}</b> : <b>{pageTitle}</b>}</div>
           </div>
           <div className="eh-topbar-actions">
             <div className="eh-search-wrap">
