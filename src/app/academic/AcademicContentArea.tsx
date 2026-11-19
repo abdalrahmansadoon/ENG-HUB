@@ -150,7 +150,7 @@ export function AcademicContentArea({
       <div className="eh-content-studio-actions">
         <button type="button" className="eh-button eh-content-subject-back" onClick={onBackToSubject}><ArrowUpLeft size={15}/> أقسام المادة</button>
         <label className="eh-content-search"><Search size={16}/><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="ابحث داخل هذا القسم"/></label>
-        {isAdmin && !activeNode && <button type="button" className="eh-button primary" onClick={openAdd}><Plus size={16}/> إضافة محتوى</button>}
+        {isAdmin && (!activeNode || isAcademicContentContainer(activeNode)) && <button type="button" className="eh-button primary" onClick={openAdd}><Plus size={16}/> {activeNode ? 'إضافة عنصر داخل هذا القسم' : 'إضافة محتوى'}</button>}
       </div>
     </div>
 
@@ -169,7 +169,8 @@ export function AcademicContentArea({
       {activeNode && <button type="button" className="eh-content-back" onClick={() => onNavigate(category, activeNode.parentId || undefined)}><ArrowDown size={14}/> رجوع</button>}
     </nav>
 
-    <section className="eh-content-items-section">
+    {(!activeNode || isAcademicContentContainer(activeNode)) && <section className="eh-content-items-section">
+      {activeNode && <div className="eh-content-folder-summary"><div><b>{children.length}</b><small>عنصر داخل هذا القسم</small></div><div><b>{children.filter((node) => node.kind === 'video' && completedVideoIds.has(node.id)).length}</b><small>فيديو مكتمل</small></div><div><b>{children.filter((node) => node.kind === 'video').length}</b><small>إجمالي الفيديوهات</small></div></div>}
       <div className="eh-content-items-heading">
         <div><span className="eh-eyebrow">{category.toUpperCase()} · CONTENT</span><h3>{activeNode?.title ?? (categories.find((item) => item.id === category)?.title || 'المحتوى')}</h3></div>
         <span>{children.length} عنصر</span>
@@ -181,7 +182,7 @@ export function AcademicContentArea({
           const isDraft = node.publicationStatus === 'draft';
           const storedIconName = node.iconName?.startsWith('lucide:') ? node.iconName.slice(7) : node.iconName;
           const ChosenIcon = storedIconName ? (LucideIcons as unknown as Record<string, LucideIcon>)[storedIconName] : undefined;
-          const kindLabel = node.kind === 'custom' ? (node.customTypeName || 'نوع مخصص') : (kinds.find((kind) => kind.id === node.kind)?.label ?? node.kind);
+          const kindLabel = node.kind ==== 'custom' ? (node.customTypeName || 'نوع مخصص') : (kinds.find((kind) => kind.id === node.kind)?.label ?? node.kind);
           return <article className={`eh-content-item-card ${node.kind === 'video' ? 'is-video-card' : ''}`} key={node.id}>
             {node.kind === 'video' && <div className="eh-content-video-card-cover"><span className="eh-content-video-card-play"><Play size={20} fill="currentColor"/></span><span className="eh-content-video-card-label">محاضرة مسجلة</span>{completedVideoIds.has(node.id) && <span className="eh-content-video-card-done"><Check size={12}/> مكتمل</span>}</div>}
             <button type="button" className="eh-content-item-open" onClick={() => isFolder ? onNavigate(category, node.id) : onNavigate(category, node.id)}>
@@ -195,7 +196,7 @@ export function AcademicContentArea({
               {isDraft && <span className="eh-content-draft"><Lock size={11}/> مسودة</span>}
               {node.linkedNodeIds.length > 0 && <span><Link2 size={12}/> {node.linkedNodeIds.length} روابط مرتبطة</span>}
             </div>
-            {isAdmin && node.createdBy !== 'legacy' && <div className="eh-content-item-admin">
+            {isAdmin && <div className="eh-content-item-admin">
               <button type="button" title="تعديل العنصر" aria-label={'تعديل ' + node.title} onClick={() => openEdit(node)}><Pencil size={14}/></button>
               <button type="button" title="حذف العنصر" aria-label={'حذف ' + node.title} onClick={() => void remove(node)}><Trash2 size={14}/></button>
             </div>}
@@ -210,6 +211,14 @@ export function AcademicContentArea({
     </section>
 
     {activeNode && <section className="eh-content-detail">
+      <div className="eh-content-detail-toolbar">
+        <div><span className="eh-content-detail-label">CONTENT WORKSPACE</span><small>{isAcademicContentContainer(activeNode) ? 'إدارة محتويات هذا القسم' : 'عرض المحتوى وإدارته'}</small></div>
+        {isAdmin && <div className="eh-content-detail-actions eh-content-detail-actions-top">
+          <button type="button" className="eh-button" onClick={() => openEdit(activeNode)}><Pencil size={15}/> تعديل</button>
+          <button type="button" className="eh-button danger" onClick={() => void remove(activeNode)}><Trash2 size={15}/> حذف</button>
+          {isAcademicContentContainer(activeNode) && <button type="button" className="eh-button primary" onClick={openAdd}><Plus size={16}/> إضافة عنصر</button>}
+        </div>}
+      </div>
       <header><span className="eh-content-detail-label">CONTENT DETAILS</span><h3>{activeNode.title}</h3>{activeNode.description && <p>{activeNode.description}</p>}</header>
       {(activeNode.kind === 'video' || activeNode.kind === 'lecture') && activeNode.url && <AcademicVideo url={activeNode.url} title={activeNode.title} mimeType={activeNode.mimeType}/>} 
       {activeNode.kind === 'video' && siblingVideos.length > 0 && <section className="eh-video-playlist"><div className="eh-content-items-heading"><div><span className="eh-eyebrow">CONTINUE LEARNING</span><h3>فيديوهات أخرى في هذا المجلد</h3></div><span>{siblingVideos.length} فيديو</span></div><div className="eh-video-playlist-list">{siblingVideos.map((video, index) => <button type="button" key={video.id} onClick={() => onNavigate(video.category, video.id)}><span className="eh-video-playlist-number">{String(index + 1).padStart(2, '0')}</span><span className="eh-video-playlist-copy"><b>{video.title}</b><small>{video.duration || 'فيديو تعليمي'}</small></span>{completedVideoIds.has(video.id) ? <CheckCircle2 size={16} className="is-done"/> : <Play size={15}/>}</button>)}</div></section>}
@@ -236,13 +245,7 @@ export function AcademicContentArea({
           <span><b>{node.title}</b><small>{node.kind === 'custom' ? (node.customTypeName || 'نوع مخصص') : (kinds.find((item) => item.id === node.kind)?.label ?? node.kind)}</small></span><ChevronLeft size={15}/>
         </button>)}</div>
       </div>}
-      {isAdmin && <div className="eh-content-detail-actions">
-        {activeNode.createdBy !== 'legacy' && <>
-          <button type="button" className="eh-button" onClick={() => openEdit(activeNode)}><Pencil size={15}/> تعديل العنصر</button>
-          <button type="button" className="eh-button danger" onClick={() => void remove(activeNode)}><Trash2 size={15}/> حذف العنصر</button>
-        </>}
-        {isAcademicContentContainer(activeNode) && <button type="button" className="eh-button primary" onClick={openAdd}><Plus size={16}/> إنشاء عنصر داخله</button>}
-      </div>}
+
     </section>}
 
     {modalOpen && <AcademicContentModal
