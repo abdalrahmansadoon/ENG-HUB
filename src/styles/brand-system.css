@@ -1445,3 +1445,69 @@ button,input,textarea,select{font-family:inherit}
 .eh-app .eh-video-player-tools label{display:flex;align-items:center;gap:8px;font-weight:800;color:var(--eh-ink)}
 .eh-app .eh-video-player-tools select{min-height:34px;padding:0 9px;border:1px solid var(--eh-stroke);border-radius:8px;background:var(--eh-card-soft);color:var(--eh-ink)}
 @media(max-width:680px){.eh-app .eh-video-player-topline{align-items:flex-start}.eh-app .eh-video-player-tools{align-items:flex-start;flex-direction:column}}
+
+
+/* Dedicated subject creation experience */
+.eh-app .eh-subject-create-backdrop{z-index:1200;padding:22px;backdrop-filter:blur(9px);background:rgba(7,15,29,.62)}
+.eh-app .eh-subject-create-modal{width:min(860px,100%);max-width:860px;max-height:min(92dvh,940px);overflow:auto;padding:0;border:1px solid var(--eh-stroke);border-radius:23px;background:var(--eh-card-bg);box-shadow:0 28px 90px rgba(0,0,0,.28)}
+.eh-app .eh-subject-create-hero{position:relative;display:grid;grid-template-columns:minmax(0,1.15fr) minmax(210px,.85fr);align-items:center;gap:20px;padding:26px;background:radial-gradient(circle at 7% 0%,color-mix(in srgb,var(--eh-accent) 15%,transparent),transparent 42%),linear-gradient(135deg,var(--eh-card-soft),var(--eh-card-bg));border-bottom:1px solid var(--eh-stroke)}
+.eh-app .eh-subject-create-hero-copy{min-width:0;padding-inline-end:25px}
+.eh-app .eh-subject-create-hero-copy h2{margin:7px 0 5px;font-size:clamp(21px,3vw,29px);font-weight:900;color:var(--eh-ink)}
+.eh-app .eh-subject-create-hero-copy p{margin:0;color:var(--eh-sub);font-size:11px;line-height:1.9}
+.eh-app .eh-subject-create-close{position:absolute;top:15px;inset-inline-end:15px;width:34px;height:34px;display:grid;place-items:center}
+.eh-app .eh-subject-live-preview{--subject-color:var(--eh-accent);display:flex;flex-direction:column;align-items:flex-start;gap:5px;min-height:145px;padding:15px;border:1px solid color-mix(in srgb,var(--subject-color) 28%,var(--eh-stroke));border-radius:17px;background:linear-gradient(145deg,color-mix(in srgb,var(--subject-color) 12%,var(--eh-card-bg)),var(--eh-card-bg));box-shadow:0 9px 24px color-mix(in srgb,var(--subject-color) 9%,transparent)}
+.eh-app .eh-subject-preview-icon{width:48px;height:48px;display:grid;place-items:center;margin-bottom:2px;border-radius:14px;background:var(--subject-color);color:white}
+.eh-app .eh-subject-live-preview>span{font:800 9px/1.5 Inter,sans-serif;letter-spacing:1px;color:var(--subject-color)}
+.eh-app .eh-subject-live-preview>b{font-size:14px;font-weight:900;color:var(--eh-ink)}
+.eh-app .eh-subject-live-preview>small{font-size:9px;color:var(--eh-sub);line-height:1.6}
+.eh-app .eh-subject-create-form{padding:22px 26px 25px;gap:17px}
+.eh-app .eh-subject-fields-grid{display:grid;grid-template-columns:1fr 1fr;gap:13px}
+.eh-app .eh-subject-create-form label{display:flex;flex-direction:column;gap:7px;font-size:11px;font-weight:800;color:var(--eh-ink)}
+.eh-app .eh-subject-create-form input:not([type=color]),.eh-app .eh-subject-create-form textarea{width:100%;min-width:0;border:1px solid var(--eh-stroke-strong);border-radius:10px;background:var(--eh-card-soft);padding:10px 12px;color:var(--eh-ink);font:500 11px/1.7 var(--eh-brand-font);outline:none;transition:border-color .18s,box-shadow .18s}
+.eh-app .eh-subject-create-form input:focus,.eh-app .eh-subject-create-form textarea:focus{border-color:var(--eh-accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--eh-accent) 12%,transparent)}
+.eh-app .eh-subject-create-form textarea{resize:vertical;min-height:66px}
+.eh-app .eh-subject-optional{display:inline;color:var(--eh-muted);font-size:9px;font-weight:500}
+.eh-app .eh-subject-icon-section,.eh-app .eh-subject-color-section{padding:14px;border:1px solid var(--eh-stroke);border-radius:14px;background:var(--eh-card-soft)}
+.eh-app .eh-subject-section-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:11px}
+.eh-app .eh-subject-section-heading>div{display:flex;flex-direction:column;gap:3px}
+.eh-app .eh-subject-section-heading b{font-size:12px;color:var(--eh-ink)}
+.eh-app .eh-subject-section-heading small{font-size:9px;color:var(--eh-sub);font-weight:500}
+.eh-app .eh-subject-section-heading>span{flex:0 0 auto;padding:5px 8px;border-radius:8px;background:var(--eh-accent-wash);color:var(--eh-accent);font-size:9px;font-weight:900}
+.eh-app .eh-subject-icon-search{height:39px;display:flex;align-items:center;gap:9px;padding:0 11px;border:1px solid var(--eh-stroke-strong);border-radius:10px;background:var(--eh-card-bg);color:var(--eh-sub)}
+.eh-app .eh-subject-icon-search input{border:0!important;box-shadow:none!important;background:transparent!important;padding:0!important}
+.eh-app .eh-subject-icon-search button{display:grid;place-items:center;width:25px;height:25px;border:0;border-radius:7px;background:var(--eh-card-soft);color:var(--eh-sub)}
+.eh-app .eh-subject-icon-grid{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:7px;max-height:245px;overflow:auto;margin-top:10px;padding:2px;scrollbar-width:thin}
+.eh-app .eh-subject-icon-grid button{min-width:0;min-height:62px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;padding:5px 3px;border:1px solid var(--eh-stroke);border-radius:10px;background:var(--eh-card-bg);color:var(--eh-sub);transition:.16s ease}
+.eh-app .eh-subject-icon-grid button:hover{border-color:var(--eh-accent);color:var(--eh-accent);transform:translateY(-1px)}
+.eh-app .eh-subject-icon-grid button.selected{border-color:var(--eh-accent);background:var(--eh-accent-wash);color:var(--eh-accent);box-shadow:inset 0 0 0 1px var(--eh-accent)}
+.eh-app .eh-subject-icon-grid button small{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font:600 8px/1.3 Inter,sans-serif}
+.eh-app .eh-subject-show-icons{width:100%;margin-top:9px;padding:9px;border:1px dashed var(--eh-stroke-strong);border-radius:9px;background:var(--eh-card-bg);color:var(--eh-accent);font-size:10px;font-weight:800}
+.eh-app .eh-subject-no-icons{margin:12px 0 2px;text-align:center;color:var(--eh-muted);font-size:10px}
+.eh-app .eh-subject-color-options{display:flex;align-items:center;flex-wrap:wrap;gap:10px}
+.eh-app .eh-subject-color-options>button,.eh-app .eh-subject-custom-color{width:32px;height:32px;display:grid;place-items:center;border:2px solid transparent;border-radius:50%;background:transparent;padding:3px}
+.eh-app .eh-subject-color-options>button span{width:100%;height:100%;border-radius:50%;background:var(--swatch)}
+.eh-app .eh-subject-color-options>button.selected{border-color:var(--eh-ink)}
+.eh-app .eh-subject-custom-color{position:relative;border:1px dashed var(--eh-stroke-strong);color:var(--eh-sub);cursor:pointer}
+.eh-app .eh-subject-custom-color input{position:absolute;width:1px;height:1px;opacity:0}
+.eh-app .eh-subject-create-footer{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-top:14px;border-top:1px solid var(--eh-stroke)}
+.eh-app .eh-subject-create-footer>div:first-child{display:flex;flex-direction:column;gap:3px}
+.eh-app .eh-subject-create-footer b{font-size:11px;color:var(--eh-ink)}
+.eh-app .eh-subject-create-footer small{font-size:9px;color:var(--eh-sub)}
+.eh-app .eh-subject-create-footer .modal-actions{display:flex;gap:8px}
+.eh-app .eh-academic-subject-icon{display:grid;place-items:center;flex:0 0 58px}
+@media(max-width:680px){
+ .eh-app .eh-subject-create-backdrop{padding:8px;align-items:flex-end}
+ .eh-app .eh-subject-create-modal{max-height:95dvh;border-radius:19px 19px 12px 12px}
+ .eh-app .eh-subject-create-hero{grid-template-columns:minmax(0,1fr);gap:13px;padding:22px 16px 15px}
+ .eh-app .eh-subject-create-hero-copy{padding-inline-end:28px}
+ .eh-app .eh-subject-live-preview{min-height:0;display:grid;grid-template-columns:44px minmax(0,1fr);column-gap:10px;align-items:center}
+ .eh-app .eh-subject-preview-icon{grid-row:span 3;width:44px;height:44px;margin:0}
+ .eh-app .eh-subject-live-preview>span,.eh-app .eh-subject-live-preview>b,.eh-app .eh-subject-live-preview>small{grid-column:2}
+ .eh-app .eh-subject-create-form{padding:15px;gap:13px}
+ .eh-app .eh-subject-fields-grid{grid-template-columns:minmax(0,1fr)}
+ .eh-app .eh-subject-icon-grid{grid-template-columns:repeat(5,minmax(0,1fr));max-height:210px;gap:5px}
+ .eh-app .eh-subject-icon-grid button{min-height:56px}
+ .eh-app .eh-subject-create-footer{align-items:stretch;flex-direction:column}
+ .eh-app .eh-subject-create-footer .modal-actions{width:100%}
+ .eh-app .eh-subject-create-footer .modal-actions button{flex:1}
+}
