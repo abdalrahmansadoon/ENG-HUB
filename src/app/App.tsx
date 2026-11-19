@@ -97,8 +97,11 @@ function App() {
     return subscribeAcademicCalendar(setAcademicCalendar, (error) => setToast(`تعذر قراءة إعدادات السنة الدراسية: ${error.message}`));
   }, [user?.uid, isDemo]);
   useEffect(() => {
-    if (!user || isDemo) { setCompletedVideoIds(new Set()); return; }
-    return subscribeCompletedAcademicContent(activeUser.uid, setCompletedVideoIds, (error) => setToast(`تعذر مزامنة تقدم الفيديوهات: ${error.message}`));
+    if (!user || isDemo || !isFirebaseConfigured || !activeUser.uid) { setCompletedVideoIds(new Set()); return; }
+    return subscribeCompletedAcademicContent(activeUser.uid, setCompletedVideoIds, (error) => {
+      console.error('ENG HUB video progress sync failed', { code: (error as Error & { code?: string }).code, message: error.message });
+      setToast(`تعذر مزامنة تقدم الفيديوهات (${(error as Error & { code?: string }).code || 'unknown'}). تحقق من صلاحيات Firestore واتصالك.`);
+    });
   }, [user?.uid, isDemo, activeUser.uid]);
   useEffect(() => writeLocal('notifications', notifications), [notifications]);
   useEffect(() => { document.title = `${pageTitle(page)} | ENG HUB`; }, [page]);
