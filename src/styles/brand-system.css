@@ -1433,3 +1433,15 @@ button,input,textarea,select{font-family:inherit}
 .eh-app .eh-video-playlist-copy small{font-size:9px;color:var(--eh-sub)}
 .eh-app .eh-video-playlist-list .is-done{color:var(--eh-teal)}
 @media(max-width:680px){.eh-app .eh-content-video-card-cover{height:100px}.eh-app .eh-video-playlist-list{grid-template-columns:minmax(0,1fr)}}
+
+/* Unified lesson player */
+.eh-app .eh-video-player-shell{max-width:1180px;margin:14px auto;padding:12px;border:1px solid var(--eh-stroke);border-radius:17px;background:var(--eh-card-bg)}
+.eh-app .eh-video-player-topline{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:4px 4px 12px}
+.eh-app .eh-video-player-topline>div{display:flex;flex-direction:column;gap:3px;min-width:0}
+.eh-app .eh-video-player-topline b{font-size:12px;color:var(--eh-ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.eh-app .eh-video-player-topline a{display:inline-flex;align-items:center;gap:6px;padding:8px 10px;border:1px solid var(--eh-stroke);border-radius:9px;color:var(--eh-accent);font-size:10px;text-decoration:none;white-space:nowrap}
+.eh-app .eh-video-player-shell .eh-content-video{margin:0 auto;border-radius:12px;max-width:none}
+.eh-app .eh-video-player-tools{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 4px 1px;color:var(--eh-sub);font-size:10px}
+.eh-app .eh-video-player-tools label{display:flex;align-items:center;gap:8px;font-weight:800;color:var(--eh-ink)}
+.eh-app .eh-video-player-tools select{min-height:34px;padding:0 9px;border:1px solid var(--eh-stroke);border-radius:8px;background:var(--eh-card-soft);color:var(--eh-ink)}
+@media(max-width:680px){.eh-app .eh-video-player-topline{align-items:flex-start}.eh-app .eh-video-player-tools{align-items:flex-start;flex-direction:column}}
