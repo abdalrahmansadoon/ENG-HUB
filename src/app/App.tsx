@@ -764,17 +764,41 @@ function Dashboard({ userName, tasks, subjects, exams, lectures, onGo, onNewTask
   ].filter((item) => !Number.isNaN(item.date.getTime())).sort((a,b)=>a.date.getTime()-b.date.getTime()).slice(0,4);
   const rate = tasks.length ? Math.round((completed / tasks.length) * 100) : 0;
   const today = new Date().toLocaleDateString('ar-EG',{weekday:'long',day:'numeric',month:'long'});
+  const firstName = userName.trim().split(/\\s+/)[0] || 'طالب الهندسة';
   return <div className="eh-home">
-    <div className="eh-section-heading">
-      <div><span className="eh-eyebrow">نظرة عامة</span><h2>ملخص دراستك</h2><p>مؤشرات محسوبة من بياناتك الفعلية</p></div>
-      <button type="button" className="eh-text-button" onClick={() => onGo('analytics')}>عرض التحليلات <ArrowLeft size={15}/></button>
-    </div>
+    <section className="eh-welcome">
+      <div className="eh-welcome-copy">
+        <span className="eh-eyebrow">{today}</span>
+        <h1>مرحباً، {firstName} <span aria-hidden="true">👋</span></h1>
+        <p>لديك {pending} مهام تحتاج إلى متابعة و{currentExams} اختبارات لم تنتهِ بعد.</p>
+      </div>
+      <div className="eh-welcome-actions">
+        <button type="button" className="eh-button" onClick={() => onGo('courses')}><BookOpen size={16}/> استكمل التعلم</button>
+        {canCreateTask && <button type="button" className="eh-button primary" onClick={onNewTask}><Plus size={16}/> مهمة جديدة</button>}
+      </div>
+    </section>
 
-    <section className="eh-stat-grid">
-      <StatCard label="المهام المتبقية" value={pending.toString()} detail="تحتاج إلى متابعة" icon={<ListChecks size={20}/>} tone="purple"/>
+    <section className="eh-stat-grid" aria-label="ملخص الأداء">
       <StatCard label="المهام المكتملة" value={completed.toString()} detail={tasks.length ? `من أصل ${tasks.length} مهمة` : 'لا توجد مهام بعد'} icon={<CheckCircle2 size={20}/>} tone="green"/>
+      <StatCard label="المهام المتبقية" value={pending.toString()} detail="تحتاج إلى متابعة" icon={<ListChecks size={20}/>} tone="purple"/>
       <StatCard label="المحاضرات المنشورة" value={lectures.length.toString()} detail="في مكتبتك الأكاديمية" icon={<Play size={20}/>} tone="blue"/>
       <StatCard label="الاختبارات القادمة" value={currentExams.toString()} detail="اختبارات لم تنته بعد" icon={<ClipboardList size={20}/>} tone="amber"/>
+    </section>
+
+    <div className="eh-reference-section-head">
+      <div><span className="eh-eyebrow">CONTINUE LEARNING</span><h2>تابع تعلّمك</h2><p>انتقل مباشرة إلى مقرراتك الدراسية</p></div>
+      <button type="button" className="eh-text-button" onClick={() => onGo('courses')}>كل المواد <ArrowLeft size={15}/></button>
+    </div>
+    <section className="eh-continue-row">
+      {subjects.slice(0,3).map((subject) => {
+        const count = lectures.filter((lecture) => lecture.subjectId === subject.id).length;
+        return <button type="button" className="eh-continue-card" key={subject.id} onClick={() => onGo('courses')} style={{'--course-color':subject.color || '#3b82f6'} as React.CSSProperties}>
+          <span className="eh-continue-icon">{renderSubjectIcon(subject.icon,25)}</span>
+          <span className="eh-continue-info"><b>{subject.name}</b><small>{subject.code} · {count} محاضرة</small></span>
+          <span className="eh-continue-arrow"><ChevronLeft size={17}/></span>
+        </button>;
+      })}
+      {subjects.length===0 && <div className="eh-surface-card eh-continue-empty"><EmptyState title="لا توجد مواد دراسية بعد" body="ستظهر مقرراتك هنا بمجرد نشرها على المنصة."/></div>}
     </section>
 
     <section className="eh-home-grid">
@@ -782,31 +806,10 @@ function Dashboard({ userName, tasks, subjects, exams, lectures, onGo, onNewTask
         <div className="eh-card-heading"><div><span className="eh-eyebrow">MY PROGRESS</span><h2>إنجاز المهام</h2><p>نسبة إنجاز المهام المسجلة</p></div><span className="eh-progress-badge" style={{'--progress-degree':rate*3.6+'deg'} as React.CSSProperties}>{rate}%</span></div>
         <div className="eh-progress-line"><span style={{width:rate+'%'}}/></div>
         <div className="eh-progress-meta"><span><i className="eh-dot green"/> مكتملة <b>{completed}</b></span><span><i className="eh-dot purple"/> متبقية <b>{pending}</b></span></div>
-        <div className="eh-progress-footer"><span>تقدمك يظهر هنا مع تحديث المهام</span><button type="button" onClick={() => onGo('tasks')}>إدارة المهام <ArrowLeft size={14}/></button></div>
-      </div>
-
-      <div className="eh-surface-card eh-subject-overview">
-        <div className="eh-card-heading"><div><span className="eh-eyebrow">ACADEMIC LIBRARY</span><h2>المواد الدراسية</h2><p>{subjects.length} مواد متاحة لك</p></div><button type="button" className="eh-round-link" onClick={() => onGo('courses')} aria-label="عرض المواد"><ArrowLeft size={17}/></button></div>
-        {subjects.slice(0,4).map((subject) => <button type="button" className="eh-subject-line" key={subject.id} onClick={() => onGo('courses')}>
-          <span className="eh-subject-symbol" style={{'--subject-color':subject.color} as React.CSSProperties}>{renderSubjectIcon(subject.icon, 20)}</span>
-          <span><b>{subject.name}</b><small>{subject.code}</small></span>
-          <span className="eh-subject-line-meta">{lectures.filter((item)=>item.subjectId===subject.id).length} محاضرة</span>
-          <ChevronLeft size={16}/>
-        </button>)}
-        {subjects.length === 0 && <EmptyState title="لا توجد مواد منشورة" body="ستظهر المقررات هنا عندما يضيفها المسؤول."/>}
-      </div>
-    </section>
-
-    <section className="eh-home-grid eh-home-grid-bottom">
-      <div className="eh-surface-card eh-task-preview">
-        <div className="eh-card-heading"><div><span className="eh-eyebrow">UP NEXT</span><h2>المهام التي تحتاج انتباهك</h2><p>مرتبة حسب أقرب موعد انتهاء</p></div><button type="button" className="eh-text-button" onClick={() => onGo('tasks')}>كل المهام <ArrowLeft size={15}/></button></div>
-        <div className="eh-task-list">
-          {upcomingTasks.map((task) => <TaskRow key={task.id} task={task} onStatus={onStatus}/>)}
-          {upcomingTasks.length===0 && <EmptyState title="أنت على ما يرام" body="لا توجد مهام مفتوحة حالياً."/>}
-        </div>
+        <div className="eh-progress-footer"><span>يتحدث التقدم تلقائياً مع تحديث المهام</span><button type="button" onClick={() => onGo('tasks')}>إدارة المهام <ArrowLeft size={14}/></button></div>
       </div>
       <div className="eh-surface-card eh-agenda-card">
-        <div className="eh-card-heading"><div><span className="eh-eyebrow">UPCOMING</span><h2>المواعيد القادمة</h2><p>المهام والاختبارات</p></div><button type="button" className="eh-round-link" onClick={() => onGo('planner')} aria-label="فتح المخطط"><CalendarDays size={17}/></button></div>
+        <div className="eh-card-heading"><div><span className="eh-eyebrow">UPCOMING</span><h2>المواعيد القادمة</h2><p>المهام والاختبارات القادمة</p></div><button type="button" className="eh-round-link" onClick={() => onGo('planner')} aria-label="فتح المخطط"><CalendarDays size={17}/></button></div>
         <div className="eh-agenda-list">
           {upcoming.map((item) => <div className="eh-agenda-item" key={item.id}>
             <div className="eh-agenda-date"><b>{item.date.toLocaleDateString('ar-EG',{day:'numeric'})}</b><small>{item.date.toLocaleDateString('ar-EG',{month:'short'})}</small></div>
@@ -818,7 +821,13 @@ function Dashboard({ userName, tasks, subjects, exams, lectures, onGo, onNewTask
       </div>
     </section>
 
-
+    <section className="eh-surface-card eh-task-preview">
+      <div className="eh-card-heading"><div><span className="eh-eyebrow">UP NEXT</span><h2>المهام التي تحتاج انتباهك</h2><p>مرتبة حسب أقرب موعد انتهاء</p></div><button type="button" className="eh-text-button" onClick={() => onGo('tasks')}>كل المهام <ArrowLeft size={15}/></button></div>
+      <div className="eh-task-list">
+        {upcomingTasks.map((task) => <TaskRow key={task.id} task={task} onStatus={onStatus}/>)}
+        {upcomingTasks.length===0 && <EmptyState title="أنت على ما يرام" body="لا توجد مهام مفتوحة حالياً."/>}
+      </div>
+    </section>
   </div>;
 }
 
