@@ -682,12 +682,16 @@ export function ChatPage({ user, cloudinarySettings, isDemo, isAdmin, roomId, ro
   };
 
   const openContextMenu = (message: ChatMessage, x: number, y: number) => {
-    const width = 236;
-    const height = isAdmin ? 385 : 280;
-    setContextPosition({
-      x: Math.max(10, Math.min(x, window.innerWidth - width - 10)),
-      y: Math.max(10, Math.min(y, window.innerHeight - height - 10)),
-    });
+    const mobile = window.matchMedia('(max-width: 700px)').matches;
+    const width = mobile ? Math.min(260, window.innerWidth - 24) : 236;
+    const height = isAdmin ? 410 : 300;
+    const safeTop = mobile ? 12 : 10;
+    const safeBottom = mobile ? 18 : 10;
+    // Clamp the complete menu rectangle to the visible viewport, including
+    // mobile browser safe areas; never position it from the raw tap point alone.
+    const nextX = Math.max(12, Math.min(x - (mobile ? width / 2 : 0), window.innerWidth - width - 12));
+    const nextY = Math.max(safeTop, Math.min(y, window.innerHeight - height - safeBottom));
+    setContextPosition({ x: nextX, y: nextY });
     setContextMessage(message);
   };
   const onMessageContextMenu = (event: MouseEvent<HTMLElement>, message: ChatMessage) => {
