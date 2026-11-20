@@ -19,3 +19,20 @@
 /* Shared academic component tokens mapped to the supplied midnight-blue reference palette */
 .ref-app.eh-app{--eh-brand-font:'Cairo','Plus Jakarta Sans',sans-serif;--eh-page-bg:#060b14;--eh-card-bg:#0d1425;--eh-card-soft:#131c33;--eh-stroke:#1c2842;--eh-stroke-strong:#2a3a5c;--eh-ink:#f1f5f9;--eh-sub:#94a3b8;--eh-muted:#64748b;--eh-accent:#3b82f6;--eh-accent-2:#06b6d4;--eh-accent-wash:rgba(59,130,246,.12);--eh-teal:#10b981;--eh-teal-wash:rgba(16,185,129,.13);--eh-warning:#f59e0b;--eh-warning-wash:rgba(245,158,11,.13);--eh-danger:#ef4444;--eh-danger-wash:rgba(239,68,68,.13);--bg:var(--eh-page-bg);--surface:var(--eh-card-bg);--surface2:var(--eh-card-soft);--surface3:#1a2540;--border:var(--eh-stroke);--border2:var(--eh-stroke-strong);--text:var(--eh-ink);--muted:var(--eh-sub);--dim:var(--eh-muted);--purple:var(--eh-accent);--purple2:var(--eh-accent-2);--green:var(--eh-teal);--blue:#60a5fa;--amber:var(--eh-warning);--danger:var(--eh-danger);background:var(--eh-page-bg);color:var(--eh-ink)}
 .ref-app.eh-app.eh-light{--eh-page-bg:#f5f7fb;--eh-card-bg:#fff;--eh-card-soft:#f7faff;--eh-stroke:#e4eaf4;--eh-stroke-strong:#cfdaeb;--eh-ink:#0b1226;--eh-sub:#4e5f7c;--eh-muted:#8a9bb5;--eh-accent:#2563eb;--eh-accent-2:#06b6d4;--eh-accent-wash:rgba(37,99,235,.09);--eh-teal:#059669;--eh-teal-wash:rgba(16,185,129,.10);--eh-warning:#d97706;--eh-warning-wash:rgba(245,158,11,.10);--eh-danger:#dc2626;--eh-danger-wash:rgba(239,68,68,.10);--bg:var(--eh-page-bg);--surface:var(--eh-card-bg);--surface2:var(--eh-card-soft);--surface3:#eef3fa;--border:var(--eh-stroke);--border2:var(--eh-stroke-strong);--text:var(--eh-ink);--muted:var(--eh-sub);--dim:var(--eh-muted);--purple:var(--eh-accent);--purple2:var(--eh-accent-2);--green:var(--eh-teal);--blue:#2563eb;--amber:var(--eh-warning);--danger:var(--eh-danger);background:var(--eh-page-bg);color:var(--eh-ink)}
+
+/* Emergency layout containment: keep the React page canvas visible beside the reference sidebar */
+html,body,#root{width:100%;min-width:0;min-height:100%;margin:0}
+#root>.eh-app.ref-app{display:flex!important;flex-direction:row!important;align-items:stretch!important;width:100%!important;min-height:100dvh!important;overflow:visible!important}
+#root>.eh-app.ref-app>.ref-sidebar{display:flex!important;flex:0 0 274px!important;width:274px!important;min-height:100dvh!important}
+#root>.eh-app.ref-app>.ref-workspace{display:flex!important;visibility:visible!important;opacity:1!important;flex:1 1 0!important;width:calc(100% - 274px)!important;min-width:0!important;max-width:none!important;min-height:100dvh!important;flex-direction:column!important;position:relative!important}
+#root>.eh-app.ref-app>.ref-workspace>.ref-topbar{display:flex!important;visibility:visible!important;opacity:1!important;flex:0 0 56px!important;width:100%!important;min-height:56px!important}
+#root>.eh-app.ref-app>.ref-workspace>.ref-content{display:block!important;visibility:visible!important;opacity:1!important;flex:1 1 auto!important;width:100%!important;min-width:0!important;max-width:none!important;min-height:calc(100dvh - 56px)!important;padding:24px 26px 36px!important;overflow:visible!important}
+#root>.eh-app.ref-app .eh-page-view{display:block!important;visibility:visible!important;opacity:1!important;width:100%!important;max-width:1600px!important;min-height:200px!important;margin:0 auto!important;padding:0!important}
+#root>.eh-app.ref-app .eh-home{display:block!important;visibility:visible!important;opacity:1!important;min-height:200px!important}
+@media(max-width:680px){
+ #root>.eh-app.ref-app{display:block!important}
+ #root>.eh-app.ref-app>.ref-sidebar{display:flex!important;position:fixed!important;width:min(86vw,320px)!important;flex:0 0 auto!important;min-height:100dvh!important}
+ #root>.eh-app.ref-app>.ref-workspace{display:flex!important;width:100%!important;min-height:100dvh!important}
+ #root>.eh-app.ref-app>.ref-workspace>.ref-content{padding:14px 12px calc(78px + env(safe-area-inset-bottom))!important;min-height:calc(100dvh - 56px)!important}
+ #root>.eh-app.ref-app>.ref-workspace>.ref-topbar{display:flex!important}
+}
