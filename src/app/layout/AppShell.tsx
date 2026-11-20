@@ -60,7 +60,7 @@ export function AppShell({ children, user, page, pageTitle, navGroups, isAdmin, 
     return !value;
   });
   return (
-    <div className={`ref-app ${dark ? 'ref-dark' : 'ref-light'} ${collapsed ? 'ref-collapsed' : ''}`} dir="rtl">
+    <div className={`eh-app ${dark ? 'eh-dark theme-dark ref-dark' : 'eh-light theme-light ref-light'} ref-app ${collapsed ? 'ref-collapsed' : ''}`} dir="rtl">
       <aside className={`ref-sidebar ${mobileNav ? 'is-open' : ''}`} aria-label="القائمة الرئيسية">
         <div className="ref-brand-row">
           <button type="button" className="ref-brand" onClick={goHome} aria-label="العودة إلى الرئيسية">
