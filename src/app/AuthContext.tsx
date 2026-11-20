@@ -4,6 +4,7 @@ import {
   deleteUser,
   EmailAuthProvider,
   GoogleAuthProvider,
+  getRedirectResult,
   onAuthStateChanged,
   reauthenticateWithCredential,
   reauthenticateWithPopup,
@@ -11,6 +12,8 @@ import {
   signInWithPopup,
   signInWithRedirect,
   signOut,
+  setPersistence,
+  browserLocalPersistence,
   updateProfile,
   type User as FirebaseUser,
 } from 'firebase/auth';
@@ -98,6 +101,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setProfileComplete(true);
       return;
     }
+
+    // Resolve any pending mobile redirect explicitly. The auth-state listener below
+    // remains the single source of truth for the signed-in user.
+    void getRedirectResult(firebaseAuth).catch((error) => {
+      console.error('ENG HUB Google redirect sign-in did not complete.', error);
+    });
 
     const stop = onAuthStateChanged(firebaseAuth, async (firebaseUser) => {
       setLoading(true);
@@ -187,17 +196,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       writeLocal('demoUser', next);
       return;
     }
+
     const provider = new GoogleAuthProvider();
-    // Redirect is more reliable than popups on phones and embedded browsers.
+    provider.setCustomParameters({ prompt: 'select_account' });
+
+    // Keep the session available when Google returns to the app on mobile browsers.
+    await setPersistence(firebaseAuth, browserLocalPersistence);
+
     const userAgent = typeof navigator !== 'undefined' ? navigator.userAgent : '';
-    const isEmbeddedBrowser = /FBAN|FBAV|Instagram|Line\//i.test(userAgent);
+    const isEmbeddedBrowser = /FBAN|FBAV|Instagram|Line\\//i.test(userAgent);
     const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(userAgent)
       || (typeof window !== 'undefined' && window.matchMedia?.('(pointer: coarse)').matches === true);
-    if (isMobile || isEmbeddedBrowser) {
-      await signInWithRedirect(firebaseAuth, provider);
-      return;
+
+    // A popup avoids the cross-site redirect-storage restrictions that affect
+    // some mobile Safari/Android webviews hosted on github.io.
+    try {
+      await signInWithPopup(firebaseAuth, provider);
+    } catch (error) {
+      const code = (error as { code?: string })?.code ?? '';
+      const popupUnavailable = code === 'auth/popup-blocked'
+        || code === 'auth/operation-not-supported-in-this-environment'
+        || code === 'auth/web-storage-unsupported';
+      if (isMobile && (popupUnavailable || isEmbeddedBrowser)) {
+        await signInWithRedirect(firebaseAuth, provider);
+        return;
+      }
+      throw error;
     }
-    await signInWithPopup(firebaseAuth, provider);
   };
 
   const persistProfile = async (profile: ProfileInput) => {
