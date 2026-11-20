@@ -204,7 +204,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await setPersistence(firebaseAuth, browserLocalPersistence);
 
     const userAgent = typeof navigator !== 'undefined' ? navigator.userAgent : '';
-    const isEmbeddedBrowser = /FBAN|FBAV|Instagram|Line\\//i.test(userAgent);
+    const isEmbeddedBrowser = /FBAN|FBAV|Instagram|Line\//i.test(userAgent);
     const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(userAgent)
       || (typeof window !== 'undefined' && window.matchMedia?.('(pointer: coarse)').matches === true);
 
