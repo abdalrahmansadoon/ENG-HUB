@@ -4,6 +4,7 @@ import { AuthProvider } from './app/AuthContext';
 import App from './app/App';
 import './styles/fresh-ui.css';
 import './styles/brand-system.css';
+import './styles/reference-design.css';
 
 import type { ErrorInfo, ReactNode } from 'react';
 
